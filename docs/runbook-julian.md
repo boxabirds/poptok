@@ -29,7 +29,7 @@ Hosts: `bin/hosts.sh` (`MAC_HOSTS=quintus`, the busy-image regex, the lock path)
 - **Never sudo.** HF token only in environment variables.
 - **Outputs the user looks at go on the share** (`~/sambashare/expts/poptok/pieces/...`, `pieces/_bench/eval/`),
   never only `/tmp`.
-- Commit or push only when asked.
+- Commit and push to main at the end of each working session (user, 2026-10-24: the repo had never been pushed); otherwise only when asked.
 
 ## Making a video
 
@@ -72,6 +72,23 @@ Set `WORKSHOP=1` in `piece.env` (with `TREATMENT=inputs/visual-treatment.txt`, `
 write `inputs/brief.txt` (artist, mood, references, review notes); `./poptok` runs `bin/workshop.sh` first when
 `inputs/workshop.md` doesn't exist. Read `inputs/workshop.md` before rendering (`--plan-only`). Redo: `bin/workshop.sh
 pieces/NAME --force`. Lyrics need `[Section]` headers in brackets (bare headers get aligned as sung lines).
+The workshop needs the lyric timings: `./poptok` runs the analysis first (`bin/make_video.sh ... --analysis-only`); by
+hand, run that before `bin/workshop.sh`. The directors get every line's time and a shot slot (G1, G2, ...) every ~6-8 s
+of each instrumental passage of 6 s or more; `lyrics-cued.txt` then has `(instrumental M:SS.S) {mode: note}` lines.
+See what they'll get without the LLM: `python3 pipeline/workshop.py pieces/NAME --dry-run`. After a workshop, check
+`visual-treatment.txt` keeps the brief's look and that "sing" is only on a few passages (the LLM ignores both rules
+often; fix by hand, keep the originals as `*.workshop.txt`).
+
+## Fixing one detail in a still (single pass, no loop)
+
+```bash
+# FIXES.json: [{"key": "shot_074.png", "fix": "remove the rifle; her hands are empty"}, {"key": ..., "photo": true}]
+python3 pipeline/fix_keys.py OUT FIXES.json --photo pieces/artists/r.amber.jpeg [--in-place]          # on a Spark
+PYTORCH_ENABLE_MPS_FALLBACK=1 .venv-qwenedit/bin/python pipeline/fix_keys.py OUT FIXES.json --device mps --models ~/models   # quintus
+```
+One edit per marked still, accepted or left; never re-edited (the user: edit loops don't converge). Works for removing
+or swapping one thing (an object, a stray figure, clothing, a reflection); not for reshaping a body or face (test
+2026-10-24: 4 of 6 clean). Results in `OUT/keys_fixed/` with before|after sheets; `--in-place` keeps `*.orig.png`.
 
 ## Bespoke effects (per piece)
 
@@ -97,7 +114,9 @@ Copy a run first (`cp -a outputs/v1 outputs/v2; rm outputs/v2/*.mp4`) to keep th
 ```bash
 python3 pipeline/sing_inserts.py plan OUT pieces/NAME/analysis STEM     # STEM = the song file's name without extension
 bin/sing_inserts.sh OUT "thing1:0,2 thing2:1,3"                          # skips inserts already rendered
-python3 pipeline/sing_inserts.py splice OUT OUT/NAME-nosync.mp4 OUT/NAME.mp4
+python3 pipeline/sing_inserts.py splice OUT OUT/NAME-nosync.mp4 OUT/NAME.mp4 --fx pieces/NAME/inputs/fx.json --fx-analysis pieces/NAME/analysis
+# plan: an insert that starts or ends mid-line is moved out to that line's start/end (+0.25 s); splice --fx puts the
+# piece's effects back on the inserts (they're cut in after the finish step)
 ```
 
 ## Removing the pulse from an existing render (no re-render)
@@ -139,6 +158,11 @@ Look at consecutive frames, not sparse contact sheets. Put sheets in `pieces/_be
 - **Long remote jobs on quintus:** run inside `screen -dmS NAME ...` so an ssh hangup doesn't kill them.
 - **quintus has its own copy of the code** (`~/expts/poptok`); `make_video.sh` syncs `pipeline/` there before each
   video. Anything run on quintus by hand needs `rsync -a pipeline/ quintus:expts/poptok/pipeline/` first.
+- **Still models on quintus (native MPS, 2026-10-24):** Qwen-Image-Edit + Lightning runs (33 s/still) in its own venv
+  `~/expts/poptok/.venv-qwenedit` (weights in quintus `~/models/Qwen-Image-Edit-2511{,-Lightning}`); benchmark:
+  `.venv-qwenedit/bin/python pipeline/mac_bench.py qwen --out DIR` under the lock (`pieces/_bench/mac-ports/macrun.sh`).
+  MOSS (`.venv-moss`) stops on a float64 line in its own pipeline file; InfiniteTalk (`.venv-infinitetalk`, deps only)
+  stops on xfuser/decord/xformers/flash-attn. Not wired into `amber_keys.py` yet.
 - **zsh globs remote paths locally:** quote `"host:path/*.png"` in rsync.
 - **Restarting the LLM by hand:** take the GPU lock first
   (`exec 9>/tmp/poptok-gpu.lock; flock 9; ~/.local/bin/llama-server -m <gguf> -ngl 99 -c 16384 --reasoning-budget 0 --port 8091`).

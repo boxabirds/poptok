@@ -11,7 +11,7 @@ visual_description, style, estd_bpm, duration, full_transcript.segments[*].promp
 """
 from __future__ import annotations
 
-import argparse, json, urllib.request
+import argparse, json, re, urllib.request
 from pathlib import Path
 
 import os, sys
@@ -57,16 +57,36 @@ def last_line(text):
 DIRECTIONS = {
     "none": "the singer does not appear in this shot",
     "pov": "seen through the singer's eyes: she is not visible; people may look toward or away from the camera as if at her",
-    "part": "show only part of the singer (a hand, her back, her silhouette or a reflection), never her face",
+    # part: drawn without her photo, so the text must make the body hers (noble-hunt v1: "a soldier's torso" came out
+    # a man's; "a fractured reflection instead of a face" came out a zombie face)
+    "part": "show only part of the singer ({performer}): her hand, her back, her silhouette or her reflection; describe "
+            "that part as hers (a young woman's hand, her shoulders and long hair from behind); a reflection shows her own "
+            "face, recognisably the same young woman, at most softly blurred",
     "scene": "the singer is in the shot ({performer}); call her 'the woman'",
     "sing": "the singer is in the shot, singing this line ({performer}); call her 'the woman'",
 }
+ONE_PERFORMER = (" She is the only person in the video who plays her role: if the lyrics or the staging name that role "
+                 "(a soldier, a traveller), it is her, never a second person beside or behind her.")
 
 
 def direction(cue, performer):
     mode, note = cue
     return (f"\n(Direction for this shot: {DIRECTIONS[mode].format(performer=performer)}."
+            + (ONE_PERFORMER if mode in ("part", "scene", "sing") else "")
             + (f" Staging: {note}." if note else "") + ")\n")
+
+
+SLOT = re.compile(r"^\(instrumental (\d+):(\d+(?:\.\d+)?)\)\s*\{(\w+)(?::\s*([^}]*))?\}\s*$")
+
+
+def instrumental_slots(path):
+    """[(start s, (mode, note))] for the workshop's instrumental shots: "(instrumental M:SS.S) {mode: note}"."""
+    out = []
+    for raw in open(path).read().split("\n"):
+        m = SLOT.match(raw.strip())
+        if m:
+            out.append((int(m.group(1)) * 60 + float(m.group(2)), (m.group(3), (m.group(4) or "").strip())))
+    return out
 
 
 def cues_for(lines, path):
@@ -87,7 +107,7 @@ def cues_for(lines, path):
             if ":" in inner and inner.split(":")[0].strip().lower() in ("singer", "amber", "performer"):
                 pending = inner.split(":", 1)[1].strip()
             continue
-        if not t:
+        if not t or SLOT.match(t):
             continue
         c = re.search(r"\{(\w+)(?::\s*([^}]*))?\}\s*$", t)
         lm, ln = (c.group(1), (c.group(2) or "").strip()) if c else (mode, sec_note)
@@ -131,6 +151,7 @@ def main():
                     "what everything is made of and how it's lit; every line's visual is written inside it")
     ap.add_argument("--performer", default="a young woman with long wavy blond hair",
                     help="how the performer looks, for lines where she appears")
+    ap.add_argument("--wardrobe", default="", help="what she wears in this piece (WARDROBE), added to her description")
     a = ap.parse_args()
     global API
     API = a.api
@@ -145,6 +166,15 @@ def main():
                                 if l and not re.match(r"^\[.*\]$", l)) + "\n"
 
     cues = cues_for(lines, a.cues) if a.cues else [None] * len(lines)
+    performer = f"{a.performer}, wearing {a.wardrobe}" if a.wardrobe else a.performer
+    if a.cues:              # the workshop's instrumental shots: their own prompts, so no still carries a long gap alone
+        INSTR = "(an instrumental passage: no words are sung; the staging below decides the shot)"
+        slots = instrumental_slots(a.cues)
+        if slots:
+            merged = sorted([(st, en, t, c) for (st, en, t), c in zip(lines, cues)] +
+                            [(st, st + 1, INSTR, c) for st, c in slots], key=lambda x: x[0])
+            lines, cues = [(st, en, t) for st, en, t, _ in merged], [c for *_, c in merged]
+            print(f"cues: {len(slots)} instrumental shots", flush=True)
     song_prompt = last_line(complete(a.llm, a.model, SONG_PROMPT + full_lyrics, max_tokens=256))
     if a.cues:              # the intro (before the first sung line) uses this prompt: with a cast, it holds no people,
         song_prompt += ", no people"            # or MOSS invents a stranger who isn't the performer (POC 22)
@@ -154,7 +184,7 @@ def main():
     for (st, en, text), cue in zip(lines, cues):
         extra = (f"\n(The whole video is rendered in the {a.style_word} style: {a.style_brief} Describe this shot entirely "
                  f"within that style; the line still decides what is in it.)\n" if a.style_word else "") + \
-                (direction(cue, a.performer) if cue else "") + ("\n(The visual must contain no written words, letters, numbers, logos, signs or on-screen text; show "
+                (direction(cue, performer) if cue else "") + ("\n(The visual must contain no written words, letters, numbers, logos, signs or on-screen text; show "
                  "the meaning through people, places, objects and light instead.)\n" if a.no_text else "")
         ctx = (f"\n(For continuity: the previous line was \"{prev[0]}\" and its visual was: {prev[1]})\n" if prev else "")
         v = last_line(complete(a.llm, a.model, LINE_PROMPT + text + ctx + extra + full_lyrics))

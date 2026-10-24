@@ -26,13 +26,13 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT=$PWD
 SONG=$1; shift
-STYLE=""; LYRICS=""; NAME=""; OUT=""; ANA=""; VHOST=""; NOTEXT=--no-text; TREAT=""; PLANONLY=""
+STYLE=""; LYRICS=""; NAME=""; OUT=""; ANA=""; VHOST=""; NOTEXT=--no-text; TREAT=""; PLANONLY=""; ANAONLY=""
 LTX_ARGS="--even-light"; FINISH_ARGS="--deflare 8"; MERGE_ARGS=""; KEY_HOSTS=""; LCTX=""; CUES=""; PHOTO=""
 PERFORMER="a young woman with long wavy blond hair"; AMBER_HOSTS=${AMBER_HOSTS:-thing1 thing2}
 while [ $# -gt 0 ]; do case $1 in
   --style) STYLE=$2; shift 2;; --lyrics) LYRICS=$2; shift 2;; --name) NAME=$2; shift 2;; --out) OUT=$2; shift 2;;
   --analysis) ANA=$2; shift 2;; --video-host) VHOST=$2; shift 2;; --keep-text) NOTEXT=""; shift;;
-  --treatment) TREAT=$2; shift 2;; --plan-only) PLANONLY=1; shift;;
+  --treatment) TREAT=$2; shift 2;; --plan-only) PLANONLY=1; shift;; --analysis-only) ANAONLY=1; shift;;
   --key-hosts) KEY_HOSTS=$2; shift 2;; --cues) CUES=$2; shift 2;; --performer-photo) PHOTO=$2; shift 2;;
   --performer) PERFORMER=$2; shift 2;; --lyrics-context) LCTX=$2; shift 2;; --ltx-args) LTX_ARGS=$2; shift 2;; --finish-args) FINISH_ARGS=$2; shift 2;; --merge-args) MERGE_ARGS=$2; shift 2;;
   *) echo "unknown option $1"; exit 2;; esac; done
@@ -73,6 +73,8 @@ if [ ! -f "$ANA/$STEM$TAG-segments.json" ]; then           # lyric timings: Whis
   analysis python pipeline/force_align.py "$SONG" "$LYRICS" --analysis "$ANA" --merge="$TAG" > "$ANA/force_align.log" 2>&1 \
     || log "forced alignment failed ($ANA/force_align.log): keeping Whisper-matched timings"
 fi
+# --analysis-only: stop here (./poptok runs this before the directors' workshop, which needs the lyric timings)
+[ -n "$ANAONLY" ] && { log "analysis done: $ANA"; exit 0; }
 # 3 prompts
 if [ ! -f "$ANA/full-metadata$TAG.json" ]; then
   llm_up
@@ -83,7 +85,7 @@ if [ ! -f "$ANA/full-metadata$TAG.json" ]; then
   else
     log "per-line prompts (${NOTEXT:-text allowed})"
     python3 pipeline/prompts_per_line.py "$SONG" --style "$STYLE" --api openai --llm $LLM_URL --model local \
-      --segments "$ANA/$STEM$TAG-segments.json" --analysis "$ANA" --tag="$TAG" $NOTEXT ${LCTX:+--lyrics-context "$LCTX"} ${CUES:+--cues "$CUES" --performer "$PERFORMER"} \
+      --segments "$ANA/$STEM$TAG-segments.json" --analysis "$ANA" --tag="$TAG" $NOTEXT ${LCTX:+--lyrics-context "$LCTX"} ${CUES:+--cues "$CUES" --performer "$PERFORMER"} ${WARDROBE:+--wardrobe "$WARDROBE"} \
       ${STYLE_WORD:+--style-word "$STYLE_WORD" --style-brief "$STYLE_BRIEF"} > "$OUT/prompts.log" 2>&1 \
       || { llm_down; exit 1; }
   fi
@@ -208,7 +210,8 @@ print(' '.join(h + ':' + ','.join(map(str, sorted(ks))) for h, ks in got.items()
     log "lip-sync: $NS sung inserts (InfiniteTalk) on $SPLAN"
     bin/sing_inserts.sh "$OUT" "$SPLAN" >> "$OUT/sing.log" 2>&1
     mv "$OUT/$NAME.mp4" "$OUT/$NAME-nosync.mp4"
-    python3 pipeline/sing_inserts.py splice "$OUT" "$OUT/$NAME-nosync.mp4" "$OUT/$NAME.mp4" | tee -a "$OUT/sing.log"
+    python3 pipeline/sing_inserts.py splice "$OUT" "$OUT/$NAME-nosync.mp4" "$OUT/$NAME.mp4" \
+      ${FX:+--fx "$(dirname "$(dirname "$OUT")")/$FX" --fx-analysis "$ANA"} | tee -a "$OUT/sing.log"   # effects inside an insert go back on
   fi
 fi
 log "done: $OUT/$NAME.mp4"

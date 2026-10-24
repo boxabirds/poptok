@@ -33,7 +33,8 @@ stream for jobs, a resident LTX renderer process. One Mac, no remote hosts, no t
 - **`scenes.json` stays the source of truth** (the pipeline already reads and writes it); the server reads the piece's
   files directly and writes edits back through `scenes.py`, rather than SQLite owning the data. SQLite only for job
   history and review notes, if at all.
-- The server runs on gruntus (where `./poptok` runs and the files are), behind the LAN; served to the user's browser.
+- The server runs on gruntus (where `./poptok` runs and the files are), listening on the LAN and the tailnet address
+  (reachable from the user's devices at home or away), never public; so no app-level login is needed.
 - Build in slices: (1) read-only timeline + keyframe view + browse by line for any finished piece; (2) review notes;
   (3) scene editing with cost preview; (4) jobs/pool view; (5) workshop.
 
@@ -78,8 +79,19 @@ scheduler reads), with the doc generated from it.
 4. Qualification jobs for new boxes or new steps.
 5. The jobs/pool view in the studio.
 
-## Open questions for the user
+## Open questions (framed for people other than us)
 
-- Where should the studio be reachable: LAN only (gruntus), or also from outside (tailscale)?
-- Build the studio inside poptok (`studio/`) or as a shared tool for both macvideo and poptok?
-- Which first: the studio's read-only views (timeline, keyframes, by line) or the pool's discovery + scheduler?
+The aim is a tool other creators can run on whatever machines they have, and findings that help people choose
+hardware. So the questions are:
+
+1. **Who is the first outside user, and what do they have?** One NVIDIA box (12-24 GB), one Mac, a mix? That decides
+   the defaults: which steps must work on a single machine (quantised models, the int8 lip-sync), and what the
+   install looks like (one container compose file, or a script).
+2. **Studio first or pool first?** For a single-box user the studio (timeline, keyframes, review, edit with cost
+   preview) is the whole value; the pool matters once they have two or more machines. Proposal: studio first, built so
+   it works on one box; the pool plugs in behind it.
+3. **Publish the hardware findings?** `docs/hardware-performance.md` is already a step-by-box table of measured numbers
+   (4090 vs DGX Spark vs Strix Halo vs M5 Max, with what didn't fit and why). Turned into data the pool fills in (and
+   other users' runs could contribute to), it becomes a public guide to "what local box for which AI job".
+4. **One product or shared parts?** poptok's studio and pool as one installable tool, or the pool as a separate
+   component other local-AI projects could use (macvideo, dbench-style workloads)?

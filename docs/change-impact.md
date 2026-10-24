@@ -29,11 +29,11 @@ inputs ──► 1 analysis ──► 2 lyrics aligned ──► 3 prompts + cue
 
 | # | Step | Depends on | Output | Cost to redo | Where |
 |---|---|---|---|---|---|
-| 0 | Directors' workshop (optional, `WORKSHOP=1`): conversation → treatment + line-by-line storyboard → plausibility review | lyrics, `inputs/brief.txt`, performer photo or not | `inputs/workshop.md`, `visual-treatment.txt`, `lyrics-cued.txt` | ~5–8 min (LLM) | gruntus |
+| 0 | Directors' workshop (optional, `WORKSHOP=1`): conversation → treatment + line-by-line storyboard + a shot per ~7 s of every instrumental gap → plausibility review | lyrics, 1 + 2 (line timings: runs after them), `inputs/brief.txt`, FX config (burst times), performer photo or not | `inputs/workshop.md`, `visual-treatment.txt`, `lyrics-cued.txt` | ~5–8 min (LLM) | gruntus |
 | 1 | Analysis: stems, Whisper, beat grid | song | `analysis/` | ~5 min | gruntus |
 | 2 | Lyrics aligned | lyrics, 1 | `*-true-segments.json` | ~1 min | gruntus |
 | 3 | Prompts + actor cues (LLM) | 2, treatment / style word, cues, performer | `shots.json` (prompt + cast per bar) | ~5 min | gruntus |
-| 4 | Stills | 3, performer photo, seeds (`reroll.json`) | `keys/shot_NNN.png` | 24 s (Amber) – 45 s (MOSS) per still on a Spark; whole song ~45–60 min over 3 boxes | Sparks, tritus |
+| 4 | Stills (+ optional single-pass fixes, `fix_keys.py`, ~35–65 s each) | 3, performer photo, seeds (`reroll.json`) | `keys/shot_NNN.png` | 24 s (Amber) – 45 s (MOSS) per still on a Spark; whole song ~45–60 min over 3 boxes | Sparks, tritus |
 | 5 | Merge near-duplicate scenes (LLM) | 3, 4 | `shots_merged.json` (scene boundaries = the clip plan) | ~2 min | gruntus |
 | 6 | Scenes + transitions (LLM) | 5 | `scenes.json` | ~3 min | gruntus |
 | 7 | LTX chain | 4, 5, 6 | `ltx_chain/*.png` | ~1 s/frame on a Spark: ~100 min whole song | Spark or quintus |

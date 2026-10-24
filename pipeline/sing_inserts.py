@@ -10,7 +10,7 @@ runs start and end on shot boundaries, which are downbeats, and the clip starts 
 """
 from __future__ import annotations
 
-import argparse, json, math, os, subprocess, sys
+import argparse, sys, json, math, os, subprocess, sys
 
 
 def runs(shots):
@@ -43,6 +43,17 @@ def plan(a):
     os.makedirs(d, exist_ok=True)
     vocals = os.path.join(a.analysis, f"{a.stem}-vocals.mp3")
     rs = runs(sh)
+    sp = os.path.join(a.analysis, f"{a.stem}-true-segments.json")
+    if os.path.exists(sp):  # scene boundaries are bar lines, not sung lines: an insert that starts or ends mid-line moves
+        segs = json.load(open(sp))["segments"]  # out to that line (noble-hunt v1: "Free" began 0.5 s before the insert)
+        for k, r in enumerate(rs):
+            lo = rs[k - 1]["end"] if k else 0.0
+            hi = rs[k + 1]["start"] if k + 1 < len(rs) else float("inf")
+            for g in segs:
+                if g["start"] < r["start"] < g["end"]:
+                    r["start"] = round(max(lo, g["start"] - 0.25), 4)
+                if g["start"] < r["end"] < g["end"]:
+                    r["end"] = round(min(hi, g["end"] + 0.25), 4)
     for k, r in enumerate(rs):
         dur = r["end"] - r["start"]
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{r['start']:.3f}", "-t", f"{dur:.3f}", "-i", vocals,
@@ -88,6 +99,14 @@ def splice(a):
     subprocess.run(["ffmpeg", "-v", "error", "-y", *inputs, "-filter_complex", graph, "-map", "[v]", "-map", "0:a",
                     "-c:v", "libx264", "-crf", "18", "-c:a", "copy", a.dst], check=True)
     print(f"wrote {a.dst}: {len(rs)} sung inserts cut in")
+    if a.fx and rs:                     # the finish step's effects (bursts...) that fall inside an insert, put back on it
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import fx
+        tmp = a.dst + ".nofx.mp4"
+        os.replace(a.dst, tmp)
+        fx.apply_to_video(tmp, a.dst, a.fx, a.fx_analysis, [(r["start"], r["end"]) for r in rs])
+        os.remove(tmp)
+        print(f"effects ({a.fx}) applied to the inserts")
 
 
 ap = argparse.ArgumentParser()
@@ -97,6 +116,8 @@ ap.add_argument("x")
 ap.add_argument("y", nargs="?")
 ap.add_argument("--performer", default="A young woman with long wavy blond hair")
 ap.add_argument("--engine", default="infinitetalk", choices=["infinitetalk", "longcat"])
+ap.add_argument("--fx", help="splice: the piece's effects config (pipeline/fx/), re-applied over the inserts")
+ap.add_argument("--fx-analysis", help="splice: the analysis dir the effects' events come from")
 a = ap.parse_args()
 if a.step == "plan":
     a.analysis, a.stem = a.x, a.y

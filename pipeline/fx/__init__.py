@@ -10,7 +10,9 @@ needs one, and reuse it from other pieces' configs when it fits.
 """
 from __future__ import annotations
 
-import importlib, json
+import importlib, json, subprocess
+
+import numpy as np
 
 
 def load(config_path: str, ctx: dict) -> list:
@@ -19,3 +21,32 @@ def load(config_path: str, ctx: dict) -> list:
         mod = importlib.import_module(f"fx.{cfg['effect']}")
         effects.append(mod.make(cfg, ctx))
     return effects
+
+
+def apply_to_video(src: str, dst: str, config_path: str, analysis: str, ranges: list, seed: int = 7) -> None:
+    """Apply the effects to the frames of SRC inside RANGES [(start, end) s] and write DST (audio copied). For footage
+    cut in after the finish step (the lip-sync inserts), which would otherwise lose the effects that fall inside it."""
+    probe = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v", "-show_entries", "stream=width,height,r_frame_rate",
+                            "-of", "csv=p=0", src], capture_output=True, text=True).stdout.strip().split(",")
+    W, H, fps = int(probe[0]), int(probe[1]), eval(probe[2])
+    ys, xs = np.mgrid[0:H, 0:W].astype(np.float32)
+    effects = load(config_path, {"W": W, "H": H, "fps": fps, "xs": xs, "ys": ys, "seed": seed, "analysis": analysis})
+    dec = subprocess.Popen(["ffmpeg", "-v", "error", "-i", src, "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], stdout=subprocess.PIPE)
+    enc = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", probe[2],
+                            "-i", "-", "-i", src, "-map", "0:v", "-map", "1:a", "-c:v", "libx264", "-crf", "18",
+                            "-pix_fmt", "yuv420p", "-c:a", "copy", dst], stdin=subprocess.PIPE)
+    f, size = 0, W * H * 3
+    while True:
+        buf = dec.stdout.read(size)
+        if len(buf) < size:
+            break
+        t = f / fps
+        if any(a <= t < b for a, b in ranges):
+            img = np.frombuffer(buf, np.uint8).reshape(H, W, 3).astype(np.float32)
+            base = img.copy()
+            for effect in effects:
+                img = effect(img, base, t)
+            buf = np.clip(img, 0, 255).astype(np.uint8).tobytes()
+        enc.stdin.write(buf)
+        f += 1
+    enc.stdin.close(); enc.wait(); dec.wait()

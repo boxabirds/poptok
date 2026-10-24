@@ -26,7 +26,8 @@ a = ap.parse_args()
 WEAR = (f"and dress her in {a.wardrobe} (not the clothes in the reference)" if a.wardrobe else
         "and the same sheer black dress as in the reference (unless the shot says otherwise)")
 KEEP = (f"keep her face, hair, eyes and age exactly, {WEAR}; light her with the scene's own light, direction and colour, "
-        "so she belongs in it")
+        "so she belongs in it. No readable writing anywhere in the image: blank name tapes, plain patches, no letters or "
+        "numbers (the image model scrambles them; user review 2026-10-24)")
 LEAD = {                                # wardrobe and lighting lines: user review 2026-10-24 (a blouse turned into a
     "scene": f"The woman from the reference image, the same person: {KEEP}. Her pose suits the scene. ",  # cardigan; she
     "sing": f"The woman from the reference image, the same person: {KEEP}. She is singing, lips parted. ",  # was lit apart

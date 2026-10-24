@@ -27,7 +27,7 @@ by R.Amber, keeping every box usefully busy, calmly.
 
 See the runbook's "Rules" section. In short: containers for everything (quintus native); never CPU offload; one GPU
 job per box; local models only; never sudo; HF token only in env vars; outputs for the user on the share
-(`pieces/...`, `pieces/_bench/eval/`); commit or push only when asked. Never edit a running bash script in place
+(`pieces/...`, `pieces/_bench/eval/`); commit and push at the end of each working session (otherwise only when asked). Never edit a running bash script in place
 (write a new file and `mv` it over).
 
 ## Compute stewardship (your responsibility)

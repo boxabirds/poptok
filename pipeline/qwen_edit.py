@@ -17,7 +17,7 @@ MODEL = "/models/Qwen-Image-Edit-2511"
 LIGHTNING = "/models/Qwen-Image-Edit-2511-Lightning/Qwen-Image-Edit-2511-Lightning-8steps-V1.0-bf16.safetensors"
 
 
-def load(lightning=LIGHTNING, steps=None, cfg=4.0):
+def load(lightning=LIGHTNING, steps=None, cfg=4.0, device="cuda"):
     from diffusers import FlowMatchEulerDiscreteScheduler, QwenImageEditPlusPipeline
     pipe = QwenImageEditPlusPipeline.from_pretrained(MODEL, torch_dtype=torch.bfloat16)
     if lightning:                       # the scheduler settings from ModelTC/Qwen-Image-Lightning
@@ -30,7 +30,7 @@ def load(lightning=LIGHTNING, steps=None, cfg=4.0):
         pipe.fuse_lora()
         steps, cfg = steps or (4 if "4steps" in lightning else 8), 1.0
     steps = steps or 40
-    pipe = pipe.to("cuda")
+    pipe = pipe.to(device)                  # "mps" on quintus (pipeline/mac_bench.py)
     pipe.set_progress_bar_config(disable=True)
 
     def edit(refs, prompt, seed=0, size=(1024, 576)):

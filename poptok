@@ -69,7 +69,11 @@ else
 fi
 # WORKSHOP=1: the directors' workshop (pipeline/workshop.py) writes the treatment and the line-by-line storyboard from the
 # lyrics first (inputs/workshop.md, visual-treatment.txt, lyrics-cued.txt); TREATMENT/CUES point at them
+# The workshop needs the lyric timings (when each line is sung, how long the instrumental gaps are), so the analysis
+# runs first
 if [ -n "${WORKSHOP:-}" ] && [ ! -f "$PIECE/inputs/workshop.md" ]; then
+  bin/make_video.sh "$SONGP" --lyrics "$(p "$LYRICS")" --style workshop --out "$PIECE/outputs/$RUN" \
+    --analysis "$PIECE/analysis" --analysis-only
   echo "[$(date +%H:%M:%S)] directors' workshop"; bin/workshop.sh "$PIECE"
 fi
 # the visual treatment is the style added to every per-line prompt (the C6 method); DIRECTOR=1 uses the experimental

@@ -20,7 +20,7 @@ def _norm(ws):
 class MOSSImage:
     repo = "/models/MOSS-Image-SFT" if os.path.isdir("/models/MOSS-Image-SFT") else "OpenMOSS-Team/MOSS-Image-SFT"
 
-    def __init__(self, steps=30, cfg=3.0, negative="", offload=True):
+    def __init__(self, steps=30, cfg=3.0, negative="", offload=True, device="cuda"):
         from diffusers import DiffusionPipeline
         custom = os.path.join(self.repo, "pipeline_moss_image.py") if os.path.isdir(self.repo) else self.repo
         self.pipe = DiffusionPipeline.from_pretrained(self.repo, custom_pipeline=custom, torch_dtype=torch.bfloat16,
@@ -29,7 +29,7 @@ class MOSSImage:
         if offload:
             self.pipe.enable_model_cpu_offload()
         else:
-            self.pipe.to("cuda")
+            self.pipe.to(device)                    # "mps" on quintus (pipeline/mac_bench.py)
         self.pipe.set_progress_bar_config(disable=True)
         self.steps, self.cfg, self.negative = steps, cfg, negative
         self._emb = {}
