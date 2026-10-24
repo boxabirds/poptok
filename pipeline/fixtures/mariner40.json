@@ -1,0 +1,208 @@
+{
+ "source": "boxabirds/macvideo pocs/32-gemini-identity-40/scripts/run.py (IDENTITY_BRIEF, SCENES, prompt suffix)",
+ "subject": "mariner",
+ "brief": "A weathered mariner in his mid-50s with clear blue eyes, a full grey beard with the same beard shape in every shot, deep weather-lined facial wrinkles, a stocky working build, a dark charcoal knit watch cap, a heavy slate-grey waterproof jacket over a ribbed grey sweater, rough salt-worn hands, and a stoic coastal presence. He must remain the same man in every image. Do not replace him with a woman, a younger man, a bald man, a clean-shaven man, or a background extra.",
+ "suffix": "The same mariner is the primary subject. Background people must remain background. No readable text, no signage, no labels, no captions. 16mm-grain coastal realism.",
+ "scenes": [
+  {
+   "name": "bow",
+   "prompt": "standing at the bow of a small fishing trawler, grey sea, overcast dawn, wet rails, medium shot",
+   "trap": "anchor"
+  },
+  {
+   "name": "pub_table",
+   "prompt": "sitting inside a dim harbour pub, warm amber light, hands folded on a scarred wooden table",
+   "trap": "anchor"
+  },
+  {
+   "name": "cliff_rain",
+   "prompt": "on a rain-lashed cliff path with a distant lighthouse and sea spray, close three-quarter view",
+   "trap": "anchor"
+  },
+  {
+   "name": "cabin_lamp",
+   "prompt": "below deck in the trawler cabin under a yellow lamp, charts and ropes behind him",
+   "trap": "warm-light"
+  },
+  {
+   "name": "stone_lane",
+   "prompt": "walking down a stone-walled village lane at dusk, slate rooftops and sea behind him",
+   "trap": "wide"
+  },
+  {
+   "name": "crowded_pub",
+   "prompt": "standing at a crowded pub bar; other patrons are background only, he is unmistakably primary",
+   "trap": "crowd"
+  },
+  {
+   "name": "woman_foreground",
+   "prompt": "a woman in a red coat passes blurred in the foreground; the same mariner remains primary behind her",
+   "trap": "woman-distractor"
+  },
+  {
+   "name": "bald_background",
+   "prompt": "a bald dockworker stands in the background coiling rope; the same mariner is primary in front",
+   "trap": "bald-distractor"
+  },
+  {
+   "name": "young_background",
+   "prompt": "a younger fisherman laughs in the background; the same older mariner remains primary and serious",
+   "trap": "young-distractor"
+  },
+  {
+   "name": "profile",
+   "prompt": "left profile view on a harbour wall, cap, beard, nose, and weathered face visible",
+   "trap": "profile"
+  },
+  {
+   "name": "silhouette",
+   "prompt": "backlit silhouette in sea mist, enough face and beard detail visible to identify the same mariner",
+   "trap": "silhouette"
+  },
+  {
+   "name": "hood_up",
+   "prompt": "rain hood over his knit cap but beard, blue eyes, and jacket language still visible",
+   "trap": "partial-face"
+  },
+  {
+   "name": "wide_pier",
+   "prompt": "wide shot on a long wooden pier, small but recognizable, storm clouds overhead",
+   "trap": "small-face"
+  },
+  {
+   "name": "hands_close",
+   "prompt": "close-up of his salt-worn hands on a nautical chart, partial face visible above the table",
+   "trap": "partial-subject"
+  },
+  {
+   "name": "mirror_pub",
+   "prompt": "seen in a tarnished pub mirror with background drinkers, same mariner identity primary in reflection",
+   "trap": "reflection"
+  },
+  {
+   "name": "net_shed",
+   "prompt": "inside a fishing-net shed, green nets and floats around him, cool grey daylight",
+   "trap": "texture"
+  },
+  {
+   "name": "boat_cabin_door",
+   "prompt": "standing in a trawler doorway with the sea behind, steady direct gaze",
+   "trap": "framing"
+  },
+  {
+   "name": "market",
+   "prompt": "walking through a fish market crowd, women and younger men are background only",
+   "trap": "crowd-distractors"
+  },
+  {
+   "name": "fog",
+   "prompt": "emerging from harbour fog, face partly soft but same cap, beard, build, and jacket",
+   "trap": "low-visibility"
+  },
+  {
+   "name": "storm_window",
+   "prompt": "looking through a rain-streaked cabin window from outside, same man inside",
+   "trap": "occlusion"
+  },
+  {
+   "name": "lantern_walk",
+   "prompt": "walking along wet cobbles at night, warm harbour light on beard and hands",
+   "trap": "prop"
+  },
+  {
+   "name": "churchyard",
+   "prompt": "standing by a coastal churchyard wall, slate sky, hands in jacket pockets",
+   "trap": "new-location"
+  },
+  {
+   "name": "memory_child",
+   "prompt": "a symbolic memory scene with a child far in the background; the older mariner remains primary",
+   "trap": "age-distractor"
+  },
+  {
+   "name": "crew_room",
+   "prompt": "in a crew room with three other men behind him, none replacing him",
+   "trap": "multi-person"
+  },
+  {
+   "name": "fish_hold",
+   "prompt": "standing beside crates in a fish hold, cold blue work light, same face and beard",
+   "trap": "cold-light"
+  },
+  {
+   "name": "rope_shadow",
+   "prompt": "strong shadows from hanging ropes cross his face but identity remains legible",
+   "trap": "shadow"
+  },
+  {
+   "name": "hat_removed_nearby",
+   "prompt": "a spare cap lies on a table; he still wears his dark knit cap",
+   "trap": "wardrobe-trap"
+  },
+  {
+   "name": "barber_sign",
+   "prompt": "walking past a barber shop sign; he is not bald or clean-shaven",
+   "trap": "bald-clean-trap"
+  },
+  {
+   "name": "funeral_black",
+   "prompt": "wearing the same slate jacket over darker clothes at a coastal funeral, same man",
+   "trap": "wardrobe-variation"
+  },
+  {
+   "name": "sunrise",
+   "prompt": "cold sunrise on the harbour steps, blue eyes and grey beard clear",
+   "trap": "light-change"
+  },
+  {
+   "name": "night_deck",
+   "prompt": "night deck lit by sodium harbour lamps, same cap and jacket, wet black sea",
+   "trap": "night"
+  },
+  {
+   "name": "window_profile",
+   "prompt": "profile in a cottage window, warm interior light, face shape and beard stable",
+   "trap": "profile-warm"
+  },
+  {
+   "name": "old_photo",
+   "prompt": "holding an old photograph of a woman; the live mariner remains primary, not the woman",
+   "trap": "photo-distractor"
+  },
+  {
+   "name": "younger_photo",
+   "prompt": "holding a photo of his younger self; the current older mariner remains primary",
+   "trap": "young-distractor"
+  },
+  {
+   "name": "storm_close",
+   "prompt": "extreme close-up in rain, blue eyes, wrinkles, grey beard, knit cap",
+   "trap": "close-up"
+  },
+  {
+   "name": "harbour_steps",
+   "prompt": "sitting on harbour steps with gulls and boats behind, same build and jacket",
+   "trap": "resting"
+  },
+  {
+   "name": "crowd_exit",
+   "prompt": "leaving a crowded hall, several bald men behind him, same mariner primary",
+   "trap": "bald-crowd"
+  },
+  {
+   "name": "dream_sea",
+   "prompt": "dreamlike sea backdrop with symbolic waves, same real mariner in foreground",
+   "trap": "symbolic"
+  },
+  {
+   "name": "final_bow",
+   "prompt": "back on the trawler bow at dusk, same man as the opening shot, calm direct gaze",
+   "trap": "return-anchor"
+  },
+  {
+   "name": "final_portrait",
+   "prompt": "simple final portrait against grey sea and stone, full identity visible",
+   "trap": "final-check"
+  }
+ ]
+}

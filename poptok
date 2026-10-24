@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# poptok: lyrics + visual treatment (+ a song, or a music style to generate one) -> music video.
+#
+#   ./poptok pieces/NAME [--plan-only] [--run RUN]
+#
+# A piece is one folder (see pieces.example/): piece.env (its settings), inputs/ (lyrics, visual treatment, song or
+# music style), analysis/ and outputs/ (both written here). Paths in piece.env are relative to the piece folder.
+#   SONG set          -> video from that song
+#   SONG empty        -> song generated from MUSIC_STYLE + LYRICS with ACE-Step (best of SONG_SEEDS by lyric match),
+#                        written to outputs/song.wav, then the video
+# --plan-only stops after the treatment and scene prompts (outputs/RUN/treatment.md), to read and edit before the
+# hours of keyframes and video. Re-running the same command resumes.
+set -euo pipefail
+cd "$(dirname "$0")"
+PIECE=${1:?usage: ./poptok pieces/NAME [--plan-only] [--run RUN]}; shift
+PIECE=${PIECE%/}
+[ -f "$PIECE/piece.env" ] || { echo "$PIECE/piece.env not found (copy pieces.example/)"; exit 2; }
+case $(realpath "$PIECE") in "$PWD"/*) ;; *) echo "the piece folder must be inside $PWD (the containers mount it)"; exit 2;; esac
+NAME=$(basename "$PIECE"); SONG=""; LYRICS=""; TREATMENT=""; STYLE=""; MUSIC_STYLE=""; SONG_SEEDS=1,2,3
+SONG_DURATION=auto; VIDEO_HOST=""; RUN=v1; LTX_ARGS="--even-light"; FINISH_ARGS="--deflare 8"; MERGE_ARGS=""
+CUES=""; PERFORMER_PHOTO=""; PERFORMER=""
+KEY_HOSTS=""
+set -a                                                   # site + piece settings reach bin/ scripts
+[ -f site.env ] && source site.env                       # this installation: hosts, LLM paths (site.env.example)
+source "$PIECE/piece.env"
+set +a
+KEY_HOSTS=${KEY_HOSTS:-${VIDEO_HOST:+$VIDEO_HOST }${KEY_POOL:-local}}
+K=""; for h in $KEY_HOSTS; do [[ " ${MAC_HOSTS:-quintus} " == *" $h "* ]] || K="$K $h"; done; KEY_HOSTS=${K# }   # keyframes
+                                                   # need a CUDA/ROCm container; a Mac renders video only
+EXTRA=()
+TEST=""
+while [ $# -gt 0 ]; do case $1 in --plan-only) EXTRA+=(--plan-only); shift;; --run) RUN=$2; shift 2;;
+  --test) TEST=$2; shift 2;;
+  *) echo "unknown option $1"; exit 2;; esac; done
+p() { [ -n "$1" ] && echo "$PIECE/$1" || true; }           # piece-relative -> repo-relative
+# --test SECONDS[@START]: a short test copy of this piece (pieces/NAME-testN/): the song cut to SECONDS from START
+# (default: 1 s before the first sung line), only the lyric lines sung there, the full lyrics as prompt context
+if [ -n "$TEST" ]; then
+  DUR=${TEST%@*}; ST=$([ "$TEST" != "${TEST#*@}" ] && echo "${TEST#*@}" || true)
+  [ -n "$SONG" ] || { echo "--test needs SONG"; exit 2; }
+  T=$PIECE-test$DUR; mkdir -p "$T/inputs"
+  SEGS=$PIECE/analysis/$(basename "${SONG%.*}")-true-segments.json
+  [ -f "$SEGS" ] || { echo "--test needs the full piece analysed first ($SEGS)"; exit 2; }
+  ST=${ST:-$(python3 -c "import json;print(max(0,json.load(open('$SEGS'))['segments'][0]['start']-1))")}
+  ffmpeg -loglevel error -y -ss "$ST" -t "$DUR" -i "$(p "$SONG")" "$T/inputs/song.wav"
+  python3 -c "
+import json; s=json.load(open('$SEGS'))['segments']
+open('$T/inputs/lyrics.txt','w').write('\n'.join(x['text'] for x in s if $ST-0.5 <= x['start'] < $ST+$DUR-0.5)+'\n')"
+  cp "$(p "$LYRICS")" "$T/inputs/lyrics-full.txt"
+  [ -n "$CUES" ] && cp "$(p "$CUES")" "$T/inputs/cues.txt"
+  # the analysis is the full song's, cut to the window (no new Demucs / Whisper; word timings keep full-song context)
+  python3 pipeline/slice_analysis.py "$PIECE/analysis" "$(basename "${SONG%.*}")" "$T/analysis" song "$ST" "$DUR"
+  { grep -vE '^(SONG|LYRICS|RUN|MUSIC_STYLE|CUES|PERFORMER_PHOTO)=' "$PIECE/piece.env"
+    [ -n "$CUES" ] && echo "CUES=inputs/cues.txt"
+    [ -n "$PERFORMER_PHOTO" ] && echo "PERFORMER_PHOTO=../$(basename "$PIECE")/$PERFORMER_PHOTO"
+    echo "SONG=inputs/song.wav"; echo "LYRICS=inputs/lyrics.txt"; echo "LYRICS_CONTEXT=inputs/lyrics-full.txt"
+    echo "RUN=test"; echo "TEST_FROM=$ST"; } > "$T/piece.env"
+  for f in "$PIECE"/inputs/*; do case $(basename "$f") in visual-treatment.txt) cp "$f" "$T/inputs/";; esac; done
+  echo "test piece: $T (${DUR}s from ${ST}s, $(wc -l < "$T/inputs/lyrics.txt") lyric lines)"
+  exec "$0" "$T" "${EXTRA[@]}"
+fi
+if [ -z "$SONG" ]; then
+  [ -n "$MUSIC_STYLE" ] || { echo "piece.env: set SONG, or MUSIC_STYLE to generate one"; exit 2; }
+  [ -f "$PIECE/outputs/song.wav" ] || bin/make_song.sh "$(p "$MUSIC_STYLE")" "$(p "$LYRICS")" "$PIECE/outputs/song.wav" \
+    --seeds "$SONG_SEEDS" --duration "$SONG_DURATION"
+  SONGP=$PIECE/outputs/song.wav
+else
+  SONGP=$(p "$SONG")
+fi
+# WORKSHOP=1: the directors' workshop (pipeline/workshop.py) writes the treatment and the line-by-line storyboard from the
+# lyrics first (inputs/workshop.md, visual-treatment.txt, lyrics-cued.txt); TREATMENT/CUES point at them
+if [ -n "${WORKSHOP:-}" ] && [ ! -f "$PIECE/inputs/workshop.md" ]; then
+  echo "[$(date +%H:%M:%S)] directors' workshop"; bin/workshop.sh "$PIECE"
+fi
+# the visual treatment is the style added to every per-line prompt (the C6 method); DIRECTOR=1 uses the experimental
+# whole-video treatment step instead (treatment.py), which lets its own story override the lyrics
+if [ -n "${DIRECTOR:-}" ] && [ -n "$TREATMENT" ]; then LOOK=(--treatment "$(p "$TREATMENT")")
+else LOOK=(--style "${STYLE:-$(tr '\n' ' ' < "$(p "$TREATMENT")")}"); fi
+exec bin/make_video.sh "$SONGP" --lyrics "$(p "$LYRICS")" "${LOOK[@]}" --name "$NAME-$RUN" --out "$PIECE/outputs/$RUN" \
+  --analysis "$PIECE/analysis" ${VIDEO_HOST:+--video-host "$VIDEO_HOST"} ${KEY_HOSTS:+--key-hosts "$KEY_HOSTS"} --ltx-args "$LTX_ARGS" \
+  --finish-args "$FINISH_ARGS" --merge-args "$MERGE_ARGS" ${LYRICS_CONTEXT:+--lyrics-context "$(p "$LYRICS_CONTEXT")"} \
+  ${CUES:+--cues "$(p "$CUES")"} ${PERFORMER_PHOTO:+--performer-photo "$(realpath --relative-to=. "$(p "$PERFORMER_PHOTO")")"} \
+  ${PERFORMER:+--performer "$PERFORMER"} "${EXTRA[@]}"

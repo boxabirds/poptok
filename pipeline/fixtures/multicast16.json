@@ -1,0 +1,157 @@
+{
+ "source": "boxabirds/macvideo pocs/34-gemini-multicast-casting/scripts/run.py (CAST, SCENES, prompt wording)",
+ "cast_order": [
+  "alan",
+  "barry",
+  "christy"
+ ],
+ "cast": {
+  "alan": "Alan is an older weathered mariner in his late 50s with clear blue eyes, a full grey beard, a dark charcoal knit watch cap, a slate-grey waterproof jacket over a ribbed grey sweater, broad working hands, and a stoic coastal presence.",
+  "barry": "Barry is a tall bald dockworker in his early 40s, clean-shaven, with a long angular face, dark eyebrows, a navy pea coat, tan rope-handling gloves, and a coil of tan rope often nearby.",
+  "christy": "Christy is a woman in her mid-30s with dark brown hair pinned back, a vivid red wool coat, a small brass locket, sharp cheekbones, and a focused direct expression."
+ },
+ "scenes": [
+  {
+   "name": "a",
+   "cast": [
+    "alan"
+   ],
+   "setting": "on a fishing trawler bow under grey morning light",
+   "intent": "establish Alan alone"
+  },
+  {
+   "name": "b",
+   "cast": [
+    "barry"
+   ],
+   "setting": "beside stacked rope coils on a working harbour quay",
+   "intent": "establish Barry alone"
+  },
+  {
+   "name": "c",
+   "cast": [
+    "christy"
+   ],
+   "setting": "walking on wet stone steps above the harbour",
+   "intent": "establish Christy alone"
+  },
+  {
+   "name": "ab",
+   "cast": [
+    "alan",
+    "barry"
+   ],
+   "setting": "inside a net shed with green nets and cold daylight",
+   "intent": "Alan and Barry confer"
+  },
+  {
+   "name": "ac",
+   "cast": [
+    "alan",
+    "christy"
+   ],
+   "setting": "on a cliff path above slate water and village roofs",
+   "intent": "Alan and Christy share a tense pause"
+  },
+  {
+   "name": "bc",
+   "cast": [
+    "barry",
+    "christy"
+   ],
+   "setting": "outside a harbour warehouse with rain on the cobbles",
+   "intent": "Barry and Christy face each other"
+  },
+  {
+   "name": "abc",
+   "cast": [
+    "alan",
+    "barry",
+    "christy"
+   ],
+   "setting": "in a harbour pub doorway with warm light behind them",
+   "intent": "all three form a clear lineup"
+  },
+  {
+   "name": "a_after_group",
+   "cast": [
+    "alan"
+   ],
+   "setting": "alone at the trawler rail after sunset",
+   "intent": "Alan returns alone after group context"
+  },
+  {
+   "name": "b_after_group",
+   "cast": [
+    "barry"
+   ],
+   "setting": "alone under a crane with rope gloves visible",
+   "intent": "Barry returns alone after group context"
+  },
+  {
+   "name": "c_after_group",
+   "cast": [
+    "christy"
+   ],
+   "setting": "alone near a lighthouse wall with red coat prominent",
+   "intent": "Christy returns alone after group context"
+  },
+  {
+   "name": "abc_again",
+   "cast": [
+    "alan",
+    "barry",
+    "christy"
+   ],
+   "setting": "standing together on a rain-dark pier",
+   "intent": "all three return after singletons"
+  },
+  {
+   "name": "abc_again_last",
+   "cast": [
+    "alan",
+    "barry",
+    "christy"
+   ],
+   "setting": "together in a fish market aisle",
+   "intent": "all three again after a clean trio scene"
+  },
+  {
+   "name": "ab_no_c",
+   "cast": [
+    "alan",
+    "barry"
+   ],
+   "setting": "Alan and Barry carry a crate beside a net shed",
+   "intent": "Christy must not appear"
+  },
+  {
+   "name": "ac_no_b",
+   "cast": [
+    "alan",
+    "christy"
+   ],
+   "setting": "Alan and Christy stand by a pub window at dusk",
+   "intent": "Barry must not appear"
+  },
+  {
+   "name": "bc_no_a",
+   "cast": [
+    "barry",
+    "christy"
+   ],
+   "setting": "Barry and Christy stand by harbour lockers",
+   "intent": "Alan must not appear"
+  },
+  {
+   "name": "abc_final",
+   "cast": [
+    "alan",
+    "barry",
+    "christy"
+   ],
+   "setting": "final portrait lineup against grey sea and stone",
+   "intent": "final identity check"
+  }
+ ]
+}

@@ -1,0 +1,10 @@
+# pieces hold inputs, analysis, outputs and per-piece settings: never in git
+pieces/
+cache/
+__pycache__/
+*.pyc
+site.env
+bench/
+/bench_*.log
+.DS_Store
+*.new
