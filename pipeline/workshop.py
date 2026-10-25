@@ -19,7 +19,12 @@ Instrumental passages of 6 s or more (intro, gaps, outro) get slots of about 6-8
 stretch alone (noble-hunt v1, 2026-10-24: a line followed by a 25 s gap became one 28 s scene, and the video chain
 looped back to its still clip after clip). If the piece has an effects config (FX), the times its effects fire are
 given to the directors (the effect adds the light; the shots don't need to).
-Three LLM passes: (1) the conversation; (2) the result as JSON (concept, treatment, rules, a mode + shot note per line);
+The directors plan a STORY first (who, what she wants, what happens, 4-8 scenes each held in one place over several
+lines), and every line is the next moment of its scene, not a new image (Chronophobia director's cut, 2026-10-25, the
+user: "real videos tell a story; this comes across as a slide show": every line was a new image, a chain of objects
+turning into other objects, with no one doing anything).
+Three LLM passes: (1) the conversation; (2) the result as JSON (concept, story and scenes, treatment, rules, a scene,
+mode + shot note per line);
 (3) a physical-plausibility review of every shot note (things a camera could never see: e.g. "seen from above, her
 reflection the right way up"), whose fixes are applied.
 
@@ -39,10 +44,13 @@ CAPABILITIES = """What the machine can do (and can't):
 - One still per bar (about 2-3 s), drawn by an image model from a one-paragraph prompt; near-duplicate bars merge
   into one scene. Strong on night, rain, light, trains, objects, landscapes and strong styles; weak on precise hands,
   crowds of faces, readable text.
-- Video: ONE continuous take that turns each scene into the next (no cuts). A change works when it's a physical EVENT
-  that carries A into B (glass shatters and the shards become the next objects, a gust scatters things that settle as
+- Video: ONE continuous take (no cuts). Within a scene the take simply goes on: the camera moves, the action
+  continues, each still is the next moment in the same place (adjacent stills of one scene make a smooth, long shot).
+  Between scenes, a change works when it's a physical EVENT that carries A into B (glass shatters and the shards become the next objects, a gust scatters things that settle as
   the next scene, the camera pushes through an object into the next place, a figure walks through and the room changes
-  behind them). A quiet object slowly becoming another quiet object becomes a cross-fade.
+  behind them). A quiet object slowly becoming another quiet object becomes a cross-fade. Scene changes are a
+  handful per song, not one per line: a new image on every line, each object turning into the next, plays as a slide
+  show (Chronophobia director's cut, 2026-10-25).
 - The performer (only if a photo is provided) can appear from one photo: her face and hair hold; poses can go wrong.
   Modes per line: none (her world without her), pov (through her eyes, unseen), part (a hand, her back, a reflection,
   never the full face), scene (acting, not singing), sing (lip-synced). Lip-sync costs about 11-28 minutes of compute
@@ -78,7 +86,18 @@ the video (what happens between the lines, how it moves the story on), never as 
 {lyrics}
 
 Write the workshop as a conversation (names in bold, then what they say), about 1400-1800 words. They should: start
-from what the song means (the reading) before style; then agree the UNIVERSE STYLE: the medium and world the whole
+from what the song means (the reading); then agree THE STORY the video tells, because real music videos tell a story
+and a video that illustrates each line with a new image is a slide show. Who is in it, what she wants or is going
+through, what she DOES (people acting, not objects transforming), what changes from beginning to end (the ending is
+not the opening), where the turn comes (often the bridge or the last chorus). Tell it in 4-8 SCENES, each in one place
+and lasting a section or several lines (15-45 s), so the camera stays with a situation while it plays out; a chorus may
+come back to a place that has changed. The story runs alongside the lyrics, it doesn't spell out each line's words.
+Every scene has a SHAPE: how it begins, the turn (what happens or changes in it), and how it ends differently from how
+it began; every line moves it on, and no line just restates the scene's mood ("the light keeps fading, the colour
+softer" on line after line is filler). Anyone the song sings to ("you") is set up before they matter: seen, or a trace
+of them, in an earlier scene, not appearing from nowhere in the last one. Their plan will be checked for this: a scene
+without a beginning, a turn and an end, or lines that repeat the same moment, is sent back to them.
+Then agree the UNIVERSE STYLE: the medium and world the whole
 video lives in, true for every frame. Photographic realism is only one option; argue for at least three different
 universes (for example oil impasto, stained glass, charcoal on paper, paper cut-out, claymation, cyanotype,
 hand-tinted photographs, woodcut) and choose the one that serves the song's meaning, saying what everything in it is
@@ -89,7 +108,8 @@ people as a crowd of faces, as footprints multiplying in snow, as shadows on a w
 pattern of umbrellas from above), and the right level depends on the moment and on what the machine draws well. Then
 argue and build on each other; agree on one concept, a small set of visual rules (light,
 camera, how changes happen), where the performer appears and sings, and then walk
-through the song section by section, saying what we see on each line and how each change happens as an event. Every
+through the story scene by scene: where it is, what happens in it line by line (each line the next moment of the same
+action, the camera moving with it), and how each change to the next scene happens as an event. Every
 shot they agree must be physically possible and filmable, as described above. End with a one-paragraph summary of
 what they agreed.{previous}"""
 
@@ -121,7 +141,12 @@ Return JSON only:
  "treatment": "the visual treatment for the image model: look, light, palette, camera, how changes happen; 60-120 words, no story. If the brief fixes the look, start with the brief's look words unchanged. Never describe the performer (this text styles every shot, most without her)",
  "rules": ["short visual rules"],
  "abstraction": "one or two sentences: how concrete or abstract the video is overall, and where it moves along that scale",
- "lines": [{{"n": line number, "mode": one of the allowed modes, "level": "concrete" | "stylised" | "abstract", "note": "what we see on this line: one filmable, physically possible shot, 10-30 words, shown at that level"}}]}}
+ "story": {{"logline": "the story in one sentence: who, what she does, how it ends",
+           "scenes": [{{"id": "S1", "place": "where, 5-15 words, the same for the whole scene", "action": "what happens in this scene, 15-40 words", "begins": "the situation at its start", "turn": "what happens or changes in it", "ends": "how it ends, different from its start"}}]}},
+ "lines": [{{"n": line number, "scene": "S1", "mode": one of the allowed modes, "level": "concrete" | "stylised" | "abstract", "note": "what we see on this line: the next moment of its scene's action, continuing from the line before (same place, the action moving on, the camera moving with it); one filmable, physically possible shot, 10-30 words, shown at that level"}}]}}
+4-8 scenes, in song order; each covers a run of consecutive lines and slots (a section or several lines), never a
+single line. Every scene has its beginning, turn and end, and its lines go through them in order; each line's note
+says what is NEW in that moment (never the previous line's note reworded).{problem}
 Every numbered line and every slot (G1, G2, ...) must appear exactly once in "lines" ("n" is the line number or the
 slot id, e.g. "G3"); slots are instrumental, so their mode is never "sing". Mode "sing" only where the note shows her face singing on
 camera, and only in the two or three passages the directors chose for singing; a shot of an object, a room, her back,
@@ -294,6 +319,23 @@ def drum_lines(piece: str, e: dict, lyr) -> set:
     return out
 
 
+def shape_problem(res: dict, order: dict) -> str:
+    """'' if every scene has a shape (a beginning, a turn, an end) and its lines move on; otherwise what's wrong.
+    Filler: a note sharing most of its words with the one before it in the same scene (chronophobia-story,
+    2026-10-25: "the colour softer, more faded" on 6 lines running, one scene held 75 s on one pair of hands)."""
+    scenes = [x for x in (res.get("story") or {}).get("scenes", []) if isinstance(x, dict)]
+    flat = [str(x.get("id", "")) for x in scenes if not all(str(x.get(k, "")).strip() for k in ("begins", "turn", "ends"))]
+    if flat:
+        return f"scenes {', '.join(flat)} have no beginning, turn and end"
+    words = lambda t: set(re.findall(r"[a-z']{4,}", str(t).lower()))
+    ls = sorted((x for x in res.get("lines", []) if isinstance(x, dict)), key=lambda x: order.get(str(x.get("n")).strip(), 0))
+    filler = [str(b.get("n")) for a, b in zip(ls, ls[1:]) if a.get("scene") == b.get("scene") and words(b.get("note"))
+              and len(words(a.get("note")) & words(b.get("note"))) > 0.5 * len(words(b.get("note")))]
+    if len(filler) > max(2, len(ls) // 10):
+        return f"lines {', '.join(filler[:12])} repeat the moment before them instead of moving the scene on"
+    return ""
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("piece")
@@ -389,17 +431,35 @@ def main():
             n += 1
             numbered.append(f"{n}. {t}")
     ids = [str(i) for i in range(1, n + 1)] + [x[0] for x in slots]
+    order, ln = {}, 0                                 # each line's and slot's position in the song
+    for k, t, j in items:
+        if k == "line":
+            ln += 1
+        if k != "header":
+            order[t[0] if k == "slot" else str(ln)] = len(order)
     print("workshop: result", flush=True)
-    res = {}
+    res, problem = {}, ""
     for attempt in range(3):
         try:
             res = as_json(llm(RESULT.format(conversation=conv, numbered="\n".join(numbered), has_photo=has_photo,
-                                            modes=", ".join(modes)), a.llm, max_tokens=6000, temperature=0.2))
+                                            modes=", ".join(modes), problem=problem), a.llm, max_tokens=6000, temperature=0.2))
             got = {str(x["n"]).strip() for x in res.get("lines", [])}
             notes = [" ".join(str(x.get("note", "")).lower().split()) for x in res.get("lines", [])]
             dup = len(notes) - len(set(notes))       # a note copied onto several lines merges them into one long scene
-            if got >= set(ids) and dup <= max(2, len(ids) // 20):
+            scenes = {str(x.get("id", "")).strip() for x in (res.get("story") or {}).get("scenes", [])}
+            runs = [str(x.get("scene", "")).strip() for x in sorted(res.get("lines", []), key=lambda x: order.get(
+                str(x["n"]).strip(), 0))]
+            changes = sum(1 for x, y in zip(runs, runs[1:]) if x != y)
+            story_ok = 3 <= len(scenes) <= 10 and set(runs) <= scenes and changes <= 2 * len(scenes)
+            why = shape_problem(res, order)
+            if got >= set(ids) and dup <= max(2, len(ids) // 20) and story_ok and not why:
                 break
+            if got >= set(ids) and not story_ok:     # a slide show: no scenes, or lines hopping between them
+                why = f"{len(scenes)} scenes and {changes} scene changes (4-8 scenes, each a run of consecutive lines)"
+            if got >= set(ids) and why:
+                print(f"  {why}; retry", flush=True)
+                problem = f"\nA previous draft was sent back: {why}. Fix that."
+                continue
             if got >= set(ids):
                 print(f"  result repeats {dup} shot notes; retry", flush=True)
                 continue
@@ -427,6 +487,9 @@ def main():
             lines[i]["note"] = note
             kept.append(dict(f, note=note))
     fixes = kept
+    story = res.get("story") if isinstance(res.get("story"), dict) else {}
+    places = {str(x.get("id", "")).strip(): " ".join(str(x.get("place", "")).replace("{", "(").replace("}", ")").split())
+              for x in story.get("scenes", []) if isinstance(x, dict)}
     # write the annotated lyrics: the original sung words, a {mode: note} per line; headers kept as they were
     width = max(len(t) for k, t in lyr if k == "line") + 4
     cued, i = [], 0
@@ -440,6 +503,9 @@ def main():
             i += 1
             key = str(i)
         note = lines[key]["note"].replace("{", "(").replace("}", ")").strip()
+        place = places.get(str(lines[key].get("scene", "")).strip(), "")
+        if note and place and place.lower()[:20] not in note.lower():   # every still of a scene is drawn in its place
+            note = f"{place.rstrip('.')}: {note}"
         lvl = str(lines[key].get("level", "")).strip().lower()
         if note and lvl in ("stylised", "stylized", "abstract"):        # how literally to show it (prompts_per_line reads it)
             note = f"({'stylised' if lvl.startswith('styli') else 'abstract'}) {note}"
@@ -456,18 +522,21 @@ def main():
           "## The result", "", f"**Concept:** {res.get('concept', '')}", "",
           f"**Universe style** (`inputs/universe.txt`): {uni.get('name', '') if isinstance(uni, dict) else ''}: "
           f"{uni.get('brief', '') if isinstance(uni, dict) else ''}", "",
-          f"**Concrete vs abstract:** {res.get('abstraction', '')}", "", f"**Treatment** (`inputs/visual-treatment.txt`): "
+          f"**Concrete vs abstract:** {res.get('abstraction', '')}", "", f"**Story:** {story.get('logline', '')}", "",
+          *[f"- {x.get('id', '')} ({x.get('place', '')}): {x.get('action', '')} *Begins:* {x.get('begins', '')} "
+            f"*Turn:* {x.get('turn', '')} *Ends:* {x.get('ends', '')}" for x in story.get("scenes", [])
+            if isinstance(x, dict)], "", f"**Treatment** (`inputs/visual-treatment.txt`): "
           f"{res.get('treatment', '')}", "", "**Rules**", *[f"- {r}" for r in res.get("rules", [])], "",
-          "**Storyboard** (`inputs/lyrics-cued.txt`)", "", "| # | Line | Mode | Shot |", "|---|---|---|---|"]
+          "**Storyboard** (`inputs/lyrics-cued.txt`)", "", "| # | Line | Scene | Mode | Shot |", "|---|---|---|---|---|"]
     i = 0
     for k, t, j in items:
         if k == "header":
-            md.append(f"| | **{t}** | | |")
+            md.append(f"| | **{t}** | | | |")
         elif k == "slot":
-            md.append(f"| {t[0]} | *(instrumental {mmss(t[1])}-{mmss(t[2])})* | {lines[t[0]]['mode']} {lines[t[0]].get('level', '')} | {lines[t[0]]['note']} |")
+            md.append(f"| {t[0]} | *(instrumental {mmss(t[1])}-{mmss(t[2])})* | {lines[t[0]].get('scene', '')} | {lines[t[0]]['mode']} {lines[t[0]].get('level', '')} | {lines[t[0]]['note']} |")
         else:
             i += 1
-            md.append(f"| {i} | {mmss(se[i - 1][0]) if i - 1 < len(se) else ''} {t} | {lines[str(i)]['mode']} {lines[str(i)].get('level', '')} | {lines[str(i)]['note']} |")
+            md.append(f"| {i} | {mmss(se[i - 1][0]) if i - 1 < len(se) else ''} {t} | {lines[str(i)].get('scene', '')} | {lines[str(i)]['mode']} {lines[str(i)].get('level', '')} | {lines[str(i)]['note']} |")
     md += ["", "## Plausibility fixes", ""] + ([f"- line {f.get('n')}: {f.get('problem', '')} → {f.get('note', '')}"
                                                 for f in fixes] or ["- none needed"])
     open(out_md, "w").write("\n".join(md) + "\n")
