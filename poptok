@@ -13,7 +13,8 @@
 #                        the structure); with WORKSHOP=1 the directors then write the treatment: end to end from a prompt
 # --plan-only stops after the treatment and scene prompts (outputs/RUN/treatment.md), to read and edit before the
 # hours of keyframes and video. Re-running the same command resumes.
-# Steps run again when their inputs change, like a Makefile but by content (pipeline/deps.py, bin/deps.sh): a new
+# Steps run again when their inputs change, like a Makefile but by content: pipeline/steps.ini declares what each step
+# is built from (python3 pipeline/steps.py graph draws it), pipeline/deps.py compares hashes. A new
 # storyboard, treatment, style or song remakes the prompts and everything after them; old outputs are kept as *.prev.
 #   --explain          say which steps would run and why, and run nothing
 #   --redo STEP,...    run these steps again even if their inputs haven't changed (after a code change, say)
@@ -49,8 +50,9 @@ redo() { [[ ",${DEPS_REDO:-}," == *",$1,"* ]] && echo --force || true; }
 # (inputs/songwriters.md, lyrics.txt, music-style.txt); the song is then generated from them, as with MUSIC_STYLE
 if [ -n "${SONG_PROMPT:-}" ]; then
   LYRICS=${LYRICS:-inputs/lyrics.txt}; MUSIC_STYLE=${MUSIC_STYLE:-inputs/music-style.txt}; SONG=""
-  SP=$PIECE/$SONG_PROMPT; [ -f "$SP" ] || SP=SONG_PROMPT=$SONG_PROMPT       # the prompt, or the file holding it
-  if need songwriters "$PIECE" "$PIECE/inputs/songwriters.md" manual "" -- "$SP" SONG_FORM="${SONG_FORM:-}"; then
+  SONG_PROMPT_FILE=$PIECE/$SONG_PROMPT; [ -f "$SONG_PROMPT_FILE" ] || SONG_PROMPT_FILE=""   # a file holding the prompt
+  export PIECE SONG_PROMPT_FILE                                                           # (pipeline/steps.ini)
+  if need songwriters; then
     echo "[$(date +%H:%M:%S)] songwriters' workshop"
     WORKSHOP_PY=pipeline/songwriters.py bin/workshop.sh "$PIECE" $(redo songwriters); made
   fi
@@ -92,8 +94,8 @@ open('$T/inputs/lyrics.txt','w').write('\n'.join(x['text'] for x in s if $ST-0.5
 fi
 if [ -z "$SONG" ]; then
   [ -n "$MUSIC_STYLE" ] || { echo "piece.env: set SONG, or MUSIC_STYLE to generate one"; exit 2; }
-  if need song "$PIECE" "$PIECE/outputs/song.wav" manual "" -- "$(p "$MUSIC_STYLE")" "$(p "$LYRICS")" \
-       SONG_SEEDS="$SONG_SEEDS" SONG_DURATION="$SONG_DURATION"; then
+  export PIECE MUSIC_STYLE_FILE=$(p "$MUSIC_STYLE") LYRICS_FILE=$(p "$LYRICS") SONG_SEEDS SONG_DURATION
+  if need song; then
     bin/make_song.sh "$(p "$MUSIC_STYLE")" "$(p "$LYRICS")" "$PIECE/outputs/song.wav" --seeds "$SONG_SEEDS" \
       --duration "$SONG_DURATION"; made
   fi
@@ -108,8 +110,8 @@ fi
 if [ -n "${WORKSHOP:-}" ]; then
   bin/make_video.sh "$SONGP" --lyrics "$(p "$LYRICS")" --style workshop --out "$PIECE/outputs/$RUN" \
     --analysis "$PIECE/analysis" --analysis-only
-  if need workshop "$PIECE" "$PIECE/inputs/workshop.md" manual "" -- "$(p "$LYRICS")" "$PIECE/inputs/brief.txt" \
-       "$PIECE/analysis/$(basename "${SONGP%.*}")-true-segments.json"; then
+  export PIECE LYRICS_FILE=$(p "$LYRICS") SEGS=$PIECE/analysis/$(basename "${SONGP%.*}")-true-segments.json
+  if need workshop; then
     echo "[$(date +%H:%M:%S)] directors' workshop"; bin/workshop.sh "$PIECE" $(redo workshop); made
   fi
 fi

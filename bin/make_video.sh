@@ -10,8 +10,9 @@
 # PULSE=0 leaves out the bass-hit pulse (slow songs). FX: the piece's effects config (pipeline/fx/). WARDROBE: what the performer wears in this piece (no apostrophes).
 # Normally called by ./poptok with a piece folder. Runs on the box with the 4090 (analysis, LLM, keyframes) and renders
 # video on --video-host (default: this box). Keyframes go to the first free box in --key-hosts (bin/hosts.sh; default:
-# the video host, then this box). Every step runs again when its inputs change and is skipped otherwise
-# (bin/deps.sh, pipeline/deps.py), so a re-run resumes and a changed storyboard or style reaches the stills.
+# the video host, then this box). Every step runs again when its inputs change and is skipped otherwise: what each
+# is built from is declared in pipeline/steps.ini (bin/deps.sh), so a re-run resumes and a new storyboard reaches the
+# stills.
 # One GPU job at a time per box: each step waits while another pipeline container is running.
 #   1 analysis   stems + Whisper with word timestamps (pipeline/analyse.py), beat grid
 #   2 lyrics     master lyrics placed on Whisper's clock (align_lyrics.py); Whisper's own words are not used
@@ -43,6 +44,8 @@ while [ $# -gt 0 ]; do case $1 in
 # cues without a performer photo: the lines' shot notes direct the stills; she is never drawn (modes none/pov only)
 STEM=$(basename "${SONG%.*}"); ANA=${ANA:-$(dirname "$SONG")/$STEM-analysis}; NAME=${NAME:-$STEM}; TAG=-true
 mkdir -p "$OUT" "$ANA"
+SEGS=$ANA/$STEM$TAG-segments.json; LYRICS_FILE=$LYRICS
+export ANA OUT STEM TAG SONG SEGS LYRICS_FILE CUES TREAT LCTX PHOTO STYLE PERFORMER NOTEXT MERGE_ARGS LTX_ARGS  # steps.ini
 KEY_HOSTS=${KEY_HOSTS:-${VHOST:-local}}          # never offload: list only boxes where MOSS (33 GB) fits
 log() { echo "[$(date +%H:%M:%S)] $*"; }
 source bin/hosts.sh
@@ -66,15 +69,14 @@ llm_up() { gpu_lock; "$LLM_SERVER" -m "$LLM_GGUF" -ngl 99 -c 16384 --reasoning-b
 llm_down() { kill $LLM_PID; wait $LLM_PID 2>/dev/null || true; gpu_unlock; }
 
 # 1 analysis
-if need analysis "$ANA" "$ANA/$STEM-medium.json" fresh "" -- "$SONG"; then
+if need analysis; then
   log "analysis: stems + whisper"; analysis python3 pipeline/analyse.py "$SONG" --analysis "$ANA"; made; fi
-if need beats "$ANA" "$ANA/beats.json" fresh "" -- "$SONG"; then
+if need beats; then
   log "beat grid"; analysis python3 pipeline/beat_grid.py "$SONG" "$ANA"; made; fi
-if need drums "$ANA" "$ANA/drum_hits.json" fresh "" -- "$ANA/$STEM-drums.mp3"; then
+if need drums; then
   python3 pipeline/drum_hits.py "$ANA" "$STEM" > /dev/null; made; fi          # deep drum hits (bursts, workshop)
 # 2 lyrics
-SEGS=$ANA/$STEM$TAG-segments.json
-if need segments "$ANA" "$SEGS" fresh "" -- "$SONG" "$LYRICS" "$ANA/$STEM-medium.json"; then
+if need segments; then
   python3 pipeline/align_lyrics.py "$SONG" "$LYRICS" --analysis "$ANA"      # lyric timings: Whisper matching, then forced
   analysis python pipeline/force_align.py "$SONG" "$LYRICS" --analysis "$ANA" --merge="$TAG" > "$ANA/force_align.log" 2>&1 \
     || log "forced alignment failed ($ANA/force_align.log): keeping Whisper-matched timings"   # alignment of the known
@@ -83,9 +85,7 @@ fi
 # --analysis-only: stop here (./poptok runs this before the directors' workshop, which needs the lyric timings)
 [ -n "$ANAONLY" ] && { [ -n "${DEPS_DRY:-}" ] || log "analysis done: $ANA"; exit 0; }
 # 3 prompts: everything that shapes a shot's prompt is an input, so a new storyboard, treatment or style rebuilds them
-if need prompts "$ANA" "$ANA/full-metadata$TAG.json" fresh "$ANA/full-metadata$TAG.json|$ANA/$STEM-visual-prompts$TAG.json" \
-     -- "$SEGS" ${TREAT:+"$TREAT"} ${CUES:+"$CUES"} ${LCTX:+"$LCTX"} STYLE="$STYLE" PERFORMER="$PERFORMER" \
-     WARDROBE="${WARDROBE:-}" STYLE_WORD="${STYLE_WORD:-}" STYLE_BRIEF="${STYLE_BRIEF:-}" NOTEXT="$NOTEXT"; then
+if need prompts; then
   llm_up
   if [ -n "$TREAT" ]; then
     log "treatment + scene prompts"
@@ -112,9 +112,7 @@ remote_keys() {   # host, container command: code, analysis, run folder and keys
   on "$1" "cd ~/poptok && flock $LOCK $2"
   rsync -a "$1":poptok/"$OUT"/keys "$OUT"/
 }
-if need keys "$OUT" "$OUT/keys/.done" resume "$OUT/keys|$OUT/shots.json|$OUT/reroll.json" -- "$ANA/full-metadata$TAG.json" \
-     "$ANA/beats.json" ${PHOTO:+"$PHOTO"} STYLE="$STYLE" STYLE_WORD="${STYLE_WORD:-}" STYLE_BRIEF="${STYLE_BRIEF:-}" \
-     WARDROBE="${WARDROBE:-}" PERFORMER="$PERFORMER"; then
+if need keys; then
   KARGS="pipeline/keyframes.py $SONG --style \"${STYLE:-none}\" --meta full-metadata$TAG.json --analysis $ANA --out $OUT"
   eval python3 $KARGS --plan-only > "$OUT/shots.log"                    # the shot list (and each shot's cue)
   mkdir -p "$OUT/keys"
@@ -148,8 +146,7 @@ if need keys "$OUT" "$OUT/keys/.done" resume "$OUT/keys|$OUT/shots.json|$OUT/rer
   done
   touch "$OUT/keys/.done"; made
 fi
-if need merge "$OUT" "$OUT/shots_merged.json" fresh "$OUT/shots_merged.json" -- "$OUT/keys" "$OUT/shots.json" \
-     MERGE_ARGS="$MERGE_ARGS"; then
+if need merge; then
   log "merge near-duplicate scenes"; llm_up
   python3 pipeline/merge_scenes.py "$OUT" --api openai --llm $LLM_URL --model local $MERGE_ARGS > "$OUT/merge.log" 2>&1 \
     || { llm_down; exit 1; }
@@ -157,8 +154,7 @@ if need merge "$OUT" "$OUT/shots_merged.json" fresh "$OUT/shots_merged.json" -- 
 fi
 # scenes (pipeline/scenes.py): the scene list to edit, and an LLM-written A->B morph for every scene change, which the
 # chain prompts with the Transition LoRA's trigger word
-if need scenes "$OUT" "$OUT/scenes.json" fresh "$OUT/scenes.json|$OUT/scenes.applied.json" -- "$OUT/shots_merged.json" \
-     "$SEGS" ${CUES:+"$CUES"}; then
+if need scenes; then
   log "scenes + transitions"; llm_up
   python3 pipeline/scenes.py build "$OUT" ${CUES:+--cues "$CUES"} --segments "$SEGS" > "$OUT/scenes.log" 2>&1 \
     && python3 pipeline/scenes.py transitions "$OUT" --llm $LLM_URL >> "$OUT/scenes.log" 2>&1 || { llm_down; exit 1; }
@@ -170,8 +166,7 @@ if [ -n "${HOLD_BEFORE_VIDEO:-}" ] && [ -z "${DEPS_DRY:-}" ] && [ "$(ls "$OUT/lt
 # 5 video. A fresh chain moves the old frames aside (ltx_chain.prev) and clears the video host's copy (rsync --delete),
 # since ltx_chain.py and the retime skip frames that exist; scenes.py apply removes only the frames to re-render and
 # accepts the rest (deps.py accept)
-if need video "$OUT" "$OUT/ltx_chain/.done" resume "$OUT/ltx_chain|$OUT/ltx_chain_beat" -- "$OUT/keys" "$OUT/shots_merged.json" \
-     "$OUT/scenes.json" LTX_ARGS="$LTX_ARGS"; then
+if need video; then
   N=$(python3 -c "import json;print(round(json.load(open('$OUT/shots.json'))['shots'][-1]['end']*24))")
   LTX="python pipeline/ltx_chain.py $OUT --merge --plan shots_merged.json $LTX_ARGS"
   mkdir -p "$OUT/ltx_chain"
@@ -203,11 +198,9 @@ if need video "$OUT" "$OUT/ltx_chain/.done" resume "$OUT/ltx_chain|$OUT/ltx_chai
   [ "$NF" -ge "$N" ] || { log "video incomplete: $NF of $N frames (see $OUT/ltx.log); run again to resume"; exit 1; }
   touch "$OUT/ltx_chain/.done"; made
 fi
-# 7 lip-sync inputs: a new still, cut or vocal makes the inserts again (the old ones are kept in sing.prev)
-SING_IN=("$OUT/keys" "$OUT/shots_merged.json" "$SEGS" "$SONG" PERFORMER="$PERFORMER" ENGINE="${ENGINE:-infinitetalk}")
 if [ -n "${DEPS_DRY:-}" ]; then
   echo "  finish: always runs (retime, grade, mux)"
-  [ -n "$PHOTO" ] && { need lipsync "$OUT" "$OUT/sing/.done" resume "$OUT/sing" -- "${SING_IN[@]}" || true; }
+  [ -n "$PHOTO" ] && { need lipsync || true; }
   exit 0
 fi
 # 6 finish
@@ -218,7 +211,7 @@ python3 pipeline/finish.py "$OUT" --audio "$SONG" --analysis "$ANA" --plan shots
   --src-fps 24 --no-flash $([ "${PULSE:-1}" = 0 ] && echo --no-pulse || echo --punch-lowhits) --name "$NAME" "${GRADE[@]}" $FINISH_ARGS \
   ${FX:+--fx "$(dirname "$(dirname "$OUT")")/$FX"}
 # lip-sync (sing_inserts.py, bin/sing_inserts.sh): the sung scenes, lip-synced from their stills, cut into the video
-if [ -n "$PHOTO" ] && need lipsync "$OUT" "$OUT/sing/.done" resume "$OUT/sing" -- "${SING_IN[@]}"; then
+if [ -n "$PHOTO" ] && need lipsync; then
   python3 pipeline/sing_inserts.py plan "$OUT" "$ANA" "$STEM" --performer "$PERFORMER" > "$OUT/sing.log" 2>&1
   NS=$(python3 -c "import json;print(len(json.load(open('$OUT/sing/inserts.json'))))")
   if [ "$NS" -gt 0 ]; then
