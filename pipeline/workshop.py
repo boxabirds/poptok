@@ -511,7 +511,11 @@ def main():
             note = f"({'stylised' if lvl.startswith('styli') else 'abstract'}) {note}"
         cued.append(f"{t:<{width}}{{{lines[key]['mode']}: {note}}}" if note else f"{t:<{width}}{{{lines[key]['mode']}}}")
     open(out_cues, "w").write("\n".join(cued) + "\n")
-    open(out_tr, "w").write(res.get("treatment", "").strip() + "\n")
+    tr = res.get("treatment", "")
+    if isinstance(tr, dict):                          # sometimes returned as {"look": ..., "light": ...}: join the parts
+        tr = " ".join(str(v) for v in tr.values())
+    res["treatment"] = " ".join(str(tr).split())
+    open(out_tr, "w").write(res["treatment"] + "\n")
     uni = res.get("universe") or {}
     if isinstance(uni, dict) and uni.get("name"):       # line 1: the style word; then its brief (./poptok: STYLE_WORD/BRIEF)
         open(out_uni, "w").write(" ".join(str(uni["name"]).split()) + "\n" + " ".join(str(uni.get("brief", "")).split()) + "\n")
