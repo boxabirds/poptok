@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# poptok: lyrics + visual treatment (+ a song, or a music style to generate one) -> music video.
+# poptok: lyrics + visual treatment (+ a song, or a music style to generate one) -> music video; or a prompt alone ->
+# lyrics, song, treatment and music video.
 #
 #   ./poptok pieces/NAME [--plan-only] [--run RUN]
 #
@@ -8,6 +9,8 @@
 #   SONG set          -> video from that song
 #   SONG empty        -> song generated from MUSIC_STYLE + LYRICS with ACE-Step (best of SONG_SEEDS by lyric match),
 #                        written to outputs/song.wav, then the video
+#   SONG_PROMPT set   -> the songwriters' workshop writes LYRICS and MUSIC_STYLE from the prompt first (SONG_FORM:
+#                        the structure); with WORKSHOP=1 the directors then write the treatment: end to end from a prompt
 # --plan-only stops after the treatment and scene prompts (outputs/RUN/treatment.md), to read and edit before the
 # hours of keyframes and video. Re-running the same command resumes.
 set -euo pipefail
@@ -24,6 +27,19 @@ set -a                                                   # site + piece settings
 [ -f site.env ] && source site.env                       # this installation: hosts, LLM paths (site.env.example)
 source "$PIECE/piece.env"
 set +a
+# SONG_PROMPT: the songwriters' workshop (pipeline/songwriters.py) writes the lyrics and the music style from a prompt
+# (inputs/songwriters.md, lyrics.txt, music-style.txt); the song is then generated from them, as with MUSIC_STYLE
+if [ -n "${SONG_PROMPT:-}" ]; then
+  LYRICS=${LYRICS:-inputs/lyrics.txt}; MUSIC_STYLE=${MUSIC_STYLE:-inputs/music-style.txt}; SONG=""
+  if [ ! -f "$PIECE/inputs/songwriters.md" ]; then
+    echo "[$(date +%H:%M:%S)] songwriters' workshop"; WORKSHOP_PY=pipeline/songwriters.py bin/workshop.sh "$PIECE"
+  fi
+fi
+# songwriter lyrics (bare section headings with action hints, whole-line stage directions) -> canonical bracketed form
+if [ -n "$LYRICS" ] && [ -f "$PIECE/$LYRICS" ] && \
+   [ "$(python3 pipeline/normalise_lyrics.py "$PIECE/$LYRICS" "$PIECE/inputs/lyrics.canonical.txt")" != 0 ]; then
+  LYRICS=inputs/lyrics.canonical.txt
+else rm -f "$PIECE/inputs/lyrics.canonical.txt"; fi
 KEY_HOSTS=${KEY_HOSTS:-${VIDEO_HOST:+$VIDEO_HOST }${KEY_POOL:-local}}
 K=""; for h in $KEY_HOSTS; do [[ " ${MAC_HOSTS:-quintus} " == *" $h "* ]] || K="$K $h"; done; KEY_HOSTS=${K# }   # keyframes
                                                    # need a CUDA/ROCm container; a Mac renders video only
@@ -75,6 +91,11 @@ if [ -n "${WORKSHOP:-}" ] && [ ! -f "$PIECE/inputs/workshop.md" ]; then
   bin/make_video.sh "$SONGP" --lyrics "$(p "$LYRICS")" --style workshop --out "$PIECE/outputs/$RUN" \
     --analysis "$PIECE/analysis" --analysis-only
   echo "[$(date +%H:%M:%S)] directors' workshop"; bin/workshop.sh "$PIECE"
+fi
+# the universe style the workshop chose (inputs/universe.txt: a few words, then its brief) leads and frames every prompt,
+# unless piece.env sets STYLE_WORD itself
+if [ -n "${WORKSHOP:-}" ] && [ -z "${STYLE_WORD:-}" ] && [ -s "$PIECE/inputs/universe.txt" ]; then
+  export STYLE_WORD="$(head -n 1 "$PIECE/inputs/universe.txt")" STYLE_BRIEF="$(tail -n +2 "$PIECE/inputs/universe.txt")"
 fi
 # the visual treatment is the style added to every per-line prompt (the C6 method); DIRECTOR=1 uses the experimental
 # whole-video treatment step instead (treatment.py), which lets its own story override the lyrics

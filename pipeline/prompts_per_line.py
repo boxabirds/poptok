@@ -73,7 +73,10 @@ def direction(cue, performer):
     mode, note = cue
     return (f"\n(Direction for this shot: {DIRECTIONS[mode].format(performer=performer)}."
             + (ONE_PERFORMER if mode in ("part", "scene", "sing") else "")
-            + (f" Staging: {note}." if note else "") + ")\n")
+            + (f" Staging: {note}." if note else "")
+            + (" '(abstract)' or '(stylised)' at the start of the staging says how literally to show it: abstract means "
+               "symbolic or graphic (shapes, traces, patterns, light standing for the thing), stylised means simplified"
+               if note.startswith(("(abstract)", "(stylised)")) else "") + ")\n")
 
 
 SLOT = re.compile(r"^\(instrumental (\d+):(\d+(?:\.\d+)?)\)\s*\{(\w+)(?::\s*([^}]*))?\}\s*$")
@@ -188,7 +191,9 @@ def main():
                  "the meaning through people, places, objects and light instead.)\n" if a.no_text else "")
         ctx = (f"\n(For continuity: the previous line was \"{prev[0]}\" and its visual was: {prev[1]})\n" if prev else "")
         v = last_line(complete(a.llm, a.model, LINE_PROMPT + text + ctx + extra + full_lyrics))
-        if a.style_word:
+        if a.style_word:                  # lead with the style word once (the LLM often writes it already)
+            while v.lower().startswith(a.style_word.lower() + ":"):
+                v = v[len(a.style_word) + 1:].lstrip()
             v = f"{a.style_word}: {v}"
         prev = (text, v)
         print(f"{st:7.2f}  {text!r}\n         -> {v}", flush=True)

@@ -176,3 +176,5 @@ Look at consecutive frames, not sparse contact sheets. Put sheets in `pieces/_be
 - **Amber stills:** Qwen-Image-Edit-2511 + Lightning LoRA, 8 steps, cfg 1 (`pipeline/qwen_edit.py`).
 - **Lip-sync:** InfiniteTalk fast mode (lightx2v LoRA, 4 steps, text guide 1, audio guide 2, shift 2), weights in
   `~/models/infinitetalk` on the Sparks. LongCat-Video-Avatar was rejected (mis-articulates "r").
+- `HOLD_BEFORE_VIDEO=1 ./poptok pieces/NAME`: stop before the video for a still review (`pipeline/fix_keys.py`), then `./poptok pieces/NAME` to continue.
+- **A piece from a prompt:** `SONG_PROMPT="..."` (plus `WORKSHOP=1`, `TREATMENT=inputs/visual-treatment.txt`, `CUES=inputs/lyrics-cued.txt`) in piece.env, then `./poptok pieces/NAME`: songwriters' workshop (`inputs/songwriters.md`, `lyrics.txt`, `music-style.txt`) → ACE-Step song → analysis → directors' workshop → video. Redo the lyrics: `WORKSHOP_PY=pipeline/songwriters.py bin/workshop.sh pieces/NAME --force`. The LLM's conversation tends to loop after ~10k characters; it's cut there and the songwriters finish the song in the next pass.

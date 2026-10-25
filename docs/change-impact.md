@@ -29,6 +29,8 @@ inputs ──► 1 analysis ──► 2 lyrics aligned ──► 3 prompts + cue
 
 | # | Step | Depends on | Output | Cost to redo | Where |
 |---|---|---|---|---|---|
+| S1 | Songwriters' workshop (optional, `SONG_PROMPT`): conversation → final lyrics + music style, checked against `SONG_FORM` | the prompt, `SONG_FORM` | `inputs/songwriters.md`, `lyrics.txt`, `music-style.txt` | ~10 min (LLM); everything after it redoes | gruntus |
+| S2 | Song (ACE-Step, best of `SONG_SEEDS` by lyric intelligibility; when `SONG` is empty) | lyrics, music style | `outputs/song.wav` | ~5-10 min; everything after it redoes | gruntus |
 | 0 | Directors' workshop (optional, `WORKSHOP=1`): conversation → treatment + line-by-line storyboard + a shot per ~7 s of every instrumental gap → plausibility review | lyrics, 1 + 2 (line timings: runs after them), `inputs/brief.txt`, FX config (burst times), performer photo or not | `inputs/workshop.md`, `visual-treatment.txt`, `lyrics-cued.txt` | ~5–8 min (LLM) | gruntus |
 | 1 | Analysis: stems, Whisper, beat grid | song | `analysis/` | ~5 min | gruntus |
 | 2 | Lyrics aligned | lyrics, 1 | `*-true-segments.json` | ~1 min | gruntus |

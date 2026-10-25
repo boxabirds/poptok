@@ -85,7 +85,7 @@ def section_map(path):
     for raw in open(path).read().split("\n"):
         t = raw.strip()
         h = re.match(r"^\[([^\]:]*)\]", t)
-        if h and not re.match(r"^\[(singer|amber|performer)\s*:", t, re.I):
+        if h and not re.match(r"^\[(singer|amber|performer)\s*:", t, re.I) and not h.group(1).startswith("("):   # [(silence)]: a direction
             sec = h.group(1).strip()
             continue
         if t and not t.startswith("[") and not t.startswith("(instrumental"):   # workshop gap shots aren't sung

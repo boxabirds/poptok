@@ -151,6 +151,9 @@ if [ ! -f "$OUT/scenes.json" ]; then
     && python3 pipeline/scenes.py transitions "$OUT" --llm $LLM_URL >> "$OUT/scenes.log" 2>&1 || { llm_down; exit 1; }
   llm_down
 fi
+# HOLD_BEFORE_VIDEO=1: stop here so the stills can be reviewed (and fixed: pipeline/fix_keys.py); run again to go on
+if [ -n "${HOLD_BEFORE_VIDEO:-}" ] && [ "$(ls "$OUT/ltx_chain" 2>/dev/null | grep -c png)" -eq 0 ]; then
+  log "held before video: review $OUT/keys, then run again without HOLD_BEFORE_VIDEO"; exit 0; fi
 # 5 video
 N=$(python3 -c "import json;print(round(json.load(open('$OUT/shots.json'))['shots'][-1]['end']*24))")
 LTX="python pipeline/ltx_chain.py $OUT --merge --plan shots_merged.json $LTX_ARGS"
@@ -177,9 +180,8 @@ if [ "$(ls "$OUT/ltx_chain" 2>/dev/null | grep -c png)" -lt "$N" ]; then
     rsync -a "$OUT/keys" "$OUT/shots.json" "$OUT/shots_merged.json" "$OUT/scenes.json" "$VHOST":poptok/"$OUT"/
     [ -d "$OUT/ltx_chain" ] && rsync -a --delete "$OUT/ltx_chain/" "$VHOST":poptok/"$OUT"/ltx_chain/   # scenes.py apply:
                                                                     # only the removed frames are rendered again
-    ssh "$VHOST" "cd ~/poptok && while docker ps --format '{{.Image}}' | grep -qE '$IMAGES|morph-spark'; do sleep 30; done; \
-      flock $LOCK docker run --gpus all --rm --user \$(id -u):\$(id -g) --ipc=host -e HOME=/tmp -v \$HOME/poptok:/work \
-      -v \$HOME/models:/models -w /work ltx2 $LTX" > "$OUT/ltx.log" 2>&1
+    ssh "$VHOST" "cd ~/poptok && $PREP while $CTRS | grep -qE '$BUSY_RE'; do sleep 30; done; \
+      flock $LOCK $(ltx_ctr "$VHOST") $LTX" > "$OUT/ltx.log" 2>&1         # NVIDIA (docker) or ROCm (podman)
     rsync -a "$VHOST":poptok/"$OUT"/ltx_chain "$OUT"/
   fi
 fi
@@ -195,13 +197,14 @@ if [ -n "$PHOTO" ]; then
   python3 pipeline/sing_inserts.py plan "$OUT" "$ANA" "$STEM" --performer "$PERFORMER" > "$OUT/sing.log" 2>&1
   NS=$(python3 -c "import json;print(len(json.load(open('$OUT/sing/inserts.json'))))")
   if [ "$NS" -gt 0 ]; then
-    read -ra SH <<< "${SING_HOSTS:-gruntus $AMBER_HOSTS}"
+    read -ra SH <<< "${SING_HOSTS:-gruntus $AMBER_HOSTS $ROCM_HOSTS}"
+    RATES=$(for h in "${SH[@]}"; do printf '%s=%s ' "$h" "$(talk_rate "$h")"; done)
     # longest insert first, each to the host that would finish it soonest (gruntus int8 ~62 s per second of video,
-    # a Spark ~163 s; docs/hardware-performance.md)
+    # a Spark ~163 s, a Strix Halo ~348 s; bin/hosts.sh talk_rate)
     SPLAN=$(python3 -c "
 import json
 rs = sorted(json.load(open('$OUT/sing/inserts.json')), key=lambda r: -r['duration'])
-rate = {h: (62 if h in ('gruntus', 'local') else 163) for h in '${SH[*]}'.split()}
+rate = {kv.split('=')[0]: int(kv.split('=')[1]) for kv in '$RATES'.split()}
 busy, got = {h: 0.0 for h in rate}, {h: [] for h in rate}
 for r in rs:
     h = min(rate, key=lambda h: busy[h] + rate[h] * r['duration'])

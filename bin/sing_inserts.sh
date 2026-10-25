@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Render a run's sung inserts (pipeline/sing_inserts.py plan) on gruntus and/or DGX Sparks, one GPU job per box: each
 # host takes its share of the inserts in turn. "gruntus" (or "local") renders here with the int8 engine
-# (bin/infinitetalk_quant.sh, ~2.6x a Spark); other hosts are Sparks over ssh. ENGINE=infinitetalk (default; fast 4-step lightx2v mode, no offload) or longcat.
+# (bin/infinitetalk_quant.sh, ~2.6x a Spark); other hosts are Sparks (docker) or ROCm boxes (podman, ROCM_HOSTS) over ssh. ENGINE=infinitetalk (default; fast 4-step lightx2v mode, no offload) or longcat.
 #   bin/sing_inserts.sh OUT "gruntus:0,3 thing1:1 thing2:2"
 # Needs the image (docker/infinitetalk or docker/longcat) and its weights in ~/models on each host. Clips come back to
 # OUT/sing/ (it_out_K.mp4, or out_K/ for LongCat).
@@ -27,9 +27,8 @@ render() {   # host, comma-separated insert numbers
     n=$(python3 -c "import json;print([r for r in json.load(open('$D/inserts.json')) if r['k']==$k][0]['segments'])")
     echo "[$(date +%H:%M:%S)] insert $k ($n segments) on $h"
     if [ "${ENGINE:-infinitetalk}" = infinitetalk ]; then
-      ssh "$h" "cd ~/poptok/$D && while docker ps --format '{{.Image}}' | grep -qE '$BUSY_RE|longcat|infinitetalk'; do sleep 20; done; \
-        test -s it_out_$k.mp4 || flock $LOCK docker run --gpus all --rm --user \$(id -u):\$(id -g) --ipc=host -e HOME=/tmp -v \$HOME/models/infinitetalk:/weights \
-        -v \$PWD:/work -w /work infinitetalk python /opt/InfiniteTalk/generate_infinitetalk.py --ckpt_dir /weights/Wan2.1-I2V-14B-480P \
+      ssh "$h" "cd ~/poptok/$D && $PREP while $CTRS | grep -qE '$BUSY_RE|longcat'; do sleep 20; done; \
+        test -s it_out_$k.mp4 || flock $LOCK $(talk_ctr "$h") python /opt/InfiniteTalk/generate_infinitetalk.py --ckpt_dir /weights/Wan2.1-I2V-14B-480P \
         --wav2vec_dir /weights/chinese-wav2vec2-base --infinitetalk_dir /weights/InfiniteTalk/single/infinitetalk.safetensors \
         --lora_dir /weights/lora/Wan21_T2V_14B_lightx2v_cfg_step_distill_lora_rank32.safetensors --lora_scale 1.0 \
         --input_json /work/it_insert_$k.json --size infinitetalk-480 --sample_steps 4 --sample_text_guide_scale 1.0 \

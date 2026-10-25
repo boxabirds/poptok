@@ -10,6 +10,9 @@ first), PIECE/inputs/brief.txt
 performer photo is set (PERFORMER_PHOTO). Writes, in PIECE/inputs/:
   workshop.md            the conversation, the result, and the plausibility fixes (for the user to read)
   visual-treatment.txt   the treatment (TREATMENT)
+  universe.txt           the universe style the directors chose (line 1: a few words, e.g. "oil impasto"; then its
+                         brief: what every frame is made of, how light behaves); ./poptok uses it as STYLE_WORD +
+                         STYLE_BRIEF, so every prompt leads with it and is written inside it (POC 24's protocol)
   lyrics-cued.txt        the lyrics annotated line by line ({mode: shot note}; CUES), the sung words unchanged, plus a
                          shot for every slot of the instrumental passages: "(instrumental M:SS.S) {mode: note}"
 Instrumental passages of 6 s or more (intro, gaps, outro) get slots of about 6-8 s each, so no still has to carry a long
@@ -67,15 +70,25 @@ Brief from the artist (follow it): {brief}
 
 {capabilities}
 
-The lyrics with their timings (M:SS.S from the start of the song; section headers in brackets; notes in parentheses
-after a header are the songwriter's directions about voices, follow them). Instrumental passages are marked with their
+The lyrics with their timings (M:SS.S from the start of the song; section headers in brackets; a hint in parentheses
+after a header is the songwriter's direction for that section (who is there, what the action is, the voices): follow
+it; a bracketed line in parentheses, e.g. [(silence)], is a stage direction at that point). Instrumental passages are marked with their
 length and the shot slots (G1, G2, ...) that must fill them: each slot is one shot of about 6-8 s. Plan them as part of
 the video (what happens between the lines, how it moves the story on), never as one image held for the whole gap:
 {lyrics}
 
-Write the workshop as a conversation (names in bold, then what they say), about 1200-1600 words. They should: start
-from what the song means (the reading) before style; argue and build on each other; agree on one concept, a small set
-of visual rules (look, light, camera, how changes happen), where the performer appears and sings, and then walk
+Write the workshop as a conversation (names in bold, then what they say), about 1400-1800 words. They should: start
+from what the song means (the reading) before style; then agree the UNIVERSE STYLE: the medium and world the whole
+video lives in, true for every frame. Photographic realism is only one option; argue for at least three different
+universes (for example oil impasto, stained glass, charcoal on paper, paper cut-out, claymation, cyanotype,
+hand-tinted photographs, woodcut) and choose the one that serves the song's meaning, saying what everything in it is
+made of, how light behaves, and what it can and can't show. If the brief fixes the look, that is the universe: keep
+it and don't debate it. Then agree how CONCRETE or ABSTRACT the video is: literal people and places, stylised, or
+symbolic. Decide it for the whole video and again for every shot: the same idea can be shown many ways (a thousand
+people as a crowd of faces, as footprints multiplying in snow, as shadows on a wall, as a river of lanterns, as a
+pattern of umbrellas from above), and the right level depends on the moment and on what the machine draws well. Then
+argue and build on each other; agree on one concept, a small set of visual rules (light,
+camera, how changes happen), where the performer appears and sings, and then walk
 through the song section by section, saying what we see on each line and how each change happens as an event. Every
 shot they agree must be physically possible and filmable, as described above. End with a one-paragraph summary of
 what they agreed.{previous}"""
@@ -104,9 +117,11 @@ Performer photo available: {has_photo}. Allowed modes: {modes}.
 
 Return JSON only:
 {{"concept": "one or two sentences",
+ "universe": {{"name": "the universe style in 2-4 words, e.g. oil impasto", "brief": "50-90 words: what everything in every frame is made of, its surfaces and texture, how light behaves, the palette; written as rules true for every frame (if the brief fixes the look, its words)"}},
  "treatment": "the visual treatment for the image model: look, light, palette, camera, how changes happen; 60-120 words, no story. If the brief fixes the look, start with the brief's look words unchanged. Never describe the performer (this text styles every shot, most without her)",
  "rules": ["short visual rules"],
- "lines": [{{"n": line number, "mode": one of the allowed modes, "note": "what we see on this line: one concrete, filmable, physically possible shot, 10-30 words"}}]}}
+ "abstraction": "one or two sentences: how concrete or abstract the video is overall, and where it moves along that scale",
+ "lines": [{{"n": line number, "mode": one of the allowed modes, "level": "concrete" | "stylised" | "abstract", "note": "what we see on this line: one filmable, physically possible shot, 10-30 words, shown at that level"}}]}}
 Every numbered line and every slot (G1, G2, ...) must appear exactly once in "lines" ("n" is the line number or the
 slot id, e.g. "G3"); slots are instrumental, so their mode is never "sing". Mode "sing" only where the note shows her face singing on
 camera, and only in the two or three passages the directors chose for singing; a shot of an object, a room, her back,
@@ -171,7 +186,7 @@ def parse_lyrics(path: str):
         t = re.sub(r"\{[^}]*\}", "", raw).strip()
         if not t:
             continue
-        if HEADER.match(t) or (t.startswith("[") and t.endswith("]")):
+        if HEADER.match(t) or (t.startswith("[") and t.endswith("]")) or re.match(r"^\(.*\)$", t):   # (silence): a direction
             out.append(("header", t.strip("[] ")))
         else:
             out.append(("line", t))
@@ -290,9 +305,12 @@ def main():
     a = ap.parse_args()
     P = a.piece.rstrip("/")
     e = read_env(os.path.join(P, "piece.env"))
+    e["SONG"] = e.get("SONG") or "outputs/song.wav"    # no SONG: the one ./poptok generated (MUSIC_STYLE)
+    e["LYRICS"] = e.get("LYRICS") or "inputs/lyrics.txt"
     inp = os.path.join(P, "inputs")
     os.makedirs(inp, exist_ok=True)
     out_md, out_tr, out_cues = (os.path.join(inp, n) for n in ("workshop.md", "visual-treatment.txt", "lyrics-cued.txt"))
+    out_uni = os.path.join(inp, "universe.txt")
     if os.path.exists(out_md) and not a.dry_run:
         if not a.force:
             print(f"{out_md} exists (use --force to redo)")
@@ -378,8 +396,13 @@ def main():
             res = as_json(llm(RESULT.format(conversation=conv, numbered="\n".join(numbered), has_photo=has_photo,
                                             modes=", ".join(modes)), a.llm, max_tokens=6000, temperature=0.2))
             got = {str(x["n"]).strip() for x in res.get("lines", [])}
-            if got >= set(ids):
+            notes = [" ".join(str(x.get("note", "")).lower().split()) for x in res.get("lines", [])]
+            dup = len(notes) - len(set(notes))       # a note copied onto several lines merges them into one long scene
+            if got >= set(ids) and dup <= max(2, len(ids) // 20):
                 break
+            if got >= set(ids):
+                print(f"  result repeats {dup} shot notes; retry", flush=True)
+                continue
             print(f"  result missing {[i for i in ids if i not in got][:10]}; retry", flush=True)
         except (ValueError, KeyError, TypeError) as ex:
             print(f"  result unparsable ({ex}); retry", flush=True)
@@ -417,14 +440,23 @@ def main():
             i += 1
             key = str(i)
         note = lines[key]["note"].replace("{", "(").replace("}", ")").strip()
+        lvl = str(lines[key].get("level", "")).strip().lower()
+        if note and lvl in ("stylised", "stylized", "abstract"):        # how literally to show it (prompts_per_line reads it)
+            note = f"({'stylised' if lvl.startswith('styli') else 'abstract'}) {note}"
         cued.append(f"{t:<{width}}{{{lines[key]['mode']}: {note}}}" if note else f"{t:<{width}}{{{lines[key]['mode']}}}")
     open(out_cues, "w").write("\n".join(cued) + "\n")
     open(out_tr, "w").write(res.get("treatment", "").strip() + "\n")
+    uni = res.get("universe") or {}
+    if isinstance(uni, dict) and uni.get("name"):       # line 1: the style word; then its brief (./poptok: STYLE_WORD/BRIEF)
+        open(out_uni, "w").write(" ".join(str(uni["name"]).split()) + "\n" + " ".join(str(uni.get("brief", "")).split()) + "\n")
     md = [f"# Directors' workshop: {os.path.basename(P)}", "",
           "Simulated by `pipeline/workshop.py` with the local LLM. The directors are fictional composites standing for "
           "traditions, not real people.", "", "**Directors**", DIRECTORS, "", f"**Song:** {song_facts(P, e)}  ",
           f"**Performer:** {performer}  ", f"**Brief:** {brief}", "", "## The conversation", "", conv, "",
-          "## The result", "", f"**Concept:** {res.get('concept', '')}", "", f"**Treatment** (`inputs/visual-treatment.txt`): "
+          "## The result", "", f"**Concept:** {res.get('concept', '')}", "",
+          f"**Universe style** (`inputs/universe.txt`): {uni.get('name', '') if isinstance(uni, dict) else ''}: "
+          f"{uni.get('brief', '') if isinstance(uni, dict) else ''}", "",
+          f"**Concrete vs abstract:** {res.get('abstraction', '')}", "", f"**Treatment** (`inputs/visual-treatment.txt`): "
           f"{res.get('treatment', '')}", "", "**Rules**", *[f"- {r}" for r in res.get("rules", [])], "",
           "**Storyboard** (`inputs/lyrics-cued.txt`)", "", "| # | Line | Mode | Shot |", "|---|---|---|---|"]
     i = 0
@@ -432,10 +464,10 @@ def main():
         if k == "header":
             md.append(f"| | **{t}** | | |")
         elif k == "slot":
-            md.append(f"| {t[0]} | *(instrumental {mmss(t[1])}-{mmss(t[2])})* | {lines[t[0]]['mode']} | {lines[t[0]]['note']} |")
+            md.append(f"| {t[0]} | *(instrumental {mmss(t[1])}-{mmss(t[2])})* | {lines[t[0]]['mode']} {lines[t[0]].get('level', '')} | {lines[t[0]]['note']} |")
         else:
             i += 1
-            md.append(f"| {i} | {mmss(se[i - 1][0]) if i - 1 < len(se) else ''} {t} | {lines[str(i)]['mode']} | {lines[str(i)]['note']} |")
+            md.append(f"| {i} | {mmss(se[i - 1][0]) if i - 1 < len(se) else ''} {t} | {lines[str(i)]['mode']} {lines[str(i)].get('level', '')} | {lines[str(i)]['note']} |")
     md += ["", "## Plausibility fixes", ""] + ([f"- line {f.get('n')}: {f.get('problem', '')} → {f.get('note', '')}"
                                                 for f in fixes] or ["- none needed"])
     open(out_md, "w").write("\n".join(md) + "\n")
