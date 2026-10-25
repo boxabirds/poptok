@@ -93,7 +93,10 @@ for c in clips[:a.max_clips or None]:
         light = (" The lighting and exposure stay constant throughout (no flash, no burst of light); the shapes themselves reshape into the "
                  "new scene.") if a.even_light else ""
         t_in = SC.get(j, {}).get("transition_in", "")
-        if t_in:                                   # a written A->B morph (scenes.py transitions), the LoRA's own style
+        if t_in and SC.get(j, {}).get("continuous"):   # inside one story scene: the take goes on, a camera move, no
+            prompt = (f"One continuous shot, no cut, the same place: {t_in} It arrives at {shots[j]['prompt']} {style}."
+                      + (STILL if shots[j].get("word") else ""))                  # event, no transition trigger
+        elif t_in:                                 # a written A->B morph (scenes.py transitions), the LoRA's own style
             prompt = (f"One continuous shot, no cut: {t_in} It settles on {shots[j]['prompt']} {style}.{light}{TRIG}"
                       + (STILL if shots[j].get("word") else ""))
         else:

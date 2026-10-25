@@ -155,6 +155,9 @@ def main():
     ap.add_argument("--performer", default="a young woman with long wavy blond hair",
                     help="how the performer looks, for lines where she appears")
     ap.add_argument("--wardrobe", default="", help="what she wears in this piece (WARDROBE), added to her description")
+    ap.add_argument("--story", default=None, help="the workshop's story scenes (story-scenes.json): each shot is told "
+                    "where it sits in the story (the logline, its scene's part of the arc and action), so the prompts "
+                    "stage one story rather than illustrate each line on its own")
     a = ap.parse_args()
     global API
     API = a.api
@@ -182,6 +185,17 @@ def main():
     if a.cues:              # the intro (before the first sung line) uses this prompt: with a cast, it holds no people,
         song_prompt += ", no people"            # or MOSS invents a stranger who isn't the performer (POC 22)
     print("song prompt:", song_prompt, flush=True)
+    story = json.load(open(a.story)) if a.story else None
+
+    def arc(st):            # the story scene a moment belongs to (by time), as context for its shot
+        if not story or not story.get("scenes"):
+            return ""
+        sc = [x for x in story["scenes"] if x.get("start") is not None]
+        x = next((x for x in sc if x["start"] - 0.05 <= st < x["end"] + 0.05), None) or \
+            min(sc, key=lambda x: min(abs(st - x["start"]), abs(st - x["end"])), default=None)
+        return (f"\n(Where this shot sits in the story: {story.get('logline', '')} This is scene {x['id']}"
+                f"{' (' + x['movement'] + ')' if x.get('movement') else ''}, {x.get('place', '')}: {x.get('action', '')} "
+                f"Show this line as one moment of that scene's action.)\n") if x else ""
     visual = []
     prev = None                     # the previous line and the visual written for it: continuity between shots
     for (st, en, text), cue in zip(lines, cues):
@@ -190,7 +204,7 @@ def main():
                 (direction(cue, performer) if cue else "") + ("\n(The visual must contain no written words, letters, numbers, logos, signs or on-screen text; show "
                  "the meaning through people, places, objects and light instead.)\n" if a.no_text else "")
         ctx = (f"\n(For continuity: the previous line was \"{prev[0]}\" and its visual was: {prev[1]})\n" if prev else "")
-        v = last_line(complete(a.llm, a.model, LINE_PROMPT + text + ctx + extra + full_lyrics))
+        v = last_line(complete(a.llm, a.model, LINE_PROMPT + text + ctx + arc(st) + extra + full_lyrics))
         if a.style_word:                  # lead with the style word once (the LLM often writes it already)
             while v.lower().startswith(a.style_word.lower() + ":"):
                 v = v[len(a.style_word) + 1:].lstrip()

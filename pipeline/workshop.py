@@ -2,17 +2,28 @@
 simulating a design workshop between three music-video directors with the local LLM. The hand-run version is
 docs/workshops/slippery-road.md (Slippery Road v3); this makes it a pipeline step.
 
-    python3 pipeline/workshop.py PIECE [--llm URL] [--force] [--previous OLD_WORKSHOP.md]
+    python3 pipeline/workshop.py PIECE [--stage story|storyboard|both] [--llm URL] [--force] [--previous OLD.md]
+Two stages, two pipeline steps (pipeline/steps.ini), like a film's treatment and its step outline:
+  story       the conversation, then the TREATMENT: the whole story in prose (logline, who she is and what she wants,
+              the arc's movements against the song's sections, opening and closing image) -> story.md, plus the look
+              (visual-look.txt, LOOK), universe.txt and workshop.md. People may edit story.md.
+  storyboard  from story.md (the authority; the conversation as background): 4-8 scenes, each staging part of the
+              arc, and a shot per line -> lyrics-cued.txt, story-scenes.json (each scene's arc movement, beats and
+              times, read by prompts_per_line.py and scenes.py), storyboard.md. Rebuilt whenever story.md changes.
+Before 2026-10-25 one pass wrote the scenes straight from the conversation and "visual-treatment.txt" held the look:
+nothing stated the arc the scenes add up to, and the scene ids were lost after the storyboard.
 Reads PIECE/piece.env's LYRICS and SONG's analysis (required: the lyric timings, PIECE/analysis/<song>-true-segments.json,
 so the directors know when each line is sung and how long the instrumental passages are; ./poptok runs the analysis
 first), PIECE/inputs/brief.txt
 (optional: anything the user wants: artist, mood, references, review notes from earlier versions) and whether a
 performer photo is set (PERFORMER_PHOTO). Writes, in PIECE/inputs/:
-  workshop.md            the conversation, the result, and the plausibility fixes (for the user to read)
-  visual-treatment.txt   the treatment (TREATMENT)
+  workshop.md            the conversation and the agreed result (for the user to read)
+  story.md               the treatment: the story, start to finish (stage story; editable)
+  visual-look.txt        the look (LOOK; called visual-treatment.txt / TREATMENT before 2026-10-25)
   universe.txt           the universe style the directors chose (line 1: a few words, e.g. "oil impasto"; then its
                          brief: what every frame is made of, how light behaves); ./poptok uses it as STYLE_WORD +
                          STYLE_BRIEF, so every prompt leads with it and is written inside it (POC 24's protocol)
+  storyboard.md          the scenes and shots (stage storyboard), story-scenes.json the same scenes with their times
   lyrics-cued.txt        the lyrics annotated line by line ({mode: shot note}; CUES), the sung words unchanged, plus a
                          shot for every slot of the instrumental passages: "(instrumental M:SS.S) {mode: note}"
 Instrumental passages of 6 s or more (intro, gaps, outro) get slots of about 6-8 s each, so no still has to carry a long
@@ -23,9 +34,9 @@ The directors plan a STORY first (who, what she wants, what happens, 4-8 scenes 
 lines), and every line is the next moment of its scene, not a new image (Chronophobia director's cut, 2026-10-25, the
 user: "real videos tell a story; this comes across as a slide show": every line was a new image, a chain of objects
 turning into other objects, with no one doing anything).
-Three LLM passes: (1) the conversation; (2) the result as JSON (concept, story and scenes, treatment, rules, a scene,
-mode + shot note per line);
-(3) a physical-plausibility review of every shot note (things a camera could never see: e.g. "seen from above, her
+LLM passes: (1) the conversation; (2a) the treatment and the look as JSON, checked for a whole story (a logline, 3-6
+movements, enough prose, an ending that isn't the opening); (2b) the storyboard from the treatment (scenes, a scene,
+mode + shot note per line), checked for shape; (3) a physical-plausibility review of every shot note (things a camera could never see: e.g. "seen from above, her
 reflection the right way up"), whose fixes are applied.
 
 The directors are fictional composites standing for traditions, not real people. The capabilities and limits they're
@@ -92,7 +103,10 @@ through, what she DOES (people acting, not objects transforming), what changes f
 not the opening), where the turn comes (often the bridge or the last chorus). Tell it in 4-8 SCENES, each in one place
 and lasting a section or several lines (15-45 s), so the camera stays with a situation while it plays out; a chorus may
 come back to a place that has changed. The story runs alongside the lyrics, it doesn't spell out each line's words.
-Every scene has a SHAPE: how it begins, the turn (what happens or changes in it), and how it ends differently from how
+Before going scene by scene, one of them tells the whole story back in a paragraph, start to finish (the TREATMENT, as
+screenwriters use the word), and they settle its arc: who she is and what she wants, what stands in her way, the
+movements of the story against the song's sections, where the turn comes, and how the last image answers the first.
+The scenes then stage that story, each one a part of the arc. Every scene has a SHAPE: how it begins, the turn (what happens or changes in it), and how it ends differently from how
 it began; every line moves it on, and no line just restates the scene's mood ("the light keeps fading, the colour
 softer" on line after line is filler). Anyone the song sings to ("you") is set up before they matter: seen, or a trace
 of them, in an earlier scene, not appearing from nowhere in the last one. Their plan will be checked for this: a scene
@@ -124,7 +138,37 @@ change what it requires, and say explicitly what they keep, change and drop, and
 {text}
 --- end of previous workshop ---"""
 
-RESULT = """From this directors' workshop, extract the agreed result as JSON.
+STORY = """From this directors' workshop, extract what they agreed as JSON: the look, and the story as a TREATMENT (as
+screenwriters use the word: the whole story told in prose, start to finish, before any scene list).
+
+The workshop:
+{conversation}
+
+The lyrics with their timings and sections:
+{lyrics}
+
+Return JSON only:
+{{"concept": "one or two sentences",
+ "universe": {{"name": "the universe style in 2-4 words, e.g. oil impasto", "brief": "50-90 words: what everything in every frame is made of, its surfaces and texture, how light behaves, the palette; written as rules true for every frame (if the brief fixes the look, its words)"}},
+ "look": "the visual look for the image model: look, light, palette, camera, how changes happen; 60-120 words, no story. If the brief fixes the look, start with the brief's look words unchanged. Never describe the performer (this text styles every shot, most without her)",
+ "rules": ["short visual rules"],
+ "abstraction": "one or two sentences: how concrete or abstract the video is overall, and where it moves along that scale",
+ "logline": "the story in one sentence: who, what she does, how it ends",
+ "character": "who she is and what she wants or is going through, 1-2 sentences",
+ "obstacle": "what stands in her way or weighs on her, 1 sentence",
+ "arc": [{{"movement": "its role in the story, e.g. setup, pressure, turn, resolution", "sections": "the song sections it spans, e.g. Intro-Verse 1", "what_happens": "1-2 sentences"}}],
+ "treatment": "the whole story in present-tense prose, 250-450 words, start to finish: what she does, what changes, where the turn falls against the song, how it ends; concrete and visual, places and actions named; no camera jargon, no lyrics quoted",
+ "opening_image": "the first image, one sentence",
+ "closing_image": "the last image, one sentence, answering the first"}}
+3-5 movements in song order covering the whole song; the turn falls where the workshop put it (often the bridge or the
+last chorus); the closing image is not the opening image.{problem}"""
+
+RESULT = """Break this music video's TREATMENT (its story, below: the authority) into scenes, and a shot for every line.
+The directors' workshop that produced it is given for its ideas about places, shots and where she sings; where it
+disagrees with the treatment, follow the treatment.
+
+The treatment:
+{story}
 
 The workshop:
 {conversation}
@@ -136,16 +180,10 @@ are shown for context):
 Performer photo available: {has_photo}. Allowed modes: {modes}.
 
 Return JSON only:
-{{"concept": "one or two sentences",
- "universe": {{"name": "the universe style in 2-4 words, e.g. oil impasto", "brief": "50-90 words: what everything in every frame is made of, its surfaces and texture, how light behaves, the palette; written as rules true for every frame (if the brief fixes the look, its words)"}},
- "treatment": "the visual treatment for the image model: look, light, palette, camera, how changes happen; 60-120 words, no story. If the brief fixes the look, start with the brief's look words unchanged. Never describe the performer (this text styles every shot, most without her)",
- "rules": ["short visual rules"],
- "abstraction": "one or two sentences: how concrete or abstract the video is overall, and where it moves along that scale",
- "story": {{"logline": "the story in one sentence: who, what she does, how it ends",
-           "scenes": [{{"id": "S1", "place": "where, 5-15 words, the same for the whole scene", "action": "what happens in this scene, 15-40 words", "begins": "the situation at its start", "turn": "what happens or changes in it", "ends": "how it ends, different from its start"}}]}},
+{{"story": {{"scenes": [{{"id": "S1", "movement": "the movement of the treatment's arc it belongs to", "from": "the sentence of the treatment this scene stages, quoted", "place": "where, 5-15 words, the same for the whole scene", "action": "what happens in this scene, 15-40 words", "begins": "the situation at its start", "turn": "what happens or changes in it", "ends": "how it ends, different from its start"}}]}},
  "lines": [{{"n": line number, "scene": "S1", "mode": one of the allowed modes, "level": "concrete" | "stylised" | "abstract", "note": "what we see on this line: the next moment of its scene's action, continuing from the line before (same place, the action moving on, the camera moving with it); one filmable, physically possible shot, 10-30 words, shown at that level"}}]}}
-4-8 scenes, in song order; each covers a run of consecutive lines and slots (a section or several lines), never a
-single line. Every scene has its beginning, turn and end, and its lines go through them in order; each line's note
+4-8 scenes, in song order, together telling the whole treatment from its opening image to its closing image; each
+covers a run of consecutive lines and slots (a section or several lines), never a single line. Every scene has its beginning, turn and end, and its lines go through them in order; each line's note
 says what is NEW in that moment (never the previous line's note reworded).{problem}
 Every numbered line and every slot (G1, G2, ...) must appear exactly once in "lines" ("n" is the line number or the
 slot id, e.g. "G3"); slots are instrumental, so their mode is never "sing". Mode "sing" only where the note shows her face singing on
@@ -336,12 +374,56 @@ def shape_problem(res: dict, order: dict) -> str:
     return ""
 
 
+def flat(v) -> str:
+    """A JSON field as one line of text (the LLM sometimes returns a dict of parts instead of a string)."""
+    if isinstance(v, dict):
+        v = " ".join(str(x) for x in v.values())
+    return " ".join(str(v or "").split())
+
+
+def story_problem(st: dict) -> str:
+    """'' if the treatment tells a whole story: a logline, 3-6 movements, enough prose, an ending that isn't the opening."""
+    arc = [x for x in st.get("arc", []) if isinstance(x, dict)]
+    if not flat(st.get("logline")):
+        return "no logline"
+    if not 3 <= len(arc) <= 6:
+        return f"{len(arc)} movements in the arc (3-5, covering the whole song)"
+    if len(flat(st.get("treatment")).split()) < 150:
+        return "the treatment is too short to tell the whole story (250-450 words of prose)"
+    if flat(st.get("opening_image")).lower() == flat(st.get("closing_image")).lower():
+        return "the closing image is the opening image"
+    return ""
+
+
+def story_md(name: str, st: dict) -> str:
+    arc = [x for x in st.get("arc", []) if isinstance(x, dict)]
+    return "\n".join([
+        f"# Treatment: {name}", "",
+        "The story the video tells, from the directors' workshop (`pipeline/workshop.py --stage story`; the conversation is "
+        "in `workshop.md`). Edit it freely: the storyboard (scenes and a shot per line) is built from this file, and "
+        "`./poptok` rebuilds it, and everything after it, when this file changes.", "",
+        f"**Logline:** {flat(st.get('logline'))}", "",
+        f"**Who:** {flat(st.get('character'))}  ", f"**In her way:** {flat(st.get('obstacle'))}", "",
+        "## Treatment", "", flat(st.get("treatment")), "",
+        "## Arc", "", *[f"{k}. **{flat(x.get('movement')).capitalize()}** ({flat(x.get('sections'))}): "
+                         f"{flat(x.get('what_happens'))}" for k, x in enumerate(arc, 1)], "",
+        f"**Opening image:** {flat(st.get('opening_image'))}  ", f"**Closing image:** {flat(st.get('closing_image'))}", ""])
+
+
+def section(md: str, start: str, end: str) -> str:
+    """The text of a markdown file between two headings (all of it if the first is missing)."""
+    return md.split(start, 1)[1].split(end, 1)[0].strip() if start in md else md
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("piece")
     ap.add_argument("--llm", default="http://127.0.0.1:8091")
-    ap.add_argument("--force", action="store_true", help="redo: the existing workshop is archived (workshop.prev-*.md) "
-                    "and passed in as the previous workshop, so the directors build on it")
+    ap.add_argument("--stage", choices=["story", "storyboard", "both"], default="both",
+                    help="story: the conversation and the treatment (workshop.md, story.md, universe.txt, visual-look.txt); "
+                    "storyboard: scenes and a shot per line from story.md (lyrics-cued.txt, story-scenes.json, storyboard.md)")
+    ap.add_argument("--force", action="store_true", help="redo the story: the existing workshop is archived "
+                    "(workshop.prev-*.md) and passed in as the previous workshop, so the directors build on it")
     ap.add_argument("--previous", help="a previous workshop.md to build on (a follow-up workshop)")
     ap.add_argument("--dry-run", action="store_true", help="print the timed lyrics and slots the directors get; no LLM")
     a = ap.parse_args()
@@ -351,16 +433,19 @@ def main():
     e["LYRICS"] = e.get("LYRICS") or "inputs/lyrics.txt"
     inp = os.path.join(P, "inputs")
     os.makedirs(inp, exist_ok=True)
-    out_md, out_tr, out_cues = (os.path.join(inp, n) for n in ("workshop.md", "visual-treatment.txt", "lyrics-cued.txt"))
-    out_uni = os.path.join(inp, "universe.txt")
-    if os.path.exists(out_md) and not a.dry_run:
-        if not a.force:
-            print(f"{out_md} exists (use --force to redo)")
-            return
-        import time as _t                                 # keep the previous workshop and build on it
-        arch = os.path.join(inp, f"workshop.prev-{_t.strftime('%Y%m%d-%H%M%S')}.md")
-        os.rename(out_md, arch)
-        a.previous = a.previous or arch
+    out_md, out_look, out_cues, out_uni, out_story, out_board, out_scenes = (os.path.join(inp, n) for n in (
+        "workshop.md", "visual-look.txt", "lyrics-cued.txt", "universe.txt", "story.md", "storyboard.md",
+        "story-scenes.json"))
+    do_story, do_board = a.stage in ("story", "both"), a.stage in ("storyboard", "both")
+    if do_story and not a.dry_run:
+        if os.path.exists(out_story) and not a.force:
+            print(f"{out_story} exists (use --force to redo the story)")
+            do_story = False
+        elif os.path.exists(out_md):                     # keep the previous workshop and build on it
+            import time as _t
+            arch = os.path.join(inp, f"workshop.prev-{_t.strftime('%Y%m%d-%H%M%S')}.md")
+            os.rename(out_md, arch)
+            a.previous = a.previous or arch
     lyr = parse_lyrics(os.path.join(P, e["LYRICS"]))
     has_photo = bool(e.get("PERFORMER_PHOTO"))
     performer = (e.get("PERFORMER") or "the singer") + (" (a photo is provided: she can appear on screen)" if has_photo
@@ -412,15 +497,6 @@ def main():
     if a.dry_run:
         print(f"song: {song_facts(P, e)}\n\n{lyrics_txt}")
         return
-    print("workshop: conversation", flush=True)
-    prev = ""
-    if a.previous:
-        txt = open(a.previous).read()
-        txt = txt.split("## Plausibility fixes")[0]                       # the conversation and the result
-        prev = PREVIOUS.format(text=txt[-24000:])                         # keep within the context window
-        print(f"workshop: follow-up to {a.previous}", flush=True)
-    conv = llm(CONVERSATION.format(directors=DIRECTORS, song=song_facts(P, e), performer=performer, brief=brief,
-                                   capabilities=CAPABILITIES, lyrics=lyrics_txt, previous=prev), a.llm, max_tokens=4000)
     numbered, n = [], 0
     for k, t, j in items:
         if k == "header":
@@ -437,12 +513,65 @@ def main():
             ln += 1
         if k != "header":
             order[t[0] if k == "slot" else str(ln)] = len(order)
-    print("workshop: result", flush=True)
+
+    if do_story:            # (1) the conversation, (2a) the treatment and the look
+        print("workshop: conversation", flush=True)
+        prev = ""
+        if a.previous:
+            txt = open(a.previous).read()
+            txt = txt.split("## Plausibility fixes")[0]                       # the conversation and the result
+            prev = PREVIOUS.format(text=txt[-24000:])                         # keep within the context window
+            print(f"workshop: follow-up to {a.previous}", flush=True)
+        conv = llm(CONVERSATION.format(directors=DIRECTORS, song=song_facts(P, e), performer=performer, brief=brief,
+                                       capabilities=CAPABILITIES, lyrics=lyrics_txt, previous=prev), a.llm, max_tokens=4000)
+        print("workshop: treatment", flush=True)
+        st, problem = {}, ""
+        for attempt in range(3):
+            try:
+                st = as_json(llm(STORY.format(conversation=conv, lyrics=lyrics_txt, problem=problem), a.llm,
+                                 max_tokens=3000, temperature=0.2))
+                why = story_problem(st)
+                if not why:
+                    break
+                print(f"  {why}; retry", flush=True)
+                problem = f"\nA previous draft was sent back: {why}. Fix that."
+            except (ValueError, TypeError) as ex:
+                print(f"  treatment unparsable ({ex}); retry", flush=True)
+        open(out_story, "w").write(story_md(os.path.basename(P), st))
+        open(out_look, "w").write(flat(st.get("look") or st.get("visual_treatment")) + "\n")
+        uni = st.get("universe") or {}
+        if isinstance(uni, dict) and uni.get("name"):   # line 1: the style word; then its brief (./poptok: STYLE_WORD/BRIEF)
+            open(out_uni, "w").write(flat(uni["name"]) + "\n" + flat(uni.get("brief")) + "\n")
+        md = [f"# Directors' workshop: {os.path.basename(P)}", "",
+              "Simulated by `pipeline/workshop.py` with the local LLM. The directors are fictional composites standing "
+              "for traditions, not real people.", "", "**Directors**", DIRECTORS, "", f"**Song:** {song_facts(P, e)}  ",
+              f"**Performer:** {performer}  ", f"**Brief:** {brief}", "", "## The conversation", "", conv, "",
+              "## The result", "", f"**Concept:** {flat(st.get('concept'))}", "",
+              f"**Story:** {flat(st.get('logline'))} The treatment (the whole story) is `inputs/story.md`; the scenes and "
+              "shots built from it are `inputs/storyboard.md`.", "",
+              f"**Universe style** (`inputs/universe.txt`): {flat(uni.get('name')) if isinstance(uni, dict) else ''}: "
+              f"{flat(uni.get('brief')) if isinstance(uni, dict) else ''}", "",
+              f"**Look** (`inputs/visual-look.txt`): {flat(st.get('look'))}", "",
+              f"**Concrete vs abstract:** {flat(st.get('abstraction'))}", "",
+              "**Rules**", *[f"- {flat(r)}" for r in st.get("rules", [])], ""]
+        open(out_md, "w").write("\n".join(md) + "\n")
+        print(f"workshop: wrote {out_md}, {out_story}, {out_look}" + (", " + out_uni if os.path.exists(out_uni) else ""))
+    if not do_board:
+        return
+
+    # (2b) the storyboard, from the treatment: scenes (each a part of its arc) and a shot per line; (3) plausibility
+    if not os.path.exists(out_story):
+        sys.exit(f"workshop: no {out_story}; run the story stage first (./poptok PIECE --redo story)")
+    story_txt = open(out_story).read()
+    conv = section(open(out_md).read(), "## The conversation", "## The result") if os.path.exists(out_md) else "(none)"
+    logline = (re.search(r"^\*\*Logline:\*\*\s*(.*)$", story_txt, re.M) or [None, ""])[1].strip()
+    print("workshop: storyboard", flush=True)
     res, problem = {}, ""
     for attempt in range(3):
         try:
-            res = as_json(llm(RESULT.format(conversation=conv, numbered="\n".join(numbered), has_photo=has_photo,
-                                            modes=", ".join(modes), problem=problem), a.llm, max_tokens=6000, temperature=0.2))
+            res = as_json(llm(RESULT.format(story=story_txt, conversation=conv, numbered="\n".join(numbered),
+                                            has_photo=has_photo, modes=", ".join(modes), problem=problem), a.llm,
+                              max_tokens=6000, temperature=0.2))
             got = {str(x["n"]).strip() for x in res.get("lines", [])}
             notes = [" ".join(str(x.get("note", "")).lower().split()) for x in res.get("lines", [])]
             dup = len(notes) - len(set(notes))       # a note copied onto several lines merges them into one long scene
@@ -475,7 +604,7 @@ def main():
     shots = "\n".join(f"{i}. [{lines[i]['mode']}] {lines[i]['note']}" for i in ids)
     fixes = []
     try:
-        fixes = as_json(llm(REVIEW.format(concept=res.get("concept", ""), shots=shots), a.llm, max_tokens=1500, temperature=0.1)).get("fixes", [])
+        fixes = as_json(llm(REVIEW.format(concept=logline, shots=shots), a.llm, max_tokens=1500, temperature=0.1)).get("fixes", [])
     except ValueError:
         pass
     kept = []
@@ -488,20 +617,23 @@ def main():
             kept.append(dict(f, note=note))
     fixes = kept
     story = res.get("story") if isinstance(res.get("story"), dict) else {}
+    story_scenes = [x for x in story.get("scenes", []) if isinstance(x, dict)]
     places = {str(x.get("id", "")).strip(): " ".join(str(x.get("place", "")).replace("{", "(").replace("}", ")").split())
-              for x in story.get("scenes", []) if isinstance(x, dict)}
+              for x in story_scenes}
     # write the annotated lyrics: the original sung words, a {mode: note} per line; headers kept as they were
     width = max(len(t) for k, t in lyr if k == "line") + 4
-    cued, i = [], 0
+    cued, i, times = [], 0, {}
     for k, t, j in items:
         if k == "header":
             cued.append(("" if not cued else "\n") + f"[{t}]")
             continue
         if k == "slot":
-            key, t = t[0], f"(instrumental {mmss(t[1])})"
+            key, times[t[0]], t = t[0], (t[1], t[2]), f"(instrumental {mmss(t[1])})"
         else:
             i += 1
             key = str(i)
+            if i - 1 < len(se):
+                times[key] = se[i - 1]
         note = lines[key]["note"].replace("{", "(").replace("}", ")").strip()
         place = places.get(str(lines[key].get("scene", "")).strip(), "")
         if note and place and place.lower()[:20] not in note.lower():   # every still of a scene is drawn in its place
@@ -511,27 +643,25 @@ def main():
             note = f"({'stylised' if lvl.startswith('styli') else 'abstract'}) {note}"
         cued.append(f"{t:<{width}}{{{lines[key]['mode']}: {note}}}" if note else f"{t:<{width}}{{{lines[key]['mode']}}}")
     open(out_cues, "w").write("\n".join(cued) + "\n")
-    tr = res.get("treatment", "")
-    if isinstance(tr, dict):                          # sometimes returned as {"look": ..., "light": ...}: join the parts
-        tr = " ".join(str(v) for v in tr.values())
-    res["treatment"] = " ".join(str(tr).split())
-    open(out_tr, "w").write(res["treatment"] + "\n")
-    uni = res.get("universe") or {}
-    if isinstance(uni, dict) and uni.get("name"):       # line 1: the style word; then its brief (./poptok: STYLE_WORD/BRIEF)
-        open(out_uni, "w").write(" ".join(str(uni["name"]).split()) + "\n" + " ".join(str(uni.get("brief", "")).split()) + "\n")
-    md = [f"# Directors' workshop: {os.path.basename(P)}", "",
-          "Simulated by `pipeline/workshop.py` with the local LLM. The directors are fictional composites standing for "
-          "traditions, not real people.", "", "**Directors**", DIRECTORS, "", f"**Song:** {song_facts(P, e)}  ",
-          f"**Performer:** {performer}  ", f"**Brief:** {brief}", "", "## The conversation", "", conv, "",
-          "## The result", "", f"**Concept:** {res.get('concept', '')}", "",
-          f"**Universe style** (`inputs/universe.txt`): {uni.get('name', '') if isinstance(uni, dict) else ''}: "
-          f"{uni.get('brief', '') if isinstance(uni, dict) else ''}", "",
-          f"**Concrete vs abstract:** {res.get('abstraction', '')}", "", f"**Story:** {story.get('logline', '')}", "",
-          *[f"- {x.get('id', '')} ({x.get('place', '')}): {x.get('action', '')} *Begins:* {x.get('begins', '')} "
-            f"*Turn:* {x.get('turn', '')} *Ends:* {x.get('ends', '')}" for x in story.get("scenes", [])
-            if isinstance(x, dict)], "", f"**Treatment** (`inputs/visual-treatment.txt`): "
-          f"{res.get('treatment', '')}", "", "**Rules**", *[f"- {r}" for r in res.get("rules", [])], "",
-          "**Storyboard** (`inputs/lyrics-cued.txt`)", "", "| # | Line | Scene | Mode | Shot |", "|---|---|---|---|---|"]
+    # the story scenes with their times, so every later step knows which part of the story a moment belongs to
+    # (prompts_per_line.py --story: each shot's place in the arc; scenes.py: a continuing camera move inside a story
+    # scene, an event only between story scenes)
+    sj = []
+    for x in story_scenes:
+        sid = str(x.get("id", "")).strip()
+        keys = sorted((k for k in ids if str(lines[k].get("scene", "")).strip() == sid), key=lambda k: order.get(k, 0))
+        tt = [times[k] for k in keys if k in times]
+        sj.append({"id": sid, **{f: flat(x.get(f)) for f in ("movement", "from", "place", "action", "begins", "turn", "ends")},
+                   "lines": keys, "start": round(min(t[0] for t in tt), 2) if tt else None,
+                   "end": round(max(t[1] for t in tt), 2) if tt else None})
+    json.dump({"logline": logline, "scenes": sj}, open(out_scenes, "w"), indent=1, ensure_ascii=False)
+    md = [f"# Storyboard: {os.path.basename(P)}", "",
+          "Built from the treatment (`inputs/story.md`) by `pipeline/workshop.py --stage storyboard`.", "",
+          f"**Story:** {logline}", "", "**Scenes** (`inputs/story-scenes.json`)", "",
+          *[f"- {x['id']} [{x['movement']}] ({x['place']}), {mmss(x['start']) if x['start'] is not None else '?'}-"
+            f"{mmss(x['end']) if x['end'] is not None else '?'}: {x['action']} *Begins:* {x['begins']} *Turn:* {x['turn']} "
+            f"*Ends:* {x['ends']}" + (f" *Stages:* \"{x['from']}\"" if x['from'] else "") for x in sj], "",
+          "**Shots** (`inputs/lyrics-cued.txt`)", "", "| # | Line | Scene | Mode | Shot |", "|---|---|---|---|---|"]
     i = 0
     for k, t, j in items:
         if k == "header":
@@ -543,9 +673,9 @@ def main():
             md.append(f"| {i} | {mmss(se[i - 1][0]) if i - 1 < len(se) else ''} {t} | {lines[str(i)].get('scene', '')} | {lines[str(i)]['mode']} {lines[str(i)].get('level', '')} | {lines[str(i)]['note']} |")
     md += ["", "## Plausibility fixes", ""] + ([f"- line {f.get('n')}: {f.get('problem', '')} → {f.get('note', '')}"
                                                 for f in fixes] or ["- none needed"])
-    open(out_md, "w").write("\n".join(md) + "\n")
-    print(f"workshop: wrote {out_md}, {out_tr}, {out_cues} ({n} lines, {len(slots)} instrumental slots, "
-          f"{len(fixes)} plausibility fixes)")
+    open(out_board, "w").write("\n".join(md) + "\n")
+    print(f"workshop: wrote {out_cues}, {out_scenes}, {out_board} ({n} lines, {len(slots)} instrumental slots, "
+          f"{len(sj)} scenes, {len(fixes)} plausibility fixes)")
 
 
 if __name__ == "__main__":

@@ -2,13 +2,17 @@
 OUT/scenes.json sits next to the run's shots.json / shots_merged.json and is the place to change a scene: its prompt,
 the performer cue, how it moves, how the previous scene turns into it, notes; then `apply` re-renders only what changed.
 
-    python3 pipeline/scenes.py build OUT [--cues CUED_LYRICS --segments TRUE_SEGMENTS.json]   -> OUT/scenes.json
+    python3 pipeline/scenes.py build OUT [--cues CUED_LYRICS --segments TRUE_SEGMENTS.json --story STORY_SCENES.json]
+                                                                  -> OUT/scenes.json
     python3 pipeline/scenes.py frame OUT 1379 [2037 ...]          which scene each video frame is in (24 fps)
     python3 pipeline/scenes.py transitions OUT [--llm URL]        LLM writes transition_in (A->B morph) for each change
     python3 pipeline/scenes.py apply OUT                          edited scenes -> shots files; deletes their stills and
                                                                   the video frames that depend on them (see below)
 A scene in scenes.json:
   id, bars [first, last], start/end (s), frames [first, last], section, lyric, cast, cast_note,
+  story_scene   the workshop's story scene it stages (S1, ...; from story-scenes.json): a change inside one story scene
+                is a camera move that carries the action on (continuous: true), a change between story scenes is an
+                event written from the first one's end and the next one's beginning
   prompt        the keyframe prompt (edit it to redraw the still)
   transition_in how the previous scene becomes this one, for the Transition LoRA (written by `transitions`, editable)
   motion        movement within the scene (camera, subject), for the clips that continue it
@@ -56,6 +60,8 @@ def build(a):
     old = {s["id"]: s for s in json.load(open(os.path.join(a.out, "scenes.json")))["scenes"]} \
         if os.path.exists(os.path.join(a.out, "scenes.json")) else {}
     order = section_map(a.cues) if a.cues else []
+    story = json.load(open(a.story))["scenes"] if a.story else []
+    story = [x for x in story if x.get("start") is not None]
     seg_sec, j = {}, 0                                # each lyric segment's section, matched in order
     for x in segs:
         k = next((i for i in range(j, len(order)) if order[i][0] == x["text"]), None)
@@ -72,6 +78,11 @@ def build(a):
               "lyric": lyric, "cast": r["cast"], "cast_note": r["cast_note"], "prompt": r["prompt"],
               "keyframe": f"keys/shot_{r['bars'][0]:03d}.png", "transition_in": "", "motion": "",
               "lipsync": r["cast"] == "sing", "reroll": False, "notes": "", "locked": False}
+        if story:           # the story scene this one stages: the one under its first bar, else the nearest
+            t0 = r["start"] + 0.1
+            x = next((x for x in story if x["start"] - 0.05 <= t0 < x["end"] + 0.05), None) or \
+                min(story, key=lambda x: min(abs(t0 - x["start"]), abs(t0 - x["end"])))
+            sc["story_scene"] = x["id"]
         for f in ("transition_in", "motion", "notes", "locked", "lipsync"):     # keep what was written before
             if sid in old and old[sid].get("bars") == sc["bars"] and old[sid].get(f) not in (None, ""):
                 sc[f] = old[sid][f]
@@ -123,11 +134,24 @@ objects; the camera pushes through an object into the next place; a figure walks
 behind them). Name what in A becomes what in B. Never a plain fade or dissolve: a quiet object slowly turning into
 another quiet object makes the video model cross-fade (POC 27, the oil drawer -> chair tests, 2026-10-24).
 
-Song line(s) over shot B: {lyric}
+{story}Song line(s) over shot B: {lyric}
 Shot A: {a}
 Shot B: {b}
 
 Return ONLY the transition description."""
+
+CONTINUE = """You write the camera move for an AI video model between two stills of the SAME scene of a music video, in
+one continuous take (no cut, no cross-fade, no flash, no transformation): the place stays the same, the action carries
+on, and the camera moves so that shot A's framing becomes shot B's. In 2-3 sentences, present tense, under 60 words:
+what the person or things in it do, and how the camera moves (pushes in, pulls back, tracks, pans, rises, circles).
+Nothing bursts, shatters or turns into something else.
+
+The scene: {scene}
+Song line(s) over shot B: {lyric}
+Shot A: {a}
+Shot B: {b}
+
+Return ONLY the description."""
 
 
 def llm(prompt, url):
@@ -141,12 +165,22 @@ def transitions(a):
     p = os.path.join(a.out, "scenes.json")
     doc = json.load(open(p))
     sc = doc["scenes"]
+    story = {x["id"]: x for x in json.load(open(a.story))["scenes"]} if a.story else {}
     for k in range(1, len(sc)):
         if sc[k]["transition_in"] and not a.force:
             continue
-        sc[k]["transition_in"] = llm(TRANSITION.format(lyric=sc[k]["lyric"] or "(instrumental)", a=sc[k - 1]["prompt"],
-                                                       b=sc[k]["prompt"]), a.llm)
-        print(f"{sc[k]['id']}: {sc[k]['transition_in'][:110]}", flush=True)
+        A, B = story.get(sc[k - 1].get("story_scene")), story.get(sc[k].get("story_scene"))
+        lyric = sc[k]["lyric"] or "(instrumental)"
+        sc[k]["continuous"] = bool(A and A is B)      # inside one story scene: the take goes on, no event
+        if sc[k]["continuous"]:
+            sc[k]["transition_in"] = llm(CONTINUE.format(scene=f"{A['place']}: {A['action']}", lyric=lyric,
+                                                         a=sc[k - 1]["prompt"], b=sc[k]["prompt"]), a.llm)
+        else:
+            at = (f"The story at this change: scene {A['id']} ends ({A['ends']}); scene {B['id']} begins ({B['begins']}). "
+                  "The event carries the story from one to the other.\n\n" if A and B else "")
+            sc[k]["transition_in"] = llm(TRANSITION.format(story=at, lyric=lyric, a=sc[k - 1]["prompt"],
+                                                           b=sc[k]["prompt"]), a.llm)
+        print(f"{sc[k]['id']} {'(move)' if sc[k]['continuous'] else '(event)'}: {sc[k]['transition_in'][:110]}", flush=True)
         json.dump(doc, open(p, "w"), indent=1, ensure_ascii=False)
 
 
@@ -223,6 +257,8 @@ ap.add_argument("out")
 ap.add_argument("frames", nargs="*", type=int)
 ap.add_argument("--cues")
 ap.add_argument("--segments")
+ap.add_argument("--story", help="the workshop's story scenes (story-scenes.json): build tags each scene with its story "
+                "scene; transitions writes a camera move inside a story scene and an event between them")
 ap.add_argument("--llm", default="http://127.0.0.1:8091")
 ap.add_argument("--force", action="store_true", help="transitions: rewrite existing ones too")
 ap.add_argument("--lead", type=float, default=0.9, help="frame: the chain's transition lead (ltx_chain.py --lead)")

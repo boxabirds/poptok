@@ -45,7 +45,8 @@ while [ $# -gt 0 ]; do case $1 in
 STEM=$(basename "${SONG%.*}"); ANA=${ANA:-$(dirname "$SONG")/$STEM-analysis}; NAME=${NAME:-$STEM}; TAG=-true
 mkdir -p "$OUT" "$ANA"
 SEGS=$ANA/$STEM$TAG-segments.json; LYRICS_FILE=$LYRICS
-export ANA OUT STEM TAG SONG SEGS LYRICS_FILE CUES TREAT LCTX PHOTO STYLE PERFORMER NOTEXT MERGE_ARGS LTX_ARGS  # steps.ini
+STORY=${STORY:-}                 # the workshop's story-scenes.json (./poptok sets it for WORKSHOP=1 pieces)
+export ANA OUT STEM TAG SONG SEGS LYRICS_FILE CUES TREAT LCTX PHOTO STYLE PERFORMER NOTEXT MERGE_ARGS LTX_ARGS STORY  # steps.ini
 KEY_HOSTS=${KEY_HOSTS:-${VHOST:-local}}          # never offload: list only boxes where MOSS (33 GB) fits
 log() { echo "[$(date +%H:%M:%S)] $*"; }
 source bin/hosts.sh
@@ -95,7 +96,7 @@ if need prompts; then
     log "per-line prompts (${NOTEXT:-text allowed})"
     python3 pipeline/prompts_per_line.py "$SONG" --style "$STYLE" --api openai --llm $LLM_URL --model local \
       --segments "$ANA/$STEM$TAG-segments.json" --analysis "$ANA" --tag="$TAG" $NOTEXT ${LCTX:+--lyrics-context "$LCTX"} ${CUES:+--cues "$CUES" --performer "$PERFORMER"} ${WARDROBE:+--wardrobe "$WARDROBE"} \
-      ${STYLE_WORD:+--style-word "$STYLE_WORD" --style-brief "$STYLE_BRIEF"} > "$OUT/prompts.log" 2>&1 \
+      ${STYLE_WORD:+--style-word "$STYLE_WORD" --style-brief "$STYLE_BRIEF"} ${STORY:+--story "$STORY"} > "$OUT/prompts.log" 2>&1 \
       || { llm_down; exit 1; }
   fi
   llm_down; made
@@ -156,8 +157,10 @@ fi
 # chain prompts with the Transition LoRA's trigger word
 if need scenes; then
   log "scenes + transitions"; llm_up
-  python3 pipeline/scenes.py build "$OUT" ${CUES:+--cues "$CUES"} --segments "$SEGS" > "$OUT/scenes.log" 2>&1 \
-    && python3 pipeline/scenes.py transitions "$OUT" --llm $LLM_URL >> "$OUT/scenes.log" 2>&1 || { llm_down; exit 1; }
+  python3 pipeline/scenes.py build "$OUT" ${CUES:+--cues "$CUES"} --segments "$SEGS" ${STORY:+--story "$STORY"} \
+      > "$OUT/scenes.log" 2>&1 \
+    && python3 pipeline/scenes.py transitions "$OUT" --llm $LLM_URL ${STORY:+--story "$STORY"} >> "$OUT/scenes.log" 2>&1 \
+    || { llm_down; exit 1; }
   llm_down; made
 fi
 # HOLD_BEFORE_VIDEO=1: stop here so the stills can be reviewed (and fixed: pipeline/fix_keys.py); run again to go on
