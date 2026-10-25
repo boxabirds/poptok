@@ -25,6 +25,9 @@ from __future__ import annotations
 
 import argparse, copy, glob, json, os, re, sys, urllib.request
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import deps
+
 FPS = 24
 EDIT = ("prompt", "cast", "cast_note", "reroll")
 MOVE = ("transition_in", "motion")
@@ -205,6 +208,12 @@ def apply(a):
         pass                                          # finished videos are kept; ./poptok writes a new one
     json.dump(doc, open(p, "w"), indent=1, ensure_ascii=False)
     json.dump(doc, open(q, "w"), indent=1, ensure_ascii=False)
+    for f in ("ltx_chain/.done",) if drop_frames else ():
+        if os.path.exists(os.path.join(a.out, f)):
+            os.remove(os.path.join(a.out, f))
+    # the plans, stills and frames above were edited on purpose: the next run keeps them and fills only the gaps
+    # (otherwise the changed inputs would make every step after the stills run again in full)
+    deps.accept(a.out, "keys", "merge", "scenes", "video")
     print(f"applied: {n_keys} stills to redraw, {len(drop_frames)} video frames to re-render ({gone} files removed)")
 
 

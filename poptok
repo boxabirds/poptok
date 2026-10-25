@@ -2,7 +2,7 @@
 # poptok: lyrics + visual treatment (+ a song, or a music style to generate one) -> music video; or a prompt alone ->
 # lyrics, song, treatment and music video.
 #
-#   ./poptok pieces/NAME [--plan-only] [--run RUN]
+#   ./poptok pieces/NAME [--plan-only] [--run RUN] [--explain] [--redo STEP,...] [--accept STEP,...]
 #
 # A piece is one folder (see pieces.example/): piece.env (its settings), inputs/ (lyrics, visual treatment, song or
 # music style), analysis/ and outputs/ (both written here). Paths in piece.env are relative to the piece folder.
@@ -13,6 +13,14 @@
 #                        the structure); with WORKSHOP=1 the directors then write the treatment: end to end from a prompt
 # --plan-only stops after the treatment and scene prompts (outputs/RUN/treatment.md), to read and edit before the
 # hours of keyframes and video. Re-running the same command resumes.
+# Steps run again when their inputs change, like a Makefile but by content (pipeline/deps.py, bin/deps.sh): a new
+# storyboard, treatment, style or song remakes the prompts and everything after them; old outputs are kept as *.prev.
+#   --explain          say which steps would run and why, and run nothing
+#   --redo STEP,...    run these steps again even if their inputs haven't changed (after a code change, say)
+#   --accept STEP,...  keep these steps' current outputs as they are (hand edits; a piece made before dependency
+#                      tracking, whose outputs have no record of what they were built from)
+# Steps: songwriters song workshop (these three are never re-run by themselves, only reported, since people edit their
+# outputs), analysis beats drums segments prompts keys merge scenes video lipsync.
 set -euo pipefail
 cd "$(dirname "$0")"
 PIECE=${1:?usage: ./poptok pieces/NAME [--plan-only] [--run RUN]}; shift
@@ -27,12 +35,24 @@ set -a                                                   # site + piece settings
 [ -f site.env ] && source site.env                       # this installation: hosts, LLM paths (site.env.example)
 source "$PIECE/piece.env"
 set +a
+EXTRA=()
+TEST=""
+while [ $# -gt 0 ]; do case $1 in --plan-only) EXTRA+=(--plan-only); shift;; --run) RUN=$2; shift 2;;
+  --test) TEST=$2; shift 2;; --explain) export DEPS_DRY=1; shift;;
+  --redo) export DEPS_REDO=$2; shift 2;; --accept) export DEPS_ACCEPT=$2; shift 2;;
+  *) echo "unknown option $1"; exit 2;; esac; done
+source bin/deps.sh
+if [ -n "${DEPS_DRY:-}" ]; then
+  export DEPS_PENDING=$(mktemp); trap 'rm -f "$DEPS_PENDING" "$DEPS_PENDING.seen"' EXIT; echo "$PIECE, run $RUN:"; fi
+redo() { [[ ",${DEPS_REDO:-}," == *",$1,"* ]] && echo --force || true; }
 # SONG_PROMPT: the songwriters' workshop (pipeline/songwriters.py) writes the lyrics and the music style from a prompt
 # (inputs/songwriters.md, lyrics.txt, music-style.txt); the song is then generated from them, as with MUSIC_STYLE
 if [ -n "${SONG_PROMPT:-}" ]; then
   LYRICS=${LYRICS:-inputs/lyrics.txt}; MUSIC_STYLE=${MUSIC_STYLE:-inputs/music-style.txt}; SONG=""
-  if [ ! -f "$PIECE/inputs/songwriters.md" ]; then
-    echo "[$(date +%H:%M:%S)] songwriters' workshop"; WORKSHOP_PY=pipeline/songwriters.py bin/workshop.sh "$PIECE"
+  SP=$PIECE/$SONG_PROMPT; [ -f "$SP" ] || SP=SONG_PROMPT=$SONG_PROMPT       # the prompt, or the file holding it
+  if need songwriters "$PIECE" "$PIECE/inputs/songwriters.md" manual "" -- "$SP" SONG_FORM="${SONG_FORM:-}"; then
+    echo "[$(date +%H:%M:%S)] songwriters' workshop"
+    WORKSHOP_PY=pipeline/songwriters.py bin/workshop.sh "$PIECE" $(redo songwriters); made
   fi
 fi
 # songwriter lyrics (bare section headings with action hints, whole-line stage directions) -> canonical bracketed form
@@ -43,11 +63,6 @@ else rm -f "$PIECE/inputs/lyrics.canonical.txt"; fi
 KEY_HOSTS=${KEY_HOSTS:-${VIDEO_HOST:+$VIDEO_HOST }${KEY_POOL:-local}}
 K=""; for h in $KEY_HOSTS; do [[ " ${MAC_HOSTS:-quintus} " == *" $h "* ]] || K="$K $h"; done; KEY_HOSTS=${K# }   # keyframes
                                                    # need a CUDA/ROCm container; a Mac renders video only
-EXTRA=()
-TEST=""
-while [ $# -gt 0 ]; do case $1 in --plan-only) EXTRA+=(--plan-only); shift;; --run) RUN=$2; shift 2;;
-  --test) TEST=$2; shift 2;;
-  *) echo "unknown option $1"; exit 2;; esac; done
 p() { [ -n "$1" ] && echo "$PIECE/$1" || true; }           # piece-relative -> repo-relative
 # --test SECONDS[@START]: a short test copy of this piece (pieces/NAME-testN/): the song cut to SECONDS from START
 # (default: 1 s before the first sung line), only the lyric lines sung there, the full lyrics as prompt context
@@ -77,8 +92,11 @@ open('$T/inputs/lyrics.txt','w').write('\n'.join(x['text'] for x in s if $ST-0.5
 fi
 if [ -z "$SONG" ]; then
   [ -n "$MUSIC_STYLE" ] || { echo "piece.env: set SONG, or MUSIC_STYLE to generate one"; exit 2; }
-  [ -f "$PIECE/outputs/song.wav" ] || bin/make_song.sh "$(p "$MUSIC_STYLE")" "$(p "$LYRICS")" "$PIECE/outputs/song.wav" \
-    --seeds "$SONG_SEEDS" --duration "$SONG_DURATION"
+  if need song "$PIECE" "$PIECE/outputs/song.wav" manual "" -- "$(p "$MUSIC_STYLE")" "$(p "$LYRICS")" \
+       SONG_SEEDS="$SONG_SEEDS" SONG_DURATION="$SONG_DURATION"; then
+    bin/make_song.sh "$(p "$MUSIC_STYLE")" "$(p "$LYRICS")" "$PIECE/outputs/song.wav" --seeds "$SONG_SEEDS" \
+      --duration "$SONG_DURATION"; made
+  fi
   SONGP=$PIECE/outputs/song.wav
 else
   SONGP=$(p "$SONG")
@@ -87,10 +105,13 @@ fi
 # lyrics first (inputs/workshop.md, visual-treatment.txt, lyrics-cued.txt); TREATMENT/CUES point at them
 # The workshop needs the lyric timings (when each line is sung, how long the instrumental gaps are), so the analysis
 # runs first
-if [ -n "${WORKSHOP:-}" ] && [ ! -f "$PIECE/inputs/workshop.md" ]; then
+if [ -n "${WORKSHOP:-}" ]; then
   bin/make_video.sh "$SONGP" --lyrics "$(p "$LYRICS")" --style workshop --out "$PIECE/outputs/$RUN" \
     --analysis "$PIECE/analysis" --analysis-only
-  echo "[$(date +%H:%M:%S)] directors' workshop"; bin/workshop.sh "$PIECE"
+  if need workshop "$PIECE" "$PIECE/inputs/workshop.md" manual "" -- "$(p "$LYRICS")" "$PIECE/inputs/brief.txt" \
+       "$PIECE/analysis/$(basename "${SONGP%.*}")-true-segments.json"; then
+    echo "[$(date +%H:%M:%S)] directors' workshop"; bin/workshop.sh "$PIECE" $(redo workshop); made
+  fi
 fi
 # the universe style the workshop chose (inputs/universe.txt: a few words, then its brief) leads and frames every prompt,
 # unless piece.env sets STYLE_WORD itself

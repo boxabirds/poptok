@@ -14,7 +14,7 @@ import argparse, json, os, shutil, sys, time
 from PIL import Image
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import qwen_edit
+import deps, qwen_edit
 
 KEEP = ("Keep everything else in picture 1 exactly as it is: the composition, camera angle, lighting, colours, style "
         "and every other person and object. Change only this: ")
@@ -48,3 +48,7 @@ for f in json.load(open(a.fixes)):
             shutil.copy(src, src + ".orig.png")
         out.save(src)
     print(f"{f['key']}: {time.time() - t:.0f} s  {f['fix']}", flush=True)
+if a.in_place:
+    # a fix keeps the shot (composition, cast): the merged plan and scene list stay valid. The video and lip-sync
+    # depend on the stills, so they are made again from the fixed ones (pipeline/deps.py)
+    deps.accept(a.out, "merge", "scenes")

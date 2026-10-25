@@ -21,7 +21,7 @@ render() {   # host, comma-separated insert numbers
     done
     return
   fi
-  ssh "$h" "mkdir -p ~/poptok/$D"; rsync -a "$D"/ "$h":poptok/"$D"/
+  ssh "$h" "mkdir -p ~/poptok/$D"; rsync -a --delete "$D"/ "$h":poptok/"$D"/   # its copy mirrors this one: no stale clips
   for k in ${ks//,/ }; do
     if [ "${ENGINE:-infinitetalk}" = infinitetalk ] && [ -s "$D/it_out_$k.mp4" ]; then echo "insert $k: already rendered"; continue; fi
     n=$(python3 -c "import json;print([r for r in json.load(open('$D/inserts.json')) if r['k']==$k][0]['segments'])")

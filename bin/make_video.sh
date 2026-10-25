@@ -10,7 +10,8 @@
 # PULSE=0 leaves out the bass-hit pulse (slow songs). FX: the piece's effects config (pipeline/fx/). WARDROBE: what the performer wears in this piece (no apostrophes).
 # Normally called by ./poptok with a piece folder. Runs on the box with the 4090 (analysis, LLM, keyframes) and renders
 # video on --video-host (default: this box). Keyframes go to the first free box in --key-hosts (bin/hosts.sh; default:
-# the video host, then this box). Every step skips if its output exists, so a re-run resumes.
+# the video host, then this box). Every step runs again when its inputs change and is skipped otherwise
+# (bin/deps.sh, pipeline/deps.py), so a re-run resumes and a changed storyboard or style reaches the stills.
 # One GPU job at a time per box: each step waits while another pipeline container is running.
 #   1 analysis   stems + Whisper with word timestamps (pipeline/analyse.py), beat grid
 #   2 lyrics     master lyrics placed on Whisper's clock (align_lyrics.py); Whisper's own words are not used
@@ -45,6 +46,7 @@ mkdir -p "$OUT" "$ANA"
 KEY_HOSTS=${KEY_HOSTS:-${VHOST:-local}}          # never offload: list only boxes where MOSS (33 GB) fits
 log() { echo "[$(date +%H:%M:%S)] $*"; }
 source bin/hosts.sh
+source bin/deps.sh                                           # need / made: step dependencies
 IMAGES='^(acestep|m2v-pre|zoommorph|ltx2)'                    # the pipeline's GPU images (docker/README.md)
 # one GPU job per box: a lock shared by every poptok run on this box (held from the start of a GPU step to its end),
 # plus a wait for pipeline containers started by anything else
@@ -64,19 +66,26 @@ llm_up() { gpu_lock; "$LLM_SERVER" -m "$LLM_GGUF" -ngl 99 -c 16384 --reasoning-b
 llm_down() { kill $LLM_PID; wait $LLM_PID 2>/dev/null || true; gpu_unlock; }
 
 # 1 analysis
-[ -f "$ANA/$STEM-medium.json" ] || { log "analysis: stems + whisper"; analysis python3 pipeline/analyse.py "$SONG" --analysis "$ANA"; }
-[ -f "$ANA/beats.json" ] || { log "beat grid"; analysis python3 pipeline/beat_grid.py "$SONG" "$ANA"; }
-[ -f "$ANA/drum_hits.json" ] || python3 pipeline/drum_hits.py "$ANA" "$STEM" > /dev/null   # deep drum hits (bursts, workshop)
+if need analysis "$ANA" "$ANA/$STEM-medium.json" fresh "" -- "$SONG"; then
+  log "analysis: stems + whisper"; analysis python3 pipeline/analyse.py "$SONG" --analysis "$ANA"; made; fi
+if need beats "$ANA" "$ANA/beats.json" fresh "" -- "$SONG"; then
+  log "beat grid"; analysis python3 pipeline/beat_grid.py "$SONG" "$ANA"; made; fi
+if need drums "$ANA" "$ANA/drum_hits.json" fresh "" -- "$ANA/$STEM-drums.mp3"; then
+  python3 pipeline/drum_hits.py "$ANA" "$STEM" > /dev/null; made; fi          # deep drum hits (bursts, workshop)
 # 2 lyrics
-if [ ! -f "$ANA/$STEM$TAG-segments.json" ]; then           # lyric timings: Whisper matching, then forced alignment
-  python3 pipeline/align_lyrics.py "$SONG" "$LYRICS" --analysis "$ANA"      # of the known lyrics on the vocal stem
+SEGS=$ANA/$STEM$TAG-segments.json
+if need segments "$ANA" "$SEGS" fresh "" -- "$SONG" "$LYRICS" "$ANA/$STEM-medium.json"; then
+  python3 pipeline/align_lyrics.py "$SONG" "$LYRICS" --analysis "$ANA"      # lyric timings: Whisper matching, then forced
   analysis python pipeline/force_align.py "$SONG" "$LYRICS" --analysis "$ANA" --merge="$TAG" > "$ANA/force_align.log" 2>&1 \
-    || log "forced alignment failed ($ANA/force_align.log): keeping Whisper-matched timings"
+    || log "forced alignment failed ($ANA/force_align.log): keeping Whisper-matched timings"   # alignment of the known
+  made                                                                      # lyrics on the vocal stem
 fi
 # --analysis-only: stop here (./poptok runs this before the directors' workshop, which needs the lyric timings)
-[ -n "$ANAONLY" ] && { log "analysis done: $ANA"; exit 0; }
-# 3 prompts
-if [ ! -f "$ANA/full-metadata$TAG.json" ]; then
+[ -n "$ANAONLY" ] && { [ -n "${DEPS_DRY:-}" ] || log "analysis done: $ANA"; exit 0; }
+# 3 prompts: everything that shapes a shot's prompt is an input, so a new storyboard, treatment or style rebuilds them
+if need prompts "$ANA" "$ANA/full-metadata$TAG.json" fresh "$ANA/full-metadata$TAG.json|$ANA/$STEM-visual-prompts$TAG.json" \
+     -- "$SEGS" ${TREAT:+"$TREAT"} ${CUES:+"$CUES"} ${LCTX:+"$LCTX"} STYLE="$STYLE" PERFORMER="$PERFORMER" \
+     WARDROBE="${WARDROBE:-}" STYLE_WORD="${STYLE_WORD:-}" STYLE_BRIEF="${STYLE_BRIEF:-}" NOTEXT="$NOTEXT"; then
   llm_up
   if [ -n "$TREAT" ]; then
     log "treatment + scene prompts"
@@ -89,9 +98,9 @@ if [ ! -f "$ANA/full-metadata$TAG.json" ]; then
       ${STYLE_WORD:+--style-word "$STYLE_WORD" --style-brief "$STYLE_BRIEF"} > "$OUT/prompts.log" 2>&1 \
       || { llm_down; exit 1; }
   fi
-  llm_down
+  llm_down; made
 fi
-if [ -n "$PLANONLY" ]; then log "plan only: read $OUT/treatment.md and $OUT/prompts.log"; exit 0; fi
+if [ -n "$PLANONLY" ] && [ -z "${DEPS_DRY:-}" ]; then log "plan only: read $OUT/treatment.md and $OUT/prompts.log"; exit 0; fi
 # 4 keyframes + scene merge. With --cues: the shots that show the performer go to amber_keys.py (Qwen-Image-Edit with her
 # photo) on a Spark, at the same time as MOSS renders the rest on another box
 remote_keys() {   # host, container command: code, analysis, run folder and keys go over; keys come back
@@ -103,7 +112,9 @@ remote_keys() {   # host, container command: code, analysis, run folder and keys
   on "$1" "cd ~/poptok && flock $LOCK $2"
   rsync -a "$1":poptok/"$OUT"/keys "$OUT"/
 }
-if [ ! -f "$OUT/keys/.done" ]; then
+if need keys "$OUT" "$OUT/keys/.done" resume "$OUT/keys|$OUT/shots.json|$OUT/reroll.json" -- "$ANA/full-metadata$TAG.json" \
+     "$ANA/beats.json" ${PHOTO:+"$PHOTO"} STYLE="$STYLE" STYLE_WORD="${STYLE_WORD:-}" STYLE_BRIEF="${STYLE_BRIEF:-}" \
+     WARDROBE="${WARDROBE:-}" PERFORMER="$PERFORMER"; then
   KARGS="pipeline/keyframes.py $SONG --style \"${STYLE:-none}\" --meta full-metadata$TAG.json --analysis $ANA --out $OUT"
   eval python3 $KARGS --plan-only > "$OUT/shots.log"                    # the shot list (and each shot's cue)
   mkdir -p "$OUT/keys"
@@ -135,29 +146,35 @@ if [ ! -f "$OUT/keys/.done" ]; then
     tail -n 1 "$OUT/check_keys_$ROUND.log"
     grep -q " 0 to re-roll" "$OUT/check_keys_$ROUND.log" && break
   done
-  touch "$OUT/keys/.done"
+  touch "$OUT/keys/.done"; made
 fi
-if [ ! -f "$OUT/shots_merged.json" ]; then
+if need merge "$OUT" "$OUT/shots_merged.json" fresh "$OUT/shots_merged.json" -- "$OUT/keys" "$OUT/shots.json" \
+     MERGE_ARGS="$MERGE_ARGS"; then
   log "merge near-duplicate scenes"; llm_up
   python3 pipeline/merge_scenes.py "$OUT" --api openai --llm $LLM_URL --model local $MERGE_ARGS > "$OUT/merge.log" 2>&1 \
     || { llm_down; exit 1; }
-  llm_down
+  llm_down; made
 fi
 # scenes (pipeline/scenes.py): the scene list to edit, and an LLM-written A->B morph for every scene change, which the
 # chain prompts with the Transition LoRA's trigger word
-if [ ! -f "$OUT/scenes.json" ]; then
+if need scenes "$OUT" "$OUT/scenes.json" fresh "$OUT/scenes.json|$OUT/scenes.applied.json" -- "$OUT/shots_merged.json" \
+     "$SEGS" ${CUES:+"$CUES"}; then
   log "scenes + transitions"; llm_up
-  python3 pipeline/scenes.py build "$OUT" ${CUES:+--cues "$CUES"} --segments "$ANA/$STEM$TAG-segments.json" > "$OUT/scenes.log" 2>&1 \
+  python3 pipeline/scenes.py build "$OUT" ${CUES:+--cues "$CUES"} --segments "$SEGS" > "$OUT/scenes.log" 2>&1 \
     && python3 pipeline/scenes.py transitions "$OUT" --llm $LLM_URL >> "$OUT/scenes.log" 2>&1 || { llm_down; exit 1; }
-  llm_down
+  llm_down; made
 fi
 # HOLD_BEFORE_VIDEO=1: stop here so the stills can be reviewed (and fixed: pipeline/fix_keys.py); run again to go on
-if [ -n "${HOLD_BEFORE_VIDEO:-}" ] && [ "$(ls "$OUT/ltx_chain" 2>/dev/null | grep -c png)" -eq 0 ]; then
+if [ -n "${HOLD_BEFORE_VIDEO:-}" ] && [ -z "${DEPS_DRY:-}" ] && [ "$(ls "$OUT/ltx_chain" 2>/dev/null | grep -c png)" -eq 0 ]; then
   log "held before video: review $OUT/keys, then run again without HOLD_BEFORE_VIDEO"; exit 0; fi
-# 5 video
-N=$(python3 -c "import json;print(round(json.load(open('$OUT/shots.json'))['shots'][-1]['end']*24))")
-LTX="python pipeline/ltx_chain.py $OUT --merge --plan shots_merged.json $LTX_ARGS"
-if [ "$(ls "$OUT/ltx_chain" 2>/dev/null | grep -c png)" -lt "$N" ]; then
+# 5 video. A fresh chain moves the old frames aside (ltx_chain.prev) and clears the video host's copy (rsync --delete),
+# since ltx_chain.py and the retime skip frames that exist; scenes.py apply removes only the frames to re-render and
+# accepts the rest (deps.py accept)
+if need video "$OUT" "$OUT/ltx_chain/.done" resume "$OUT/ltx_chain|$OUT/ltx_chain_beat" -- "$OUT/keys" "$OUT/shots_merged.json" \
+     "$OUT/scenes.json" LTX_ARGS="$LTX_ARGS"; then
+  N=$(python3 -c "import json;print(round(json.load(open('$OUT/shots.json'))['shots'][-1]['end']*24))")
+  LTX="python pipeline/ltx_chain.py $OUT --merge --plan shots_merged.json $LTX_ARGS"
+  mkdir -p "$OUT/ltx_chain"
   if [ -z "$VHOST" ]; then
     log "video: LTX chain here ($N frames)"; gpu_lock
     docker run --gpus all --rm --user "$(id -u):$(id -g)" --ipc=host -e HOME=/tmp -v "$ROOT":/work -v "$HOME/models":/models \
@@ -167,8 +184,7 @@ if [ "$(ls "$OUT/ltx_chain" 2>/dev/null | grep -c png)" -lt "$N" ]; then
     ssh "$VHOST" "mkdir -p ~/expts/poptok/$OUT"
     rsync -a pipeline "$VHOST":expts/poptok/
     rsync -a "$OUT/keys" "$OUT/shots.json" "$OUT/shots_merged.json" "$OUT/scenes.json" "$VHOST":expts/poptok/"$OUT"/
-    [ -d "$OUT/ltx_chain" ] && rsync -a --delete "$OUT/ltx_chain/" "$VHOST":expts/poptok/"$OUT"/ltx_chain/   # scenes.py apply:
-                                                                    # only the removed frames are rendered again
+    rsync -a --delete --exclude .done "$OUT/ltx_chain/" "$VHOST":expts/poptok/"$OUT"/ltx_chain/   # the frames to keep
     ssh "$VHOST" "cd ~/expts/poptok && until mkdir ~/.poptok-gpu.lock.d 2>/dev/null; do sleep 30; done; \
       trap 'rmdir ~/.poptok-gpu.lock.d' EXIT; LTX_MODELS=\$HOME/models PYTORCH_ENABLE_MPS_FALLBACK=1 \
       .venv-ltx/bin/$LTX" > "$OUT/ltx.log" 2>&1
@@ -178,12 +194,21 @@ if [ "$(ls "$OUT/ltx_chain" 2>/dev/null | grep -c png)" -lt "$N" ]; then
     ssh "$VHOST" "mkdir -p ~/poptok/$OUT"
     rsync -a pipeline "$VHOST":poptok/
     rsync -a "$OUT/keys" "$OUT/shots.json" "$OUT/shots_merged.json" "$OUT/scenes.json" "$VHOST":poptok/"$OUT"/
-    [ -d "$OUT/ltx_chain" ] && rsync -a --delete "$OUT/ltx_chain/" "$VHOST":poptok/"$OUT"/ltx_chain/   # scenes.py apply:
-                                                                    # only the removed frames are rendered again
+    rsync -a --delete --exclude .done "$OUT/ltx_chain/" "$VHOST":poptok/"$OUT"/ltx_chain/   # the frames to keep
     ssh "$VHOST" "cd ~/poptok && $PREP while $CTRS | grep -qE '$BUSY_RE'; do sleep 30; done; \
       flock $LOCK $(ltx_ctr "$VHOST") $LTX" > "$OUT/ltx.log" 2>&1         # NVIDIA (docker) or ROCm (podman)
     rsync -a "$VHOST":poptok/"$OUT"/ltx_chain "$OUT"/
   fi
+  NF=$(ls "$OUT/ltx_chain" | grep -c png || true)
+  [ "$NF" -ge "$N" ] || { log "video incomplete: $NF of $N frames (see $OUT/ltx.log); run again to resume"; exit 1; }
+  touch "$OUT/ltx_chain/.done"; made
+fi
+# 7 lip-sync inputs: a new still, cut or vocal makes the inserts again (the old ones are kept in sing.prev)
+SING_IN=("$OUT/keys" "$OUT/shots_merged.json" "$SEGS" "$SONG" PERFORMER="$PERFORMER" ENGINE="${ENGINE:-infinitetalk}")
+if [ -n "${DEPS_DRY:-}" ]; then
+  echo "  finish: always runs (retime, grade, mux)"
+  [ -n "$PHOTO" ] && { need lipsync "$OUT" "$OUT/sing/.done" resume "$OUT/sing" -- "${SING_IN[@]}" || true; }
+  exit 0
 fi
 # 6 finish
 log "retime, pulse, grade, mux"
@@ -192,8 +217,8 @@ GRADE=(); [ -n "$TREAT" ] && GRADE=(--grade treatment --step "$(python3 -c "impo
 python3 pipeline/finish.py "$OUT" --audio "$SONG" --analysis "$ANA" --plan shots_merged.json --frames-dir "$OUT/ltx_chain_beat" \
   --src-fps 24 --no-flash $([ "${PULSE:-1}" = 0 ] && echo --no-pulse || echo --punch-lowhits) --name "$NAME" "${GRADE[@]}" $FINISH_ARGS \
   ${FX:+--fx "$(dirname "$(dirname "$OUT")")/$FX"}
-# 7 lip-sync (sing_inserts.py, bin/sing_inserts.sh): the sung scenes, lip-synced from their stills, cut into the video
-if [ -n "$PHOTO" ]; then
+# lip-sync (sing_inserts.py, bin/sing_inserts.sh): the sung scenes, lip-synced from their stills, cut into the video
+if [ -n "$PHOTO" ] && need lipsync "$OUT" "$OUT/sing/.done" resume "$OUT/sing" -- "${SING_IN[@]}"; then
   python3 pipeline/sing_inserts.py plan "$OUT" "$ANA" "$STEM" --performer "$PERFORMER" > "$OUT/sing.log" 2>&1
   NS=$(python3 -c "import json;print(len(json.load(open('$OUT/sing/inserts.json'))))")
   if [ "$NS" -gt 0 ]; then
@@ -212,9 +237,18 @@ for r in rs:
 print(' '.join(h + ':' + ','.join(map(str, sorted(ks))) for h, ks in got.items() if ks))")
     log "lip-sync: $NS sung inserts (InfiniteTalk) on $SPLAN"
     bin/sing_inserts.sh "$OUT" "$SPLAN" >> "$OUT/sing.log" 2>&1
-    mv "$OUT/$NAME.mp4" "$OUT/$NAME-nosync.mp4"
-    python3 pipeline/sing_inserts.py splice "$OUT" "$OUT/$NAME-nosync.mp4" "$OUT/$NAME.mp4" \
-      ${FX:+--fx "$(dirname "$(dirname "$OUT")")/$FX" --fx-analysis "$ANA"} | tee -a "$OUT/sing.log"   # effects inside an insert go back on
   fi
+  MISSING=$(python3 -c "
+import json, os
+D = '$OUT/sing'
+ok = lambda k: os.path.getsize(f'{D}/it_out_{k}.mp4') > 0 if os.path.exists(f'{D}/it_out_{k}.mp4') else os.path.isdir(f'{D}/out_{k}')
+print(sum(not ok(r['k']) for r in json.load(open(f'{D}/inserts.json'))))")
+  if [ "$MISSING" = 0 ]; then touch "$OUT/sing/.done"; made
+  else log "lip-sync: $MISSING inserts failed (see $OUT/sing.log); the video uses the rest; run again to retry them"; fi
+fi
+if [ -n "$PHOTO" ] && [ "$(python3 -c "import json;print(len(json.load(open('$OUT/sing/inserts.json'))))")" -gt 0 ]; then
+  mv "$OUT/$NAME.mp4" "$OUT/$NAME-nosync.mp4"
+  python3 pipeline/sing_inserts.py splice "$OUT" "$OUT/$NAME-nosync.mp4" "$OUT/$NAME.mp4" \
+    ${FX:+--fx "$(dirname "$(dirname "$OUT")")/$FX" --fx-analysis "$ANA"} | tee -a "$OUT/sing.log"   # effects inside an insert go back on
 fi
 log "done: $OUT/$NAME.mp4"
