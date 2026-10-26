@@ -7,6 +7,9 @@
 # whose background is already removed (RGBA), which the pipeline uses as is.
 FROM infinitetalk:latest
 ENV TORCH_CUDA_ARCH_LIST="12.1" ATTN_BACKEND=xformers SPARSE_ATTN_BACKEND=xformers MAX_JOBS=8
+# headers for utils3d's glcontext (moderngl) build on aarch64
+RUN apt-get update && apt-get install -y --no-install-recommends libx11-dev libgl1-mesa-dev libegl1-mesa-dev \
+    && rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir imageio imageio-ffmpeg tqdm easydict opencv-python-headless ninja trimesh \
       tensorboard pandas lpips zstandard kornia timm \
     && pip install --no-cache-dir git+https://github.com/EasternJournalist/utils3d.git@9a4eb15e4021b67b12c460c7057d642626897ec8
