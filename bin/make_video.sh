@@ -242,8 +242,8 @@ import json, os
 D = '$OUT/sing'
 import subprocess
 def ok(r):                                        # a clip shorter than its insert was cut short: it counts as missing
-    p = f"{D}/it_out_{r['k']}.mp4"
-    if not os.path.exists(p): return os.path.isdir(f"{D}/out_{r['k']}")
+    p = f'{D}/it_out_' + str(r['k']) + '.mp4'      # no double quotes: this runs inside python3 -c "..."
+    if not os.path.exists(p): return os.path.isdir(f'{D}/out_' + str(r['k']))
     d = subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', p],
                        capture_output=True, text=True).stdout.strip()
     if d and float(d) >= r['duration'] - 1: return True
