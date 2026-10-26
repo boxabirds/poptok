@@ -4,7 +4,7 @@ recognition (SFace), both from OpenCV's model zoo (MIT / Apache-2.0), on the CPU
     python3 pipeline/eval_identity.py PHOTO IMAGE_OR_DIR_OR_VIDEO... [--every N] [--json OUT.json]
 For each image (or every Nth frame of a video): the largest face's cosine similarity to the photo's face. SFace's own
 threshold for "same person" is 0.363; real photos of one person usually score 0.5-0.8. No face found: "-".
-Models in ~/models/face (face_detection_yunet_2023mar.onnx, face_recognition_sface_2021dec.onnx).
+Models in ~/models/face, or /models/face in the containers, or $FACE_MODELS (face_detection_yunet_2023mar.onnx, face_recognition_sface_2021dec.onnx).
 """
 from __future__ import annotations
 
@@ -14,7 +14,8 @@ import cv2
 import numpy as np
 
 SAME = 0.363
-M = os.path.expanduser("~/models/face")
+M = os.environ.get("FACE_MODELS") or next((d for d in (os.path.expanduser("~/models/face"), "/models/face")
+                                           if os.path.isdir(d)), "/models/face")   # /models in the containers
 det = cv2.FaceDetectorYN.create(f"{M}/face_detection_yunet_2023mar.onnx", "", (320, 320), 0.8, 0.3, 5000)
 rec = cv2.FaceRecognizerSF.create(f"{M}/face_recognition_sface_2021dec.onnx", "")
 

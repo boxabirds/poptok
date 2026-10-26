@@ -115,7 +115,8 @@ def env(piece, key):
 def paths(piece):
     i = f"{piece}/inputs"
     return dict(json=f"{i}/universes.json", md=f"{i}/universes.md", dir=f"{i}/universes", uni=f"{i}/universe.txt",
-                look=f"{i}/visual-look.txt", workshop=f"{i}/universe.workshop.txt")
+                look=f"{i}/visual-look.txt", workshop=f"{i}/universe.workshop.txt",
+                scores=f"{i}/universes/faces.json")
 
 
 def propose(a):
@@ -163,12 +164,8 @@ def prompt_for(u, shot, wardrobe):
             f"hair, eyes and age exactly, {wear}, lit by the scene's own light. {shot['spec']} No text or lettering.")
 
 
-FACE = ("Change ONLY the woman's face: make her facial features (eyes, eyebrows, nose, mouth, jaw and face shape) "
-        "those of the woman in image 2. Keep everything else in image 1 exactly: her hair, any paint or marks on her "
-        "face, her clothes, her pose, her size in the frame, the composition, the materials, the style and the light. "
-        "Do not use image 2's clothes, hair style or background. No text.")
-# (2026-10-26: "keep the pose, clothes and size; make the woman her" pasted in the photo's black dress and lost her
-# uniform and paint: the edit has to be told to take the face only)
+# the face pass is pipeline/face_pass.py (2026-10-26): an edit of the whole still, however worded ("change ONLY the
+# woman's face"), still pasted in the photo's black dress in half the stills and made her look like someone else
 
 
 def render(a):
@@ -199,19 +196,23 @@ def render(a):
         return
     del r
     torch.cuda.empty_cache()
-    from qwen_edit import load
-    edit = load()
+    from face_pass import load
+    fix = load()
+    scores = json.load(open(P["scores"])) if os.path.exists(P["scores"]) else {}
     for i, u, j, s in todo:
         t = time.time()
-        edit([f"{P['dir']}/pick{i + 1}_{s['name']}_world.png", photo], FACE, seed=4200 + j,
-             size=(1024, 576)).save(f"{P['dir']}/pick{i + 1}_{s['name']}.png")
-        print(f"{u['name']} {s['name']} her: {time.time() - t:.0f} s", flush=True)
+        im, sim = fix(f"{P['dir']}/pick{i + 1}_{s['name']}_world.png", photo, seed=4200 + j)
+        im.save(f"{P['dir']}/pick{i + 1}_{s['name']}.png")
+        scores[f"pick{i + 1}_{s['name']}"] = sim
+        json.dump(scores, open(P["scores"], "w"), indent=1)
+        print(f"{u['name']} {s['name']} her: {time.time() - t:.0f} s, similarity {sim}", flush=True)
 
 
 def sheet(a):
     from PIL import Image, ImageDraw
     P = paths(a.piece)
     d = json.load(open(P["json"]))
+    scores = json.load(open(P["scores"])) if os.path.exists(P["scores"]) else {}
     w, h = 512, 288
     im = Image.new("RGB", (len(d["shots"]) * w, len(d["picks"]) * (h + 26)), "white")
     dr = ImageDraw.Draw(im)
@@ -219,8 +220,13 @@ def sheet(a):
         dr.text((6, i * (h + 26) + 7), f"{i + 1}. {u['name']}", fill="black")
         for j, s in enumerate(d["shots"]):
             f = f"{P['dir']}/pick{i + 1}_{s['name']}.png"
-            if os.path.exists(f):
+            if os.path.exists(f):           # every panel indexed (1a, 1b, ...) so the user can refer to it
                 im.paste(Image.open(f).convert("RGB").resize((w, h)), (j * w, i * (h + 26) + 26))
+                sim = scores.get(f"pick{i + 1}_{s['name']}")
+                tag = f"{i + 1}{'abcdefgh'[j]} {s['name']}" + ("" if sim is None else f"  face {sim:.2f}")
+                x, y = j * w + 6, i * (h + 26) + 30
+                dr.rectangle((x - 3, y - 2, x + 7 * len(tag) + 3, y + 13), fill="black")
+                dr.text((x, y), tag, fill="white")
     im.save(f"{P['dir']}/sheet.jpg", quality=88)
     print("universe: sheet", f"{P['dir']}/sheet.jpg")
 
