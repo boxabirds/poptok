@@ -19,6 +19,8 @@ ap = argparse.ArgumentParser()
 ap.add_argument("out")
 ap.add_argument("--views", type=int, default=60)
 ap.add_argument("--shots", action="store_true")
+ap.add_argument("--her-views", type=int, default=0, help="also N views aimed at her figure (OUT/her_views/), at varied "
+                "frames of her animation, distances and angles")
 ap.add_argument("--seed", type=int, default=0)
 a = ap.parse_args(sys.argv[sys.argv.index("--") + 1:])
 out = os.path.abspath(a.out)
@@ -166,6 +168,27 @@ print(f"views: kept {len(meta)} of {tries} tried", flush=True)
 json.dump(meta, open(f"{out}/views/views.json", "w"), indent=1)
 for ob in figure:
     ob.hide_render = False
+
+if a.her_views and figure:      # views of her: the renderer learns her from her own figure in this world
+    os.makedirs(f"{out}/her_views", exist_ok=True)
+    sc.render.resolution_percentage = 50
+    hm = []
+    for i in range(a.her_views):
+        f = rnd.randint(sc.frame_start, sc.frame_end); sc.frame_set(f)
+        dg = bpy.context.evaluated_depsgraph_get()
+        pts = [ob.matrix_world @ v.co for ob in figure if ob.type == "MESH" for v in list(ob.evaluated_get(dg).data.vertices)[::25]]
+        c = sum(pts, Vector()) / len(pts)
+        ang, dist = rnd.uniform(0, 2 * math.pi), rnd.uniform(1.3, 3.5)
+        pos = Vector((c.x + dist * math.cos(ang), c.y + dist * math.sin(ang), z0 + rnd.uniform(0.6, 1.8)))
+        pos.x, pos.y = min(max(pos.x, x0 + 0.2), x1 - 0.2), min(max(pos.y, y0 + 0.2), y1 - 0.2)   # stay in the room
+        at = c + Vector((rnd.uniform(-0.3, 0.3), rnd.uniform(-0.3, 0.3), rnd.uniform(-0.1, 0.3)))
+        cam.location = pos; cam.rotation_euler = (at - pos).to_track_quat("-Z", "Y").to_euler()
+        cam.data.lens = rnd.choice((24, 28, 35, 50)); sc.camera = cam
+        for kind in ("flat", "clay"):
+            render(f"{out}/her_views/{i:03d}_{kind}.png", kind)
+        hm.append({"i": i, "frame": f, "loc": list(pos), "at": list(at), "lens": cam.data.lens})
+    json.dump(hm, open(f"{out}/her_views/views.json", "w"), indent=1)
+    sc.render.resolution_percentage = 100
 
 if a.shots:                     # the shot cameras' flat layouts, her included
     sc.render.resolution_percentage = 100

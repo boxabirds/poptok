@@ -24,6 +24,7 @@ ap.add_argument("--from-flat", action="store_true", help="restyle the flat-colou
                 "(instead of grey clay, where blank walls left Qwen free to add windows, doors and furniture)")
 ap.add_argument("--only", nargs="*", help="view numbers to do (e.g. 026 033)")
 ap.add_argument("--suffix", default="styled")
+ap.add_argument("--person", default="", help="the figure in the view, described (views of her); default: no people")
 ap.add_argument("--sheet", action="store_true", help="add the material-sample sheet as picture 2 (off: with it, Qwen "
                 "ignored the layout and drew the same room corner in ~55 of 60 views, 2026-10-26)")
 a = ap.parse_args()
@@ -31,7 +32,9 @@ st = json.load(open(a.style))
 BASE = ("Restyle this image. Keep EXACTLY its composition: the same camera position, angle and lens, the same framing, "
         "every object and wall in the same place with the same size and outline. Add nothing and remove nothing: no new "
         "furniture, doors, openings, objects or debris; only give the surfaces that are there their materials. "
-        "The materials and light: " + st["universe"] + " The place is " + st["place"] + ". No people. No text.")
+        "The materials and light: " + st["universe"] + " The place is " + st["place"] + ". "
+        + (f"The figure is a real person, in exactly its pose, size and place: {a.person}. " if a.person else "No people. ")
+        + "No text.")
 SHEET = (" Picture 2 is not a scene: it is a sheet of material samples from this same place. Paint picture 1's surfaces "
          "in exactly these materials, textures and colours; take nothing else from picture 2 (not its layout, not its "
          "framing).")
