@@ -4,6 +4,7 @@
 # Layout-To-Render driven by the TEXTURED layout video, with and without the Ingredients sheet of round 3.
 #   pipeline/world/world_test4.sh pieces/_bench/world/room3/p2 thing1
 #   NOKEYS=1 ...: round 4b, layout video only (no look frames pinned at 0/40/80)
+#   FIRST=DIR ...: one styled first frame per pass (DIR/first_{A,B}.png, synced to the host) + the layout, no sheet
 #   SHEET_MP4=..., SHEET_TEXT=..., TAG=...: another Ingredients sheet; its clips are named l2r_ing${TAG}_nokeys_{A,B}
 set -euo pipefail
 cd "$(dirname "$0")/../.."
@@ -12,10 +13,11 @@ source bin/hosts.sh
 for p in A B; do [ -d $O/tex_$p ] || continue          # frames -> video; a ready-made tex_$p.mp4 (no frame dir) is used as is
   ffmpeg -v error -y -framerate 24 -i $O/tex_$p/%04d.png -c:v libx264 -pix_fmt yuv420p -crf 12 $O/tex_$p.mp4; done
 ssh $H "mkdir -p ~/poptok/$O"; rsync -a pipeline $H:poptok/
+[ -n "${FIRST:-}" ] && ssh $H "mkdir -p ~/poptok/$FIRST" && rsync -a $FIRST/first_A.png $FIRST/first_B.png $H:poptok/$FIRST/
 rsync -a $O/ $H:poptok/$O/ --exclude 'tex_A/' --exclude 'tex_B/' --exclude 'texviews/' --exclude '*.blend*'
 rsync -a $R/figure.json $R/sheet_1920.mp4 $H:poptok/$R/; [ -n "${SHEET_MP4:-}" ] && ssh $H "mkdir -p ~/poptok/$(dirname $SHEET_MP4)" && rsync -a $SHEET_MP4 $H:poptok/$SHEET_MP4
 wait_free="while $CTRS | grep -qE '$BUSY_RE'; do sleep 20; done"
-[ -n "${NOKEYS:-}" ] || {
+[ -n "${NOKEYS:-}${FIRST:-}" ] || {
 echo "[$(date +%H:%M)] looks"
 ssh $H "cd ~/poptok && $wait_free; flock $LOCK $(keyframe_ctr $H) python3 pipeline/world/looks4.py $O $R/figure.json pieces/artists/r.amber.jpeg" \
   > $O/looks4.log 2>&1 || { echo "looks failed: $O/looks4.log"; exit 1; }
@@ -43,6 +45,10 @@ run() {
 for p in A B; do
   [ $p = A ] && SHOT=$SHOT_A || SHOT=$SHOT_B
   GEOM="--video-conditioning $O/tex_$p.mp4 1.0 --stage-2-ic-lora --height 1088 --width 1920 --num-frames 81"
+  if [ -n "${FIRST:-}" ]; then     # the model card's recipe: one styled first frame (FIRST=dir with first_{A,B}.png) + layout
+    run l2r_first_$p "$L2R $GEOM --image $FIRST/first_$p.png 0 1.0" "$SHOT"
+    continue
+  fi
   if [ -n "${NOKEYS:-}" ]; then    # round 4b: the textured layout drives every frame alone, no pinned look frames
     run l2r_nokeys_$p "$L2R $GEOM" "$SHOT"
     run l2r_ing${TAG:-}_nokeys_$p "$L2R $ING $GEOM --video-conditioning $SHEET_MP4 1.0" "$SHEET Generated video: $SHOT"
