@@ -12,8 +12,8 @@ Any step that shows her (universe stills, the performer keyframes) can call it.
     from face_pass import load
     fix = load()                                            # loads Qwen-Image-Edit (a Spark: ~60 GB, no offload)
     image, score = fix("still.png", "photo.jpg", seed=1)    # PIL image; score None if no face was found (unchanged)
-    fix("still.png", "photo.jpg", angles="pieces/artists/r.amber-angles")   # with her_angles.py's set: the reference
-                                                            # nearest the still's head turn goes in as picture 3
+    fix("still.png", "photo.jpg", angles="pieces/artists/r.amber-angles")   # with her_angles.py's set: for a turned
+                                                            # head, her reference at the nearest turn replaces the photo
 
     python3 pipeline/face_pass.py PHOTO IN.png... --out DIR [--tries 3] [--angles DIR]   (writes DIR/<name>, prints the scores)
 """
@@ -31,10 +31,6 @@ from eval_identity import det, rec
 PROMPT = ("Make the woman's face in picture 1 the face of the woman in picture 2: her eyes, eyebrows, nose, mouth, jaw "
           "and face shape. Keep picture 1's head angle, expression, gaze, framing, skin light and shadow, and any paint "
           "or marks on her face exactly. Nothing else changes. No text.")
-ANGLED = ("Make the woman's face in picture 1 the face of the woman in pictures 2 and 3 (the same person; picture 3 shows "
-          "her head at the same angle as in picture 1): her eyes, eyebrows, nose, mouth, jaw and face shape. Keep "
-          "picture 1's head angle, expression, gaze, framing, skin light and shadow, and any paint or marks on her face "
-          "exactly. Nothing else changes. No text.")
 CROP = 2.6          # crop side, in face widths: the face plus enough around it for the light and the head's angle
 OVAL = (0.62, 0.78)  # pasted oval's half-axes, in face widths (cheeks to cheeks, hairline to chin)
 
@@ -51,12 +47,12 @@ def turn(f):        # head turn from YuNet's landmarks: the nose's offset from b
     return float(np.clip((f[8] - eye_x) / eye_d, -2, 2))
 
 
-def angle_ref(angles, f):   # her_angles.py's reference nearest this face's turn (None: no angle set)
-    if not angles or not os.path.exists(f"{angles}/angles.json"):
+def angle_ref(angles, f):   # her_angles.py's reference nearest this face's turn, if it is a turned one (else None:
+    if not angles or not os.path.exists(f"{angles}/angles.json"):          # the photo itself is frontal)
         return None
     meta = json.load(open(f"{angles}/angles.json"))
     name = min(meta, key=lambda n: abs(meta[n]["turn"] - turn(f)))
-    return f"{angles}/{name}.png"
+    return None if abs(meta[name]["turn"]) < 0.25 else f"{angles}/{name}.png"
 
 
 def similarity(img, ref):
@@ -89,17 +85,26 @@ def load(edit=None):
         k = int(fw * 0.2) | 1
         mask = cv2.GaussianBlur(mask, (k, k), 0)[..., None]
         best = (None, -2.0)
-        aref = angle_ref(angles, f)       # her at this head angle: a frontal photo alone turns profiles into strangers
+        # her at this head angle replaces the photo as picture 2 (a frontal photo turns profiles into strangers); never
+        # a third picture: with three, Qwen moved and rescaled the head in the crop and the oval pasted a mismatched face
+        ref2 = angle_ref(angles, f) or photo
+        fc = (cx - x0, cy - y0)           # the face in crop coordinates, to check the edit kept it in place
         for t in range(tries):
-            out = edit([crop, photo, aref] if aref else [crop, photo], ANGLED if aref else PROMPT,
-                       seed=seed + 1000 * t, size=(1024, 1024))
+            out = edit([crop, ref2], PROMPT, seed=seed + 1000 * t, size=(1024, 1024))
+            o = np.array(out.convert("RGB").resize((side, side), Image.LANCZOS))
+            g = face(cv2.cvtColor(o, cv2.COLOR_RGB2BGR))
+            if g is None or np.hypot(g[0] + g[2] / 2 - fc[0], g[1] + g[3] / 2 - fc[1]) > 0.15 * fw \
+                    or not 0.8 < max(g[2], g[3]) / fw < 1.25:
+                continue                  # the face moved or changed size: pasting it would leave a seam
             big = src.astype(np.float32).copy()
-            big[y0:y0 + side, x0:x0 + side] = np.array(out.convert("RGB").resize((side, side), Image.LANCZOS))
+            big[y0:y0 + side, x0:x0 + side] = o
             comp = (src * (1 - mask) + big * mask).astype(np.uint8)
             s = similarity(cv2.cvtColor(comp, cv2.COLOR_RGB2BGR), refs[photo])
             s = -1.0 if s is None else s
             if s > best[1]:
                 best = (comp, s)
+        if best[0] is None:               # every try moved the face: keep the still as it was
+            return Image.fromarray(src), similarity(bgr, refs[photo])
         return Image.fromarray(best[0]), best[1]
 
     return fix

@@ -7,15 +7,16 @@ TEXTure / Text2Tex scheme for a Blender scene:
            partial.png (painted surfaces with their paint, the rest as lit grey clay) and need.png (white where this
            view will paint); an image model then restyles partial.png, keeping the painted parts (fill_view.py),
            and writes styled.png
-  render   texture every surface from the view that sees it best and render the shot cameras (tex_<cam>/%04d.png,
-           her stand-in grey) and a ring of views around the room (texviews/NN.png)
+  render   texture every surface from the view that sees it best, save it (painted.blend), and render the shot cameras
+           (tex_<cam>/%04d.png, her stand-in grey) and a ring of views around the room (texviews/NN.png)
 
 A surface counts as painted by a view when it is in frame, not hidden behind anything (ray cast) and faces the camera
 (cosine >= GOOD). Nothing here is specific to one room: candidates are the shot cameras (every 20th frame) and a ring
 of cameras inside the room's bounding box.
 
     docker run --rm --user $(id -u):$(id -g) -v $PWD:/work -w /work blender -b OUT/room.blend \
-        -P pipeline/world/paint_world.py -- OUT next|render
+        -P pipeline/world/paint_world.py -- OUT next|render [DEST]
+(render with another .blend of the same room, e.g. one with her figure.py figure in it, and DEST for its renders)
 State: OUT/paint/views.json ([{"name", "loc", "rot", "lens", "img"}]), OUT/paint/vNN/.
 """
 import json, math, os, sys
@@ -28,12 +29,14 @@ GOOD = 0.35          # a view paints a surface it sees at up to ~70 degrees off 
 FIG = ("torso", "head", "thigh_l", "thigh_r", "shin_l", "shin_r", "cloth")   # her stand-in (room_blockout.py)
 args = sys.argv[sys.argv.index("--") + 1:]
 out, mode = os.path.abspath(args[0]), args[1]
+dest = os.path.abspath(args[2]) if len(args) > 2 else out      # render: where tex_* and texviews go
 P = os.path.join(out, "paint")
 os.makedirs(P, exist_ok=True)
 views = json.load(open(f"{P}/views.json")) if os.path.exists(f"{P}/views.json") else []
 sc = bpy.context.scene
 W, H = sc.render.resolution_x, sc.render.resolution_y
-figure = [o for o in sc.objects if o.type == "MESH" and o.name.split(".")[0] in FIG]
+figure = [o for o in sc.objects if o.type == "MESH" and (o.name.split(".")[0] in FIG     # the stand-in, or her
+          or (o.parent is not None and o.parent.type == "ARMATURE"))]                       # rigged body (figure.py)
 room = [o for o in sc.objects if o.type == "MESH" and o not in figure]
 shot_cams = sorted(o.name for o in sc.objects if o.type == "CAMERA")
 
@@ -117,7 +120,7 @@ def material(name, k=None, rgb=None):
     nt = m.node_tree; nt.nodes.clear(); o = nt.nodes.new("ShaderNodeOutputMaterial")
     if k is not None:           # view k's image, read through its own UV map, as emission (the paint is the light)
         tex = nt.nodes.new("ShaderNodeTexImage"); tex.image = bpy.data.images.load(views[k]["img"]); tex.extension = "EXTEND"
-        uv = nt.nodes.new("ShaderNodeUVMap"); uv.uv_map = f"proj{k}"; nt.links.new(uv.outputs["UV"], tex.inputs["Vector"])
+        uv = nt.nodes.new("ShaderNodeUVMap"); uv.uv_map = "proj"; nt.links.new(uv.outputs["UV"], tex.inputs["Vector"])
         em = nt.nodes.new("ShaderNodeEmission"); nt.links.new(tex.outputs["Color"], em.inputs["Color"])
         nt.links.new(em.outputs["Emission"], o.inputs["Surface"])
     elif rgb is not None:       # flat emission (masks)
@@ -130,6 +133,8 @@ def material(name, k=None, rgb=None):
 
 
 def texture(slot):              # slot(j) -> material index per face; materials: views..., clay, white, black
+    """One UV map for every view: each face's UVs are its owning view's projection of its corners (a UV map per view, as
+    first written, broke past 8 views: Blender meshes hold at most 8 UV maps, so views 9+ painted flat grey)."""
     mats = [material(f"view{k}", k=k) for k in range(len(views))] + [material("clay"), material("white", rgb=(1, 1, 1)),
                                                                      material("black", rgb=(0, 0, 0))]
     j = 0
@@ -137,12 +142,15 @@ def texture(slot):              # slot(j) -> material index per face; materials:
         ob.data.materials.clear()
         for m in mats:
             ob.data.materials.append(m)
-        for k in range(len(views)):
-            ob.data.uv_layers.new(name=f"proj{k}")
-            md = ob.modifiers.new(f"project{k}", "UV_PROJECT"); md.uv_layer = f"proj{k}"
-            md.projector_count = 1; md.projectors[0].object = vcams[k]; md.aspect_x, md.aspect_y = W / H, 1.0
+        uvl = ob.data.uv_layers.get("proj") or ob.data.uv_layers.new(name="proj")
+        mw, vs, loops = ob.matrix_world, ob.data.vertices, ob.data.loops
         for p in ob.data.polygons:
-            p.material_index = slot(j); j += 1
+            k = slot(j); j += 1
+            p.material_index = k
+            if k < len(views):
+                for li in p.loop_indices:
+                    v = world_to_camera_view(sc, vcams[k], mw @ vs[loops[li].vertex_index].co)
+                    uvl.data[li].uv = (v.x, v.y)
     return len(views)
 
 
@@ -192,17 +200,19 @@ else:
     for ob in figure:
         ob.hide_viewport = False
     texture(lambda j: owner[j] if owner[j] >= 0 else len(views) + 2)        # never seen at all: black
+    os.makedirs(dest, exist_ok=True)    # the painted world as a .blend to open and orbit (image paths relative to it)
+    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(dest, "painted.blend"), relative_remap=True, copy=True)
     grey = bpy.data.materials.new("figure"); grey.diffuse_color = (0.55, 0.55, 0.55, 1)
     for ob in figure:
         ob.data.materials.clear(); ob.data.materials.append(grey)
     sc.cycles.samples = 4
     for n in shot_cams:
         sc.camera = bpy.data.objects[n]
-        sc.render.filepath = os.path.join(out, f"tex_{n.replace('cam_', '')}", "")
+        sc.render.filepath = os.path.join(dest, f"tex_{n.replace('cam_', '')}", "")
         bpy.ops.render.render(animation=True)
     for ob in figure:
         ob.hide_render = True
     for i, (name, loc, rot, lens) in enumerate(c for c in candidates() if c[0].startswith("ring")):
         sc.camera = camera(f"tv_{name}", loc, rot, lens)
-        render(os.path.join(out, "texviews", f"{i:02d}.png"))
+        render(os.path.join(dest, "texviews", f"{i:02d}.png"))
 print("ok", out)
