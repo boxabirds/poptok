@@ -8,7 +8,8 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 O=$1; H=${2:-thing1}; R=$(dirname $O)          # round 3's folder: figure.json, sheet_1920.mp4
 source bin/hosts.sh
-for p in A B; do ffmpeg -v error -y -framerate 24 -i $O/tex_$p/%04d.png -c:v libx264 -pix_fmt yuv420p -crf 12 $O/tex_$p.mp4; done
+for p in A B; do [ -d $O/tex_$p ] || continue          # frames -> video; a ready-made tex_$p.mp4 (no frame dir) is used as is
+  ffmpeg -v error -y -framerate 24 -i $O/tex_$p/%04d.png -c:v libx264 -pix_fmt yuv420p -crf 12 $O/tex_$p.mp4; done
 ssh $H "mkdir -p ~/poptok/$O"; rsync -a pipeline $H:poptok/
 rsync -a $O/ $H:poptok/$O/ --exclude 'tex_A/' --exclude 'tex_B/' --exclude 'texviews/' --exclude '*.blend*'
 rsync -a $R/figure.json $R/sheet_1920.mp4 $H:poptok/$R/
