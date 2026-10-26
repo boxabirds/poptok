@@ -4,6 +4,7 @@
 # Layout-To-Render driven by the TEXTURED layout video, with and without the Ingredients sheet of round 3.
 #   pipeline/world/world_test4.sh pieces/_bench/world/room3/p2 thing1
 #   NOKEYS=1 ...: round 4b, layout video only (no look frames pinned at 0/40/80)
+#   SHEET_MP4=..., SHEET_TEXT=..., TAG=...: another Ingredients sheet; its clips are named l2r_ing${TAG}_nokeys_{A,B}
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 O=$1; H=${2:-thing1}; R=$(dirname $O)          # round 3's folder: figure.json, sheet_1920.mp4
@@ -12,7 +13,7 @@ for p in A B; do [ -d $O/tex_$p ] || continue          # frames -> video; a read
   ffmpeg -v error -y -framerate 24 -i $O/tex_$p/%04d.png -c:v libx264 -pix_fmt yuv420p -crf 12 $O/tex_$p.mp4; done
 ssh $H "mkdir -p ~/poptok/$O"; rsync -a pipeline $H:poptok/
 rsync -a $O/ $H:poptok/$O/ --exclude 'tex_A/' --exclude 'tex_B/' --exclude 'texviews/' --exclude '*.blend*'
-rsync -a $R/figure.json $R/sheet_1920.mp4 $H:poptok/$R/
+rsync -a $R/figure.json $R/sheet_1920.mp4 $H:poptok/$R/; [ -n "${SHEET_MP4:-}" ] && ssh $H "mkdir -p ~/poptok/$(dirname $SHEET_MP4)" && rsync -a $SHEET_MP4 $H:poptok/$SHEET_MP4
 wait_free="while $CTRS | grep -qE '$BUSY_RE'; do sleep 20; done"
 [ -n "${NOKEYS:-}" ] || {
 echo "[$(date +%H:%M)] looks"
@@ -27,7 +28,8 @@ MODELS="--transformer-path $M/diffusion_models/ltx-2.5-22b-distilled-transformer
   --spatial-upsampler-path $M/latent_upscale_models/ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors"
 L2R="--lora $M/loras/ltx-2.5-22b-ic-lora-layout-to-render-1.0.safetensors 1.0"
 ING="--lora $M/loras/ltx-2.5-22b-ic-lora-ingredients-0.9.safetensors 1.0"
-SHEET="Reference sheet: a young blond woman soldier, a face close-up and a full-body turnaround front, side and back, in a dark green-brown felted wool field uniform, her face streaked with green and black camouflage paint; a cream wool cloth with a stitched peace symbol; a ruined apartment room made of thick felted wool."
+SHEET_MP4=${SHEET_MP4:-$R/sheet_1920.mp4}
+SHEET="${SHEET_TEXT:-Reference sheet: a young blond woman soldier, a face close-up and a full-body turnaround front, side and back, in a dark green-brown felted wool field uniform, her face streaked with green and black camouflage paint; a cream wool cloth with a stitched peace symbol; a ruined apartment room made of thick felted wool.}"
 SHOT_A="A ruined apartment room made of thick felted wool at night, the camera moving slowly in through the open door toward the window, where the young woman soldier sits on the floor against the wall, knees up, holding the wool cloth. Muted greens and browns, soft fuzzy surfaces, a distant glow through the window."
 SHOT_B="Close beside the young woman soldier sitting on the floor under the window of a ruined apartment room made of thick felted wool, the camera turning slowly away from her across the room toward the tilted table. Muted greens and browns, soft fuzzy surfaces."
 run() {
@@ -43,13 +45,13 @@ for p in A B; do
   GEOM="--video-conditioning $O/tex_$p.mp4 1.0 --stage-2-ic-lora --height 1088 --width 1920 --num-frames 81"
   if [ -n "${NOKEYS:-}" ]; then    # round 4b: the textured layout drives every frame alone, no pinned look frames
     run l2r_nokeys_$p "$L2R $GEOM" "$SHOT"
-    run l2r_ing_nokeys_$p "$L2R $ING $GEOM --video-conditioning $R/sheet_1920.mp4 1.0" "$SHEET Generated video: $SHOT"
+    run l2r_ing${TAG:-}_nokeys_$p "$L2R $ING $GEOM --video-conditioning $SHEET_MP4 1.0" "$SHEET Generated video: $SHOT"
     continue
   fi
   [ $p = A ] && SHOT=$SHOT_A || SHOT=$SHOT_B
   LOOKS="--image $O/look4_${p}_0001.png 0 1.0 --image $O/look4_${p}_0041.png 40 1.0 --image $O/look4_${p}_0081.png 80 1.0"
   GEOM="--video-conditioning $O/tex_$p.mp4 1.0 --stage-2-ic-lora --height 1088 --width 1920 --num-frames 81"
   run l2r_$p "$L2R $GEOM $LOOKS" "$SHOT"
-  run l2r_ing_$p "$L2R $ING $GEOM --video-conditioning $R/sheet_1920.mp4 1.0 $LOOKS" "$SHEET Generated video: $SHOT"
+  run l2r_ing_$p "$L2R $ING $GEOM --video-conditioning $SHEET_MP4 1.0 $LOOKS" "$SHEET Generated video: $SHOT"
 done
 echo "[$(date +%H:%M)] round 4${NOKEYS:+b} done"
