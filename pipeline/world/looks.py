@@ -28,7 +28,25 @@ LAYOUT = ("Image 1 is a grey 3D layout. Turn it into a finished film frame: keep
           ". No text or lettering.")
 CARRY = (" Image 2 is the same room seen from another angle: the same materials, colours, textures, light and objects, "
          "so this frame shows the same place.")
+RESTYLE = ("Restyle this image. Keep EXACTLY its composition: the same camera position, angle and lens, the same framing, "
+           "and every object in the same place with the same size and outline, including the open door, the window, "
+           "the tilted table, the blocks and the seated figure. Only change the materials and light: " + UNI + " The "
+           "room is " + ROOM + ". The seated figure is a woman soldier in a dark felt uniform holding a wool cloth. No text.")
+CARRY2 = (" Use image 2 only for the materials, colours and light: it is the same room from another angle. The composition "
+          "is image 1's.")
+FACE = ("Keep this image exactly (composition, materials, light); only make the seated woman the woman from image 2, the "
+        "same face and long wavy blond hair, with green and black camouflage paint on her face. No text.")
 edit = load()
+# 2026-10-26 round 2: with the clay frame among two or three images, Qwen-Edit ignored the layout (look_A was a frontal
+# wide shot, B's looks not B's reverse angle). Restyle the clay frame alone, then put her face in with a second edit.
+jobs2 = [
+    ("look2_A_room", [f"{out}/clay_A/0001.png"], RESTYLE),
+    ("look2_B_room", [f"{out}/clay_B/0001.png"], RESTYLE),
+    ("look2_B_carry_room", [f"{out}/clay_B/0001.png", f"{out}/look2_A_room.png"], RESTYLE + CARRY2),
+    ("look2_A", [f"{out}/look2_A_room.png", photo], FACE),
+    ("look2_B_indep", [f"{out}/look2_B_room.png", photo], FACE),
+    ("look2_B_carry", [f"{out}/look2_B_carry_room.png", photo], FACE),
+]
 jobs = [
     ("look_A", [f"{out}/clay_A/0001.png", photo], LAYOUT.format(her=2)),
     ("look_B_indep", [f"{out}/clay_B/0001.png", photo], LAYOUT.format(her=2)),
@@ -40,7 +58,7 @@ jobs = [
                         f"reference image sitting under the window (the same face and hair: {HER}), looking back "
                         f"across the room to the open door. No text or lettering."),
 ]
-for name, refs, prompt in jobs:
+for name, refs, prompt in (jobs2 if "--round2" in sys.argv else jobs):
     if os.path.exists(f"{out}/{name}.png"):
         continue
     t = time.time()
