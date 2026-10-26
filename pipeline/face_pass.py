@@ -73,7 +73,7 @@ def load(edit=None):
         edit = load_edit()
     refs = {}
 
-    def fix(still, photo, seed=0, tries=3, angles=None, region="face"):
+    def fix(still, photo, seed=0, tries=3, angles=None, region="head"):     # head: user-approved 2026-10-26
         src = np.array(Image.open(still).convert("RGB") if isinstance(still, str) else still.convert("RGB"))
         bgr = cv2.cvtColor(src, cv2.COLOR_RGB2BGR)
         if photo not in refs:
@@ -90,7 +90,7 @@ def load(edit=None):
         mask = np.zeros((H, W), np.float32)            # the oval, feathered by ~a tenth of the face width
         ax, ay, up = HEAD if region == "head" else (*OVAL, 0.0)
         cv2.ellipse(mask, (int(cx), int(cy + up * fw)), (int(ax * fw), int(ay * fw)), 0, 0, 360, 1.0, -1)
-        k = int(fw * 0.2) | 1
+        k = int(fw * (0.4 if region == "head" else 0.2)) | 1     # head: a softer edge (a hard one drew a line at the neck)
         mask = cv2.GaussianBlur(mask, (k, k), 0)[..., None]
         best = (None, -2.0)
         # her at this head angle replaces the photo as picture 2 (a frontal photo turns profiles into strangers); never
@@ -125,7 +125,7 @@ if __name__ == "__main__":
     ap.add_argument("--out", required=True)
     ap.add_argument("--tries", type=int, default=3)
     ap.add_argument("--angles", help="her_angles.py output dir")
-    ap.add_argument("--region", choices=["face", "head"], default="face")
+    ap.add_argument("--region", choices=["face", "head"], default="head")
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     fix = load()
