@@ -31,8 +31,15 @@ from eval_identity import det, rec
 PROMPT = ("Make the woman's face in picture 1 the face of the woman in picture 2: her eyes, eyebrows, nose, mouth, jaw "
           "and face shape. Keep picture 1's head angle, expression, gaze, framing, skin light and shadow, and any paint "
           "or marks on her face exactly. Nothing else changes. No text.")
+HEAD_PROMPT = ("Make the woman's head in picture 1 the head of the woman in picture 2: her face shape, jaw line, chin, "
+               "cheekbones, forehead and hairline as well as her eyes, eyebrows, nose and mouth. Keep picture 1's head "
+               "angle, expression, gaze, framing, hair colour and length, skin light and shadow, and any paint or marks "
+               "on her face exactly. Nothing else changes. No text.")
 CROP = 2.6          # crop side, in face widths: the face plus enough around it for the light and the head's angle
 OVAL = (0.62, 0.78)  # pasted oval's half-axes, in face widths (cheeks to cheeks, hairline to chin)
+HEAD = (0.85, 1.12, -0.08)  # region="head": half-axes and centre shift (up) in face widths: jaw, face outline and
+# hairline too. With only the inner face replaced, the user saw "her sisters" (Chronophobia, 2026-10-26): her features
+# on the image model's head shape
 
 
 def face(img):      # largest face as (x, y, w, h) in pixels, or None
@@ -66,7 +73,7 @@ def load(edit=None):
         edit = load_edit()
     refs = {}
 
-    def fix(still, photo, seed=0, tries=3, angles=None):
+    def fix(still, photo, seed=0, tries=3, angles=None, region="face"):
         src = np.array(Image.open(still).convert("RGB") if isinstance(still, str) else still.convert("RGB"))
         bgr = cv2.cvtColor(src, cv2.COLOR_RGB2BGR)
         if photo not in refs:
@@ -81,7 +88,8 @@ def load(edit=None):
         x0, y0 = int(np.clip(cx - side / 2, 0, W - side)), int(np.clip(cy - side / 2, 0, H - side))
         crop = Image.fromarray(src[y0:y0 + side, x0:x0 + side])
         mask = np.zeros((H, W), np.float32)            # the oval, feathered by ~a tenth of the face width
-        cv2.ellipse(mask, (int(cx), int(cy)), (int(OVAL[0] * fw), int(OVAL[1] * fw)), 0, 0, 360, 1.0, -1)
+        ax, ay, up = HEAD if region == "head" else (*OVAL, 0.0)
+        cv2.ellipse(mask, (int(cx), int(cy + up * fw)), (int(ax * fw), int(ay * fw)), 0, 0, 360, 1.0, -1)
         k = int(fw * 0.2) | 1
         mask = cv2.GaussianBlur(mask, (k, k), 0)[..., None]
         best = (None, -2.0)
@@ -90,7 +98,7 @@ def load(edit=None):
         ref2 = angle_ref(angles, f) or photo
         fc = (cx - x0, cy - y0)           # the face in crop coordinates, to check the edit kept it in place
         for t in range(tries):
-            out = edit([crop, ref2], PROMPT, seed=seed + 1000 * t, size=(1024, 1024))
+            out = edit([crop, ref2], HEAD_PROMPT if region == "head" else PROMPT, seed=seed + 1000 * t, size=(1024, 1024))
             o = np.array(out.convert("RGB").resize((side, side), Image.LANCZOS))
             g = face(cv2.cvtColor(o, cv2.COLOR_RGB2BGR))
             if g is None or np.hypot(g[0] + g[2] / 2 - fc[0], g[1] + g[3] / 2 - fc[1]) > 0.15 * fw \
@@ -117,12 +125,13 @@ if __name__ == "__main__":
     ap.add_argument("--out", required=True)
     ap.add_argument("--tries", type=int, default=3)
     ap.add_argument("--angles", help="her_angles.py output dir")
+    ap.add_argument("--region", choices=["face", "head"], default="face")
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     fix = load()
     for p in a.inputs:
         before = similarity(cv2.imread(p), rec.feature(rec.alignCrop(cv2.imread(a.photo), face(cv2.imread(a.photo)))))
-        im, s = fix(p, a.photo, tries=a.tries, angles=a.angles)
+        im, s = fix(p, a.photo, tries=a.tries, angles=a.angles, region=a.region)
         im.save(os.path.join(a.out, os.path.basename(p)))
         print(f"{os.path.basename(p)}: " + ("no face, unchanged" if s is None else
               f"similarity {before:.2f} -> {s:.2f}"), flush=True)

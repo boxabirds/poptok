@@ -1,0 +1,149 @@
+<title>Felt Room Viewer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<style>
+/* layout: the room fills the screen; one quiet control strip floats at the bottom, like a monitor's transport bar */
+:root {
+  --bg: #e9ebe4; --panel: rgba(250, 251, 246, 0.92); --fg: #20251c; --muted: #5d6656; --accent: #4f6b2f; --line: #c9cfbf;
+  --sans: "IBM Plex Sans", system-ui, sans-serif; --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121510; --panel: rgba(24, 28, 21, 0.9); --fg: #e4e8dc; --muted: #9aa48f; --accent: #a9c97a; --line: #343b2d; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #121510; --panel: rgba(24, 28, 21, 0.9); --fg: #e4e8dc; --muted: #9aa48f; --accent: #a9c97a; --line: #343b2d; color-scheme: dark }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font-family: var(--sans); overflow: hidden; }
+#stage { position: fixed; inset: 0; }
+canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.bar {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  width: min(760px, calc(100% - 2 * max(16px, env(safe-area-inset-left, 0px))));
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  padding-block: 10px; padding-left: 12px; padding-right: 12px;
+  display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; backdrop-filter: blur(6px);
+}
+.group { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.label { font: 500 11px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+button {
+  font: 500 13px/1 var(--sans); color: var(--fg); background: transparent; border: 1px solid var(--line);
+  border-radius: 6px; padding: 7px 10px; cursor: pointer;
+}
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.frame { font: 400 12px/1 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; margin-left: auto; min-width: 9ch; text-align: right; }
+.title {
+  position: fixed; top: calc(12px + env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px)); pointer-events: none;
+  font: 600 13px/1.4 var(--sans); color: var(--fg); text-shadow: 0 1px 2px var(--bg);
+}
+.title span { display: block; font: 400 12px/1.4 var(--mono); color: var(--muted); }
+#status { position: fixed; inset: 0; display: grid; place-items: center; font: 400 13px var(--mono); color: var(--muted); pointer-events: none; }
+</style>
+
+<div id="stage"></div>
+<div class="title">Noble Hunt · felted ruin, room 3
+  <span>12 painted views · her figure: CMU mocap 82_05, sitting on the ground</span></div>
+<div id="status">Loading the room (4.6 MB)…</div>
+<div class="bar" role="toolbar" aria-label="Viewer controls">
+  <div class="group">
+    <span class="label">View</span>
+    <button id="v-free" aria-pressed="true">Orbit</button>
+    <button id="v-a" aria-pressed="false">Shot A</button>
+    <button id="v-b" aria-pressed="false">Shot B</button>
+  </div>
+  <div class="group">
+    <span class="label">Her</span>
+    <button id="play" aria-pressed="true">Pause</button>
+  </div>
+  <span class="frame" id="frame">frame 1/81</span>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/examples/js/controls/OrbitControls.js"></script>
+<script src="room.js"></script>
+<script>
+const FPS = 24, N = 81;
+const stage = document.getElementById("stage"), statusEl = document.getElementById("status"), frameEl = document.getElementById("frame");
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputEncoding = THREE.sRGBEncoding;
+stage.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0b0d0a);
+const cam = new THREE.PerspectiveCamera(50, 1, 0.05, 200);
+cam.position.set(0, -1.5, 1.6);
+const controls = new THREE.OrbitControls(cam, renderer.domElement);
+controls.target.set(0, 2.5, 0.8);
+controls.enableDamping = true;
+scene.add(new THREE.HemisphereLight(0xffffff, 0x445533, 1.0));   // only her figure is lit; the room carries its own paint
+
+let mixer = null, clipTime = 0, playing = true, view = "free", shots = {};
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix();
+}
+addEventListener("resize", resize); resize();
+
+function glbBuffer() {        // the model ships inside room.js as base64 (the page host serves no .glb files)
+  const bin = atob(window.ROOM_GLB || ""), u = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  return u.buffer;
+}
+new THREE.GLTFLoader().parse(glbBuffer(), "", (g) => {
+  g.scene.traverse((o) => {
+    if (!o.isMesh || o.isSkinnedMesh) return;
+    const m = o.material, map = m.emissiveMap || m.map;      // the paint is light: show it unlit, as it was painted
+    o.material = new THREE.MeshBasicMaterial({ map, color: map ? 0xffffff : (m.emissive || m.color) });
+  });
+  // Blender's glTF converts Z-up to Y-up: the room arrives standing correctly
+  scene.add(g.scene);
+  for (const k of ["A", "B"]) {
+    const c = g.scene.getObjectByName("cam_" + k), t = g.scene.getObjectByName("cam_" + k + "_target");
+    if (c && t) shots[k] = { c, t, fov: c.isCamera ? c.fov : (c.children[0] && c.children[0].fov) || 50 };
+  }
+  mixer = new THREE.AnimationMixer(g.scene);
+  for (const clip of g.animations) mixer.clipAction(clip).play();
+  const box = new THREE.Box3().setFromObject(g.scene.getObjectByName("floor") || g.scene);
+  const c = box.getCenter(new THREE.Vector3());
+  controls.target.copy(c); cam.position.copy(c).add(new THREE.Vector3(0, 1.4, 0.2));
+  const her = g.scene.getObjectByName("her_rig");
+  if (her) { const p = new THREE.Box3().setFromObject(her).getCenter(new THREE.Vector3()); controls.target.copy(p); }
+  statusEl.hidden = true;
+}, (e) => { statusEl.textContent = "Could not load the room: " + (e.message || e); });
+
+function setView(v) {
+  view = v;
+  for (const [id, key] of [["v-free", "free"], ["v-a", "A"], ["v-b", "B"]])
+    document.getElementById(id).setAttribute("aria-pressed", String(key === v));
+  controls.enabled = v === "free";
+}
+document.getElementById("v-free").onclick = () => setView("free");
+document.getElementById("v-a").onclick = () => setView("A");
+document.getElementById("v-b").onclick = () => setView("B");
+const playBtn = document.getElementById("play");
+playBtn.onclick = () => { playing = !playing; playBtn.textContent = playing ? "Pause" : "Play"; playBtn.setAttribute("aria-pressed", String(playing)); };
+
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+if (reduce) playBtn.onclick();
+const clock = new THREE.Clock(), wp = new THREE.Vector3(), wt = new THREE.Vector3();
+renderer.setAnimationLoop(() => {
+  const dt = clock.getDelta();
+  if (mixer) {
+    if (playing) clipTime = (clipTime + dt) % (N / FPS);
+    mixer.setTime(clipTime);
+    frameEl.textContent = "frame " + (Math.floor(clipTime * FPS) + 1) + "/" + N;
+  }
+  const s = shots[view];
+  if (s) {                     // the shot camera follows its path and keeps looking at its target, as in Blender
+    s.c.getWorldPosition(wp); s.t.getWorldPosition(wt);
+    cam.position.copy(wp); cam.up.set(0, 1, 0); cam.lookAt(wt);
+    cam.fov = s.fov; cam.updateProjectionMatrix();
+  } else {
+    if (cam.fov !== 50) { cam.fov = 50; cam.updateProjectionMatrix(); }
+    controls.update();
+  }
+  renderer.render(scene, cam);
+});
+</script>
