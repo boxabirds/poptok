@@ -4,7 +4,10 @@ the door and pushes toward the window where she sits; pass B comes back later fr
 at the room and the door. Both are cameras in the same world, so the room is the same room.
 
     docker run --rm --user $(id -u):$(id -g) -v $PWD:/work -w /work blender -b -P pipeline/world/room_blockout.py -- OUT
-Writes OUT/clay_A/%04d.png, OUT/clay_B/%04d.png (1920x1088, 81 frames, 24 fps) and OUT/room.blend.
+Writes OUT/clay_A/%04d.png, OUT/clay_B/%04d.png (1920x1088, 81 frames, 24 fps) and OUT/room.blend; and for the
+look frames, OUT/clean_{A,B}/{0001,0041,0081}.png (the same frames without her stand-in, which an image model styles as
+an object: a felt dummy beside her, round 2) with OUT/figure.json (where the stand-in is in each of those frames).
+Round 3 (2026-10-26): B's pan is gentler (~45 degrees, not ~90: with one look frame LTX did not follow it).
 """
 import math, os, sys
 
@@ -105,11 +108,31 @@ passes = {
     # A: through the door, a slow push toward the window and her
     "A": camera("cam_A", [(1, (-1.45, -0.6, 1.55), (0.6, 4.6, 0.9)), (N, (-0.6, 1.8, 1.35), (0.8, 4.6, 0.8))]),
     # B: later, from the window corner beside her, a slow pan from her across the room to the open door
-    "B": camera("cam_B", [(1, (2.7, 3.6, 1.4), (0.9, 4.4, 0.7)), (N, (2.6, 3.4, 1.45), (-1.6, 0.2, 1.1))]),
+    "B": camera("cam_B", [(1, (2.7, 3.6, 1.4), (0.9, 4.4, 0.7)), (N, (2.6, 3.4, 1.45), (-0.6, 2.2, 0.9))]),
 }
+import json
+from bpy_extras.object_utils import world_to_camera_view
+figure = [o for o in sc.objects if o.name.split(".")[0] in ("torso", "head", "thigh_l", "thigh_r", "shin_l", "shin_r", "cloth")]
+KEYS = (1, 41, 81)
+where = {}
 for name, cam in passes.items():
     sc.camera = cam
     sc.render.filepath = os.path.join(out, f"clay_{name}", "")
     bpy.ops.render.render(animation=True)
+    for f in KEYS:                       # where her stand-in is: frame fraction of its head and torso, and if visible
+        sc.frame_set(f)
+        pts = [world_to_camera_view(sc, cam, o.matrix_world.translation) for o in figure if o.name.startswith(("head", "torso"))]
+        vis = [p for p in pts if 0 <= p.x <= 1 and 0 <= p.y <= 1 and p.z > 0]
+        where[f"{name}_{f:04d}"] = {"visible": len(vis) == len(pts),
+                                    "x": round(sum(p.x for p in pts) / len(pts), 2), "y": round(1 - sum(p.y for p in pts) / len(pts), 2)}
+    for o in figure:
+        o.hide_render = True
+    for f in KEYS:
+        sc.frame_set(f)
+        sc.render.filepath = os.path.join(out, f"clean_{name}", f"{f:04d}.png")
+        bpy.ops.render.render(write_still=True)
+    for o in figure:
+        o.hide_render = False
+json.dump(where, open(os.path.join(out, "figure.json"), "w"), indent=1)
 bpy.ops.wm.save_as_mainfile(filepath=os.path.join(out, "room.blend"))
 print("done", out)

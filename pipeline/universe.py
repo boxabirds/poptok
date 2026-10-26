@@ -163,9 +163,12 @@ def prompt_for(u, shot, wardrobe):
             f"hair, eyes and age exactly, {wear}, lit by the scene's own light. {shot['spec']} No text or lettering.")
 
 
-FACE = ("Keep this image exactly: the composition, the camera, the materials, the style and the light, and the "
-        "woman's pose, clothes and size in the frame. Only make the woman the woman from image 2, the same person: her "
-        "face, hair, eyes and age, rendered in this image's own style and material. No text.")
+FACE = ("Change ONLY the woman's face: make her facial features (eyes, eyebrows, nose, mouth, jaw and face shape) "
+        "those of the woman in image 2. Keep everything else in image 1 exactly: her hair, any paint or marks on her "
+        "face, her clothes, her pose, her size in the frame, the composition, the materials, the style and the light. "
+        "Do not use image 2's clothes, hair style or background. No text.")
+# (2026-10-26: "keep the pose, clothes and size; make the woman her" pasted in the photo's black dress and lost her
+# uniform and paint: the edit has to be told to take the face only)
 
 
 def render(a):
