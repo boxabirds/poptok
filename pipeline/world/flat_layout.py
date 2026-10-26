@@ -4,7 +4,9 @@ world supplies the look. Painting the look onto the geometry instead (paint_worl
 into an incoherent patchwork that Layout-To-Render then reproduced exactly (user review: "a comically incoherent mess").
 
     docker run --rm --user $(id -u):$(id -g) -v $PWD:/work -w /work blender -b SCENE.blend \
-        -P pipeline/world/flat_layout.py -- OUT [--views 60] [--shots] [--seed 0]
+        -P pipeline/world/flat_layout.py -- OUT [--views 60] [--her-views N] [--shots] [--seed 0] [--reuse]
+Proxy (2026-10-26, after Matrix-Game 4.0's report): flat colours, black outlines, a checkered floor; plus a depth pass
+(NNN_depth.png) and a caption of what each view shows, written from the scene (views.json "caption").
 Writes, for training pairs, OUT/views/NNN_flat.png (one colour per kind of thing, under soft even light) and OUT/views/NNN_clay.png (the same view as lit grey
 clay, what an image model restyles into the target), with OUT/views/views.json (camera of each); with --shots, the shot
 cameras' flat layout videos OUT/flat_<cam>/%04d.png. Her figure (figure.py) is hidden in the training views (her look
@@ -22,6 +24,8 @@ ap.add_argument("--shots", action="store_true")
 ap.add_argument("--her-views", type=int, default=0, help="also N views aimed at her figure (OUT/her_views/), at varied "
                 "frames of her animation, distances and angles")
 ap.add_argument("--seed", type=int, default=0)
+ap.add_argument("--reuse", action="store_true", help="re-render the flat layouts (and depth, captions) of the views "
+                "already in OUT (views.json): same cameras, so existing clay views and styled targets stay valid")
 a = ap.parse_args(sys.argv[sys.argv.index("--") + 1:])
 out = os.path.abspath(a.out)
 sc = bpy.context.scene
@@ -56,12 +60,18 @@ figure = [o for o in sc.objects if o.type == "MESH" and (o.name.split(".")[0] in
 room = [o for o in sc.objects if o.type == "MESH" and o not in figure]
 
 
-def flat(rgb, name):
+def flat(rgb, name, checker=False):
     m = bpy.data.materials.new(name); m.use_nodes = True
     nt = m.node_tree; nt.nodes.clear()
     # lit, not emissive: an emission-only flat colour merged neighbouring surfaces of one kind (no wall corners)
     bs = nt.nodes.new("ShaderNodeBsdfDiffuse"); bs.inputs["Color"].default_value = (*rgb, 1)
     o = nt.nodes.new("ShaderNodeOutputMaterial"); nt.links.new(bs.outputs["BSDF"], o.inputs["Surface"])
+    if checker:                 # Matrix-Game 4.0's proxy: a checkered ground shows scale and the camera's motion over it
+        ch = nt.nodes.new("ShaderNodeTexChecker"); ch.inputs["Scale"].default_value = 2.0      # 0.5 m squares
+        ch.inputs["Color1"].default_value = (*rgb, 1)
+        ch.inputs["Color2"].default_value = (*[c * 0.72 for c in rgb], 1)
+        geo = nt.nodes.new("ShaderNodeNewGeometry"); nt.links.new(geo.outputs["Position"], ch.inputs["Vector"])
+        nt.links.new(ch.outputs["Color"], bs.inputs["Color"])
     return m
 
 
@@ -73,21 +83,42 @@ def colour_of(ob):
     return (0.5, 0.5, 0.5)
 
 
-flat_mats = {ob.name: flat(colour_of(ob), f"flat_{ob.name}") for ob in room}
+flat_mats = {ob.name: flat(colour_of(ob), f"flat_{ob.name}", checker=ob.name.split(".")[0] == "floor") for ob in room}
 her_mat = flat(HER, "flat_her")
 her_mats = {ob.name: flat(tuple(ob["flat_rgb"]), f"flat_{ob.name}") for ob in figure if "flat_rgb" in ob}   # dressed
 clay = bpy.data.materials.new("clay"); clay.use_nodes = True
 clay.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (0.6, 0.6, 0.6, 1)
 
 
-def use(kind):                  # every object gets its flat colour, or grey clay
+depth = bpy.data.materials.new("depth"); depth.use_nodes = True     # distance from the camera, 0.3 m white .. 7 m black
+_n = depth.node_tree; _n.nodes.clear()
+_cd = _n.nodes.new("ShaderNodeCameraData"); _mr = _n.nodes.new("ShaderNodeMapRange")
+_mr.inputs["From Min"].default_value, _mr.inputs["From Max"].default_value = 0.3, 7.0
+_mr.inputs["To Min"].default_value, _mr.inputs["To Max"].default_value = 1.0, 0.0
+_em = _n.nodes.new("ShaderNodeEmission"); _o = _n.nodes.new("ShaderNodeOutputMaterial")
+_n.links.new(_cd.outputs["View Z Depth"], _mr.inputs["Value"]); _n.links.new(_mr.outputs["Result"], _em.inputs["Color"])
+_n.links.new(_em.outputs["Emission"], _o.inputs["Surface"])
+
+
+def use(kind):                  # every object gets its flat colour, grey clay, or its depth
     for ob in room + figure:
         ob.data.materials.clear()
         ob.data.materials.append((her_mats.get(ob.name, her_mat) if ob in figure else flat_mats[ob.name]) if kind == "flat"
-                                 else clay)
+                                 else depth if kind == "depth" else clay)
+    # Matrix-Game 4.0's proxy draws every primitive with a black outline: edges stay readable where two surfaces of one
+    # kind meet. Outlines on the flat layouts only (not the clay an image model restyles, nor depth or ids)
+    sc.render.use_freestyle = kind == "flat"
 
 
 sc.render.engine = "CYCLES"; sc.cycles.device = "CPU"; sc.cycles.use_denoising = True
+sc.render.line_thickness_mode = "ABSOLUTE"; sc.render.line_thickness = 1.5
+_fs = bpy.context.view_layer.freestyle_settings          # a black outline line set (scenes from figure.py have none)
+_ls = _fs.linesets[0] if len(_fs.linesets) else _fs.linesets.new("outline")
+if _ls.linestyle is None:
+    _ls.linestyle = bpy.data.linestyles.new("outline")
+_ls.linestyle.color = (0, 0, 0); _ls.linestyle.thickness = 1.5
+_ls.select_by_visibility = True; _ls.select_by_edge_types = True
+_ls.select_silhouette = _ls.select_border = _ls.select_crease = True
 sc.view_settings.view_transform = "Standard"
 sc.world.use_nodes = True
 bg = sc.world.node_tree.nodes["Background"]
@@ -95,8 +126,8 @@ bg = sc.world.node_tree.nodes["Background"]
 
 def render(path, kind):
     use(kind)
-    bg.inputs[0].default_value = (1, 1, 1, 1)
-    sc.cycles.samples = 32
+    bg.inputs[0].default_value = (0, 0, 0, 1) if kind == "depth" else (1, 1, 1, 1)
+    sc.cycles.samples = 1 if kind == "depth" else 32
     sc.render.filepath = path
     bpy.ops.render.render(write_still=True)
 
@@ -123,10 +154,30 @@ for k, (prefixes, _) in enumerate(CLASSES):
     ids[k].node_tree.links.new(em.outputs["Emission"], ids[k].node_tree.nodes.new("ShaderNodeOutputMaterial").inputs["Surface"])
 
 
-def kinds_in_view():
-    for ob in room:
+ids[len(CLASSES)] = flat((1, 1, 1), "id_her")      # her (all her parts): one more id
+ids[len(CLASSES)].node_tree.nodes.clear()
+_e = ids[len(CLASSES)].node_tree.nodes.new("ShaderNodeEmission")
+_e.inputs["Color"].default_value = ((len(CLASSES) + 1) / 16, 0, 0, 1)
+ids[len(CLASSES)].node_tree.links.new(_e.outputs["Emission"],
+                                      ids[len(CLASSES)].node_tree.nodes.new("ShaderNodeOutputMaterial").inputs["Surface"])
+NAMES = {3: "the window", 4: "the open door", 5: "a tilted table", 6: "a chair on its side", 7: "rubble blocks",
+         8: "a crate", 9: "the street outside", len(CLASSES): "the young woman"}
+
+
+def caption(stats):             # what the view shows and where, from the id render (Matrix-Game 4.0's dynamic captions)
+    parts = []
+    for k, (frac, cx) in sorted(stats.items(), key=lambda kv: -kv[1][0]):
+        if k in NAMES:
+            where = "on the left" if cx < 0.36 else "on the right" if cx > 0.64 else "in the middle"
+            parts.append(f"{NAMES[k]} {where}")
+    return "In view: " + ", ".join(parts) + "." if parts else ""
+
+
+def kinds_in_view(stats=None):
+    sc.render.use_freestyle = False
+    for ob in room + figure:
         n = ob.name.split(".")[0]
-        k = next((k for k, (pf, _) in enumerate(CLASSES) if n.startswith(pf)), None)
+        k = len(CLASSES) if ob in figure else next((k for k, (pf, _) in enumerate(CLASSES) if n.startswith(pf)), None)
         ob.data.materials.clear(); ob.data.materials.append(ids[k] if k is not None else clay)
     bg.inputs[0].default_value = (0, 0, 0, 1); sc.cycles.samples = 1; sc.cycles.use_denoising = False
     pct, sc.render.resolution_percentage = sc.render.resolution_percentage, 12
@@ -135,10 +186,46 @@ def kinds_in_view():
     im = bpy.data.images.load(f"{out}/views/_ids.png", check_existing=False)
     import numpy as np
     r = np.array(im.pixels[:]).reshape(-1, 4)[:, 0]
+    # the PNG holds sRGB-encoded values and an 8-bit image's pixels come back as stored: back to linear before reading the
+    # id (read as linear, ids were wrong: the first captions named her in views where she was hidden)
+    r = np.where(r <= 0.04045, r / 12.92, ((r + 0.055) / 1.055) ** 2.4)
     bpy.data.images.remove(im)
     k = np.round(r * 16) - 1
+    w = int(round(sc.render.resolution_x * 0.12)); h = len(k) // w
+    k = k.reshape(h, w)
+    if stats is not None:
+        for c in range(len(CLASSES) + 1):
+            m = k == c
+            if m.mean() >= 0.02:
+                stats[c] = (float(m.mean()), float(np.nonzero(m)[1].mean() / w))
     return sum((k == c).mean() >= 0.02 for c in range(len(CLASSES)))
 
+
+def place(m):
+    cam.location = Vector(m["loc"])
+    cam.rotation_euler = (Vector(m["at"]) - Vector(m["loc"])).to_track_quat("-Z", "Y").to_euler()
+    cam.data.lens = m["lens"]; sc.camera = cam
+    bpy.context.view_layer.update()
+
+
+if a.reuse:                     # same cameras, new flat layouts + depth + captions; clay and targets untouched
+    for sub, with_her in (("views", False), ("her_views", True)):
+        path = f"{out}/{sub}/views.json"
+        if not os.path.exists(path):
+            continue
+        ms = json.load(open(path))
+        for ob in figure:
+            ob.hide_render = not with_her
+        for m in ms:
+            if "frame" in m:
+                sc.frame_set(m["frame"])
+            place(m)
+            st = {}; kinds_in_view(st); m["caption"] = caption(st)
+            for kind in ("flat", "depth"):
+                render(f"{out}/{sub}/{m['i']:03d}_{kind}.png", kind)
+        json.dump(ms, open(path, "w"), indent=1)
+        print(f"reused {len(ms)} {sub}", flush=True)
+    a.views, a.her_views = 0, 0
 
 meta, tries = [], 0
 while len(meta) < a.views and tries < 50 * a.views:
@@ -158,14 +245,16 @@ while len(meta) < a.views and tries < 50 * a.views:
     cam.data.lens = rnd.choice((16, 18, 22, 26))
     sc.camera = cam
     bpy.context.view_layer.update()
-    n = kinds_in_view()
+    st = {}
+    n = kinds_in_view(st)
     if n < 4:
         continue
-    for kind in ("flat", "clay"):
+    for kind in ("flat", "clay", "depth"):
         render(f"{out}/views/{i:03d}_{kind}.png", kind)
-    meta.append({"i": i, "loc": list(pos), "at": list(at), "lens": cam.data.lens, "kinds": int(n)})
-print(f"views: kept {len(meta)} of {tries} tried", flush=True)
-json.dump(meta, open(f"{out}/views/views.json", "w"), indent=1)
+    meta.append({"i": i, "loc": list(pos), "at": list(at), "lens": cam.data.lens, "kinds": int(n), "caption": caption(st)})
+if a.views:
+    print(f"views: kept {len(meta)} of {tries} tried", flush=True)
+    json.dump(meta, open(f"{out}/views/views.json", "w"), indent=1)
 for ob in figure:
     ob.hide_render = False
 
@@ -184,15 +273,17 @@ if a.her_views and figure:      # views of her: the renderer learns her from her
         at = c + Vector((rnd.uniform(-0.3, 0.3), rnd.uniform(-0.3, 0.3), rnd.uniform(-0.1, 0.3)))
         cam.location = pos; cam.rotation_euler = (at - pos).to_track_quat("-Z", "Y").to_euler()
         cam.data.lens = rnd.choice((24, 28, 35, 50)); sc.camera = cam
-        for kind in ("flat", "clay"):
+        bpy.context.view_layer.update()
+        st = {}; kinds_in_view(st)
+        for kind in ("flat", "clay", "depth"):
             render(f"{out}/her_views/{i:03d}_{kind}.png", kind)
-        hm.append({"i": i, "frame": f, "loc": list(pos), "at": list(at), "lens": cam.data.lens})
+        hm.append({"i": i, "frame": f, "loc": list(pos), "at": list(at), "lens": cam.data.lens, "caption": caption(st)})
     json.dump(hm, open(f"{out}/her_views/views.json", "w"), indent=1)
     sc.render.resolution_percentage = 100
 
 if a.shots:                     # the shot cameras' flat layouts, her included
     sc.render.resolution_percentage = 100
-    use("flat"); bg.inputs[0].default_value = (1, 1, 1, 1); sc.cycles.samples = 16
+    use("flat"); bg.inputs[0].default_value = (1, 1, 1, 1); sc.cycles.samples = 16   # outlines on (use("flat"))
     for c in [o for o in sc.objects if o.type == "CAMERA" and o.name.startswith("cam_") and o.name != "cam_view"]:
         sc.camera = c
         sc.render.filepath = f"{out}/flat_{c.name[4:]}/"
