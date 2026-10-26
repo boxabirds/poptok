@@ -198,10 +198,12 @@ def render(a):
     torch.cuda.empty_cache()
     from face_pass import load
     fix = load()
+    angles = os.path.splitext(photo)[0] + "-angles"          # her_angles.py's set for this performer, if made
+    angles = angles if os.path.isdir(angles) else None
     scores = json.load(open(P["scores"])) if os.path.exists(P["scores"]) else {}
     for i, u, j, s in todo:
         t = time.time()
-        im, sim = fix(f"{P['dir']}/pick{i + 1}_{s['name']}_world.png", photo, seed=4200 + j)
+        im, sim = fix(f"{P['dir']}/pick{i + 1}_{s['name']}_world.png", photo, seed=4200 + j, angles=angles)
         im.save(f"{P['dir']}/pick{i + 1}_{s['name']}.png")
         scores[f"pick{i + 1}_{s['name']}"] = sim
         json.dump(scores, open(P["scores"], "w"), indent=1)

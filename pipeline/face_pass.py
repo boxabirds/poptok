@@ -12,12 +12,14 @@ Any step that shows her (universe stills, the performer keyframes) can call it.
     from face_pass import load
     fix = load()                                            # loads Qwen-Image-Edit (a Spark: ~60 GB, no offload)
     image, score = fix("still.png", "photo.jpg", seed=1)    # PIL image; score None if no face was found (unchanged)
+    fix("still.png", "photo.jpg", angles="pieces/artists/r.amber-angles")   # with her_angles.py's set: the reference
+                                                            # nearest the still's head turn goes in as picture 3
 
-    python3 pipeline/face_pass.py PHOTO IN.png... --out DIR [--tries 3]   (writes DIR/<name>, prints the scores)
+    python3 pipeline/face_pass.py PHOTO IN.png... --out DIR [--tries 3] [--angles DIR]   (writes DIR/<name>, prints the scores)
 """
 from __future__ import annotations
 
-import argparse, os, sys
+import argparse, json, os, sys
 
 import cv2
 import numpy as np
@@ -29,6 +31,10 @@ from eval_identity import det, rec
 PROMPT = ("Make the woman's face in picture 1 the face of the woman in picture 2: her eyes, eyebrows, nose, mouth, jaw "
           "and face shape. Keep picture 1's head angle, expression, gaze, framing, skin light and shadow, and any paint "
           "or marks on her face exactly. Nothing else changes. No text.")
+ANGLED = ("Make the woman's face in picture 1 the face of the woman in pictures 2 and 3 (the same person; picture 3 shows "
+          "her head at the same angle as in picture 1): her eyes, eyebrows, nose, mouth, jaw and face shape. Keep "
+          "picture 1's head angle, expression, gaze, framing, skin light and shadow, and any paint or marks on her face "
+          "exactly. Nothing else changes. No text.")
 CROP = 2.6          # crop side, in face widths: the face plus enough around it for the light and the head's angle
 OVAL = (0.62, 0.78)  # pasted oval's half-axes, in face widths (cheeks to cheeks, hairline to chin)
 
@@ -38,6 +44,19 @@ def face(img):      # largest face as (x, y, w, h) in pixels, or None
     det.setInputSize((w, h))
     _, faces = det.detect(img)
     return None if faces is None or len(faces) == 0 else max(faces, key=lambda r: r[2] * r[3])
+
+
+def turn(f):        # head turn from YuNet's landmarks: the nose's offset from between the eyes, in eye distances
+    eye_x, eye_d = (f[4] + f[6]) / 2, max(abs(f[6] - f[4]), 1.0)
+    return float(np.clip((f[8] - eye_x) / eye_d, -2, 2))
+
+
+def angle_ref(angles, f):   # her_angles.py's reference nearest this face's turn (None: no angle set)
+    if not angles or not os.path.exists(f"{angles}/angles.json"):
+        return None
+    meta = json.load(open(f"{angles}/angles.json"))
+    name = min(meta, key=lambda n: abs(meta[n]["turn"] - turn(f)))
+    return f"{angles}/{name}.png"
 
 
 def similarity(img, ref):
@@ -51,7 +70,7 @@ def load(edit=None):
         edit = load_edit()
     refs = {}
 
-    def fix(still, photo, seed=0, tries=3):
+    def fix(still, photo, seed=0, tries=3, angles=None):
         src = np.array(Image.open(still).convert("RGB") if isinstance(still, str) else still.convert("RGB"))
         bgr = cv2.cvtColor(src, cv2.COLOR_RGB2BGR)
         if photo not in refs:
@@ -70,8 +89,10 @@ def load(edit=None):
         k = int(fw * 0.2) | 1
         mask = cv2.GaussianBlur(mask, (k, k), 0)[..., None]
         best = (None, -2.0)
+        aref = angle_ref(angles, f)       # her at this head angle: a frontal photo alone turns profiles into strangers
         for t in range(tries):
-            out = edit([crop, photo], PROMPT, seed=seed + 1000 * t, size=(1024, 1024))
+            out = edit([crop, photo, aref] if aref else [crop, photo], ANGLED if aref else PROMPT,
+                       seed=seed + 1000 * t, size=(1024, 1024))
             big = src.astype(np.float32).copy()
             big[y0:y0 + side, x0:x0 + side] = np.array(out.convert("RGB").resize((side, side), Image.LANCZOS))
             comp = (src * (1 - mask) + big * mask).astype(np.uint8)
@@ -90,12 +111,13 @@ if __name__ == "__main__":
     ap.add_argument("inputs", nargs="+")
     ap.add_argument("--out", required=True)
     ap.add_argument("--tries", type=int, default=3)
+    ap.add_argument("--angles", help="her_angles.py output dir")
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     fix = load()
     for p in a.inputs:
         before = similarity(cv2.imread(p), rec.feature(rec.alignCrop(cv2.imread(a.photo), face(cv2.imread(a.photo)))))
-        im, s = fix(p, a.photo, tries=a.tries)
+        im, s = fix(p, a.photo, tries=a.tries, angles=a.angles)
         im.save(os.path.join(a.out, os.path.basename(p)))
         print(f"{os.path.basename(p)}: " + ("no face, unchanged" if s is None else
               f"similarity {before:.2f} -> {s:.2f}"), flush=True)

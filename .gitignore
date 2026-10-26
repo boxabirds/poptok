@@ -8,3 +8,4 @@ bench/
 /bench_*.log
 .DS_Store
 *.new
+docker/blender/add-on-mpfb-*.zip
