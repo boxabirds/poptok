@@ -20,12 +20,12 @@ need() {
   fi
   why=$(python3 pipeline/deps.py check "$dir" "$step" "$target" "$mode" -- "${A[@]}") || r=$?
   case $r in
-    0) [ -n "${DEPS_DRY:-}" ] && echo "  $step: $why"; return 1;;
+    0) [ -n "${DEPS_DRY:-}" ] && echo "  $step: $why"; until_done "$step"; return 1;;
     10|11) ;;
     *) echo "deps: check of $step failed" >&2; exit 1;;
   esac
   if [ "$mode" = manual ] && [ -e "$target" ] && [[ ",${DEPS_REDO:-}," != *",$step,"* ]]; then
-    echo "  $step: $why; its outputs are kept (edited by hand?): --redo $step to run it again"; return 1
+    echo "  $step: $why; its outputs are kept (edited by hand?): --redo $step to run it again"; until_done "$step"; return 1
   fi
   if [ -n "${DEPS_DRY:-}" ]; then
     echo "  $step: would $([ $r = 11 ] && echo resume || echo run) ($why)"
@@ -39,4 +39,7 @@ need() {
   python3 pipeline/deps.py start "$dir" "$step" -- "${A[@]}"
   DEP_STEP=$step DEP_DIR=$dir
 }
-made() { python3 pipeline/deps.py done "$DEP_DIR" "$DEP_STEP"; }
+made() { python3 pipeline/deps.py done "$DEP_DIR" "$DEP_STEP"; until_done "$DEP_STEP"; }
+# ./poptok --until STEP: stop once STEP is built or up to date (e.g. --until universe, to choose a universe before the
+# storyboard, prompts and stills are made from it)
+until_done() { [ -n "${DEPS_UNTIL:-}" ] && [ "$1" = "$DEPS_UNTIL" ] && [ -z "${DEPS_DRY:-}" ] && { echo "[$(date +%H:%M:%S)] stopped after $1 (--until)"; exit 0; }; return 0; }

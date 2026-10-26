@@ -6,7 +6,7 @@ docs/workshops/slippery-road.md (Slippery Road v3); this makes it a pipeline ste
 Two stages, two pipeline steps (pipeline/steps.ini), like a film's treatment and its step outline:
   story       the conversation, then the TREATMENT: the whole story in prose (logline, who she is and what she wants,
               the arc's movements against the song's sections, opening and closing image) -> story.md, plus the look
-              (visual-look.txt, LOOK), universe.txt and workshop.md. People may edit story.md.
+              (visual-look.workshop.txt), universe.workshop.txt and workshop.md. People may edit story.md.
   storyboard  from story.md (the authority; the conversation as background): 4-8 scenes, each staging part of the
               arc, and a shot per line -> lyrics-cued.txt, story-scenes.json (each scene's arc movement, beats and
               times, read by prompts_per_line.py and scenes.py), storyboard.md. Rebuilt whenever story.md changes.
@@ -19,10 +19,10 @@ first), PIECE/inputs/brief.txt
 performer photo is set (PERFORMER_PHOTO). Writes, in PIECE/inputs/:
   workshop.md            the conversation and the agreed result (for the user to read)
   story.md               the treatment: the story, start to finish (stage story; editable)
-  visual-look.txt        the look (LOOK; called visual-treatment.txt / TREATMENT before 2026-10-25)
-  universe.txt           the universe style the directors chose (line 1: a few words, e.g. "oil impasto"; then its
-                         brief: what every frame is made of, how light behaves); ./poptok uses it as STYLE_WORD +
-                         STYLE_BRIEF, so every prompt leads with it and is written inside it (POC 24's protocol)
+  universe.workshop.txt  the universe the directors chose (line 1: a few words; then what every frame is made of)
+  visual-look.workshop.txt  their look. Since 2026-10-26 both are only proposals: the universe step
+                         (pipeline/universe.py) offers them among its candidates and writes universe.txt (STYLE_WORD +
+                         STYLE_BRIEF) and visual-look.txt (LOOK) from the chosen universe
   storyboard.md          the scenes and shots (stage storyboard), story-scenes.json the same scenes with their times
   lyrics-cued.txt        the lyrics annotated line by line ({mode: shot note}; CUES), the sung words unchanged, plus a
                          shot for every slot of the instrumental passages: "(instrumental M:SS.S) {mode: note}"
@@ -420,7 +420,7 @@ def main():
     ap.add_argument("piece")
     ap.add_argument("--llm", default="http://127.0.0.1:8091")
     ap.add_argument("--stage", choices=["story", "storyboard", "both"], default="both",
-                    help="story: the conversation and the treatment (workshop.md, story.md, universe.txt, visual-look.txt); "
+                    help="story: the conversation and the treatment (workshop.md, story.md, universe.workshop.txt, visual-look.workshop.txt); "
                     "storyboard: scenes and a shot per line from story.md (lyrics-cued.txt, story-scenes.json, storyboard.md)")
     ap.add_argument("--force", action="store_true", help="redo the story: the existing workshop is archived "
                     "(workshop.prev-*.md) and passed in as the previous workshop, so the directors build on it")
@@ -434,7 +434,7 @@ def main():
     inp = os.path.join(P, "inputs")
     os.makedirs(inp, exist_ok=True)
     out_md, out_look, out_cues, out_uni, out_story, out_board, out_scenes = (os.path.join(inp, n) for n in (
-        "workshop.md", "visual-look.txt", "lyrics-cued.txt", "universe.txt", "story.md", "storyboard.md",
+        "workshop.md", "visual-look.workshop.txt", "lyrics-cued.txt", "universe.workshop.txt", "story.md", "storyboard.md",
         "story-scenes.json"))
     do_story, do_board = a.stage in ("story", "both"), a.stage in ("storyboard", "both")
     if do_story and not a.dry_run:
@@ -549,9 +549,9 @@ def main():
               "## The result", "", f"**Concept:** {flat(st.get('concept'))}", "",
               f"**Story:** {flat(st.get('logline'))} The treatment (the whole story) is `inputs/story.md`; the scenes and "
               "shots built from it are `inputs/storyboard.md`.", "",
-              f"**Universe style** (`inputs/universe.txt`): {flat(uni.get('name')) if isinstance(uni, dict) else ''}: "
+              f"**Universe style, the directors' proposal** (`inputs/universe.workshop.txt`; chosen in the universe step): {flat(uni.get('name')) if isinstance(uni, dict) else ''}: "
               f"{flat(uni.get('brief')) if isinstance(uni, dict) else ''}", "",
-              f"**Look** (`inputs/visual-look.txt`): {flat(st.get('look'))}", "",
+              f"**Look, the directors' proposal** (`inputs/visual-look.workshop.txt`): {flat(st.get('look'))}", "",
               f"**Concrete vs abstract:** {flat(st.get('abstraction'))}", "",
               "**Rules**", *[f"- {flat(r)}" for r in st.get("rules", [])], ""]
         open(out_md, "w").write("\n".join(md) + "\n")

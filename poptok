@@ -2,7 +2,7 @@
 # poptok: lyrics + visual treatment (+ a song, or a music style to generate one) -> music video; or a prompt alone ->
 # lyrics, song, treatment and music video.
 #
-#   ./poptok pieces/NAME [--plan-only] [--run RUN] [--explain] [--redo STEP,...] [--accept STEP,...]
+#   ./poptok pieces/NAME [--plan-only] [--run RUN] [--explain] [--redo STEP,...] [--accept STEP,...] [--until STEP]
 #
 # A piece is one folder (see pieces.example/): piece.env (its settings), inputs/ (lyrics, visual look, song or
 # music style), analysis/ and outputs/ (both written here). Paths in piece.env are relative to the piece folder.
@@ -22,8 +22,10 @@
 #   --redo STEP,...    run these steps again even if their inputs haven't changed (after a code change, say)
 #   --accept STEP,...  keep these steps' current outputs as they are (hand edits; a piece made before dependency
 #                      tracking, whose outputs have no record of what they were built from)
-# Steps: songwriters song story (these three are never re-run by themselves, only reported, since people edit their
-# outputs: --redo STORY reruns one), analysis beats drums segments storyboard prompts keys merge scenes video lipsync.
+#   --until STEP       stop once STEP is built or up to date (--until universe: make the universe sheet and stop, to
+#                      choose one before anything is built from it)
+# Steps: songwriters song story universe (these four are never re-run by themselves, only reported, since people edit their
+# outputs: --redo STEP reruns one), analysis beats drums segments storyboard prompts keys merge scenes video lipsync.
 # LOOK (TREATMENT before 2026-10-25, still read): the visual look file added to every prompt.
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -45,6 +47,7 @@ TEST=""
 while [ $# -gt 0 ]; do case $1 in --plan-only) EXTRA+=(--plan-only); shift;; --run) RUN=$2; shift 2;;
   --test) TEST=$2; shift 2;; --explain) export DEPS_DRY=1; shift;;
   --redo) export DEPS_REDO=$2; shift 2;; --accept) export DEPS_ACCEPT=$2; shift 2;;
+  --until) export DEPS_UNTIL=$2; shift 2;;
   *) echo "unknown option $1"; exit 2;; esac; done
 source bin/deps.sh
 if [ -n "${DEPS_DRY:-}" ]; then
@@ -107,8 +110,9 @@ if [ -z "$SONG" ]; then
 else
   SONGP=$(p "$SONG")
 fi
-# WORKSHOP=1: the directors' workshop (pipeline/workshop.py) in two steps: story (the conversation and the treatment,
-# inputs/story.md, plus visual-look.txt and universe.txt) and storyboard (from story.md: scenes and a shot per line,
+# WORKSHOP=1: the directors' workshop (pipeline/workshop.py) in two steps around the universe step: story (the
+# conversation and the treatment, inputs/story.md, plus the directors' proposed universe), universe (pipeline/universe.py:
+# candidates, 3 picks rendered in the same two shots, the chosen one -> universe.txt and visual-look.txt) and storyboard (from story.md: scenes and a shot per line,
 # lyrics-cued.txt and story-scenes.json); LOOK/CUES point at them. The workshop needs the lyric timings (when each line
 # is sung, how long the instrumental gaps are), so the analysis runs first
 if [ -n "${WORKSHOP:-}" ]; then
@@ -118,12 +122,15 @@ if [ -n "${WORKSHOP:-}" ]; then
   if need story; then
     echo "[$(date +%H:%M:%S)] directors' workshop: the story"; bin/workshop.sh "$PIECE" --stage story $(redo story); made
   fi
+  if need universe; then                                  # the world it is made of, chosen from a sheet of stills
+    echo "[$(date +%H:%M:%S)] universe: candidates and stills"; bin/universe.sh "$PIECE" $(redo universe); made
+  fi
   if need storyboard; then
     echo "[$(date +%H:%M:%S)] directors' workshop: the storyboard"; bin/workshop.sh "$PIECE" --stage storyboard; made
   fi
   export STORY=$PIECE/inputs/story-scenes.json           # each shot's place in the story (prompts, scenes, transitions)
 fi
-# the universe style the workshop chose (inputs/universe.txt: a few words, then its brief) leads and frames every prompt,
+# the universe chosen in the universe step (inputs/universe.txt: a few words, then its brief) leads and frames every prompt,
 # unless piece.env sets STYLE_WORD itself
 if [ -n "${WORKSHOP:-}" ] && [ -z "${STYLE_WORD:-}" ] && [ -s "$PIECE/inputs/universe.txt" ]; then
   export STYLE_WORD="$(head -n 1 "$PIECE/inputs/universe.txt")" STYLE_BRIEF="$(tail -n +2 "$PIECE/inputs/universe.txt")"
