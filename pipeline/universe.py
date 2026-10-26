@@ -9,8 +9,8 @@ list), the LLM proposes made worlds that MOSS and Qwen-Edit can draw.
 
     python3 pipeline/universe.py PIECE propose      LLM (port 8091): 14 candidates (8 open + 6 from the song's central
                                                     image, plus the directors' own from story), 3 picks, 2 shot specs
-    python3 pipeline/universe.py PIECE render       stills: each pick x each shot, from her photo (Qwen-Image-Edit,
-                                                    in morph-spark on a Spark); without a photo, MOSS
+    python3 pipeline/universe.py PIECE render       stills: each pick x each shot, the world by MOSS, then her face
+                                                    from her photo by Qwen-Image-Edit (in morph-spark on a Spark)
     python3 pipeline/universe.py PIECE sheet        inputs/universes/sheet.jpg
     python3 pipeline/universe.py PIECE choose N     pick N (1-3) becomes inputs/universe.txt and inputs/visual-look.txt
 `propose` chooses pick 1 when no universe has been chosen yet. The two shot specs are written once, universe-neutral
@@ -71,6 +71,8 @@ Candidate universes:
 
 You are the producer. Choose the 3 best for this video: ambitious and striking, the material carrying the song's
 meaning, drawable and consistent for a whole video, the performer at home in it; three that differ from each other.
+Every pick must be a MADE world by the rules above: a candidate that is a colour grade, a photographic style or a
+lighting idea is not eligible, whoever proposed it (the directors' proposal is often one).
 Rank them, best first. For each, also write its LOOK: the text that styles every shot (what everything is made of,
 light, palette, how the camera moves and how changes happen, taken from the treatment), 60-110 words, never
 describing the performer.
@@ -161,29 +163,46 @@ def prompt_for(u, shot, wardrobe):
             f"hair, eyes and age exactly, {wear}, lit by the scene's own light. {shot['spec']} No text or lettering.")
 
 
+FACE = ("Keep this image exactly: the composition, the camera, the materials, the style and the light, and the "
+        "woman's pose, clothes and size in the frame. Only make the woman the woman from image 2, the same person: her "
+        "face, hair, eyes and age, rendered in this image's own style and material. No text.")
+
+
 def render(a):
+    """Two passes (2026-10-26): MOSS draws each universe in the shot (the world, with a woman described as her), then
+    Qwen-Image-Edit makes the woman her from her photo, keeping the rest. Qwen-Edit drawing the whole still from her
+    photo kept her and the composition but lost the universe: every pick came out photographic with a material accent."""
     P = paths(a.piece)
     d = json.load(open(P["json"]))
     os.makedirs(P["dir"], exist_ok=True)
     photo = env(a.piece, "PERFORMER_PHOTO")
     photo = os.path.normpath(os.path.join(a.piece, photo)) if photo else ""
     wardrobe = env(a.piece, "WARDROBE")
-    if photo:
-        from qwen_edit import load
-        edit = load()
-        draw = lambda p, seed: edit([photo], p, seed=seed, size=(1024, 576))
-    else:
-        from keyframe_model import load
-        r = load("moss", offload=False)
-        draw = lambda p, seed: r.render(None, [(p, 1.0)], 1.0, seed=seed, size=(1024, 576))[0]
-    for i, u in enumerate(d["picks"]):
-        for j, s in enumerate(d["shots"]):
-            f = f"{P['dir']}/pick{i + 1}_{s['name']}.png"
-            if os.path.exists(f):
-                continue
-            t = time.time()
-            draw(prompt_for(u, s, wardrobe), 4200 + j).save(f)      # the same seed per shot in every universe
-            print(f"{u['name']} {s['name']}: {time.time() - t:.0f} s", flush=True)
+    todo = [(i, u, j, s) for i, u in enumerate(d["picks"]) for j, s in enumerate(d["shots"])
+            if not os.path.exists(f"{P['dir']}/pick{i + 1}_{s['name']}.png")]
+    import torch
+    from keyframe_model import load as load_moss
+    r = load_moss("moss", offload=False)
+    for i, u, j, s in todo:
+        f = f"{P['dir']}/pick{i + 1}_{s['name']}{'_world' if photo else ''}.png"
+        if os.path.exists(f):
+            continue
+        t = time.time()                                         # the same seed per shot in every universe
+        r.render(None, [(prompt_for(u, s, wardrobe).replace("The woman from the reference image, the same person: keep "
+                 "her face, hair, eyes and age exactly", f"The woman, {env(a.piece, 'PERFORMER') or 'the singer'}"), 1.0)],
+                 1.0, seed=4200 + j, size=(1024, 576))[0].save(f)
+        print(f"{u['name']} {s['name']} world: {time.time() - t:.0f} s", flush=True)
+    if not photo:
+        return
+    del r
+    torch.cuda.empty_cache()
+    from qwen_edit import load
+    edit = load()
+    for i, u, j, s in todo:
+        t = time.time()
+        edit([f"{P['dir']}/pick{i + 1}_{s['name']}_world.png", photo], FACE, seed=4200 + j,
+             size=(1024, 576)).save(f"{P['dir']}/pick{i + 1}_{s['name']}.png")
+        print(f"{u['name']} {s['name']} her: {time.time() - t:.0f} s", flush=True)
 
 
 def sheet(a):
