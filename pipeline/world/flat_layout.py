@@ -100,21 +100,59 @@ os.makedirs(f"{out}/views", exist_ok=True)
 sc.render.resolution_percentage = 50          # 960x544 training views (the trainer's bucket); shots stay full size
 for ob in figure:
     ob.hide_render = True
-meta = []
-for i in range(a.views):
-    m = 0.12
-    pos = Vector((rnd.uniform(x0 + m * (x1 - x0), x1 - m * (x1 - x0)), rnd.uniform(y0 + m * (y1 - y0), y1 - m * (y1 - y0)),
-                  z0 + rnd.uniform(0.9, 1.9)))
-    at = Vector((rnd.uniform(x0, x1), rnd.uniform(y0, y1), z0 + rnd.uniform(0.2, 1.4)))
-    if (at - pos).length < 1.5:
-        at = pos + (at - pos).normalized() * 1.5
+# what a view shows: an unlit render with one exact colour per kind of thing, counted. Views that show fewer than four
+# kinds (a bare wall, a corner) are rejected: Qwen-Edit cannot restyle so little without inventing a room (2026-10-26:
+# windows, doors and armchairs appeared on bare walls, from clay and from a colour key alike)
+ids = {}
+for k, (prefixes, _) in enumerate(CLASSES):
+    ids[k] = flat(((k * 37 % 11) / 10, (k * 53 % 7) / 6, (k * 71 % 5) / 4), f"id{k}")
+    ids[k].node_tree.nodes.clear()
+    em = ids[k].node_tree.nodes.new("ShaderNodeEmission"); em.inputs["Color"].default_value = ((k + 1) / 16, 0, 0, 1)
+    ids[k].node_tree.links.new(em.outputs["Emission"], ids[k].node_tree.nodes.new("ShaderNodeOutputMaterial").inputs["Surface"])
+
+
+def kinds_in_view():
+    for ob in room:
+        n = ob.name.split(".")[0]
+        k = next((k for k, (pf, _) in enumerate(CLASSES) if n.startswith(pf)), None)
+        ob.data.materials.clear(); ob.data.materials.append(ids[k] if k is not None else clay)
+    bg.inputs[0].default_value = (0, 0, 0, 1); sc.cycles.samples = 1; sc.cycles.use_denoising = False
+    pct, sc.render.resolution_percentage = sc.render.resolution_percentage, 12
+    sc.render.filepath = f"{out}/views/_ids.png"; bpy.ops.render.render(write_still=True)
+    sc.render.resolution_percentage = pct; sc.cycles.use_denoising = True
+    im = bpy.data.images.load(f"{out}/views/_ids.png", check_existing=False)
+    import numpy as np
+    r = np.array(im.pixels[:]).reshape(-1, 4)[:, 0]
+    bpy.data.images.remove(im)
+    k = np.round(r * 16) - 1
+    return sum((k == c).mean() >= 0.02 for c in range(len(CLASSES)))
+
+
+meta, tries = [], 0
+while len(meta) < a.views and tries < 50 * a.views:
+    tries += 1
+    i = len(meta)
+    # stand in the outer band of the room and look across it, at eye height, with a normal-to-wide lens: shots, not
+    # close-ups of a wall
+    u, v = rnd.random(), rnd.random()
+    side = rnd.randrange(4)
+    fx = (0.15 + 0.15 * u) if side == 0 else (0.70 + 0.15 * u) if side == 1 else 0.2 + 0.6 * u
+    fy = (0.15 + 0.15 * v) if side == 2 else (0.70 + 0.15 * v) if side == 3 else 0.2 + 0.6 * v
+    pos = Vector((x0 + fx * (x1 - x0), y0 + fy * (y1 - y0), z0 + rnd.uniform(1.0, 1.8)))
+    at = Vector((x0 + (1 - fx + rnd.uniform(-0.2, 0.2)) * (x1 - x0), y0 + (1 - fy + rnd.uniform(-0.2, 0.2)) * (y1 - y0),
+                 z0 + rnd.uniform(0.4, 1.2)))
     cam.location = pos
     cam.rotation_euler = (at - pos).to_track_quat("-Z", "Y").to_euler()
-    cam.data.lens = rnd.choice((18, 24, 28, 35))
+    cam.data.lens = rnd.choice((16, 18, 22, 26))
     sc.camera = cam
+    bpy.context.view_layer.update()
+    n = kinds_in_view()
+    if n < 4:
+        continue
     for kind in ("flat", "clay"):
         render(f"{out}/views/{i:03d}_{kind}.png", kind)
-    meta.append({"i": i, "loc": list(pos), "at": list(at), "lens": cam.data.lens})
+    meta.append({"i": i, "loc": list(pos), "at": list(at), "lens": cam.data.lens, "kinds": int(n)})
+print(f"views: kept {len(meta)} of {tries} tried", flush=True)
 json.dump(meta, open(f"{out}/views/views.json", "w"), indent=1)
 for ob in figure:
     ob.hide_render = False
