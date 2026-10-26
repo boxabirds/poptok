@@ -41,8 +41,16 @@ CLASSES = [  # (name prefixes, colour)
 ]
 HER = (0.95, 0.95, 0.95)
 FIG = ("torso", "head", "thigh_l", "thigh_r", "shin_l", "shin_r", "cloth")
+
+
+def rigged(o):                  # under an armature somewhere up its parents: her body, her hair and clothes (figure.py)
+    while o.parent is not None:
+        o = o.parent
+        if o.type == "ARMATURE":
+            return True
+    return False
 figure = [o for o in sc.objects if o.type == "MESH" and (o.name.split(".")[0] in FIG
-          or (o.parent is not None and o.parent.type == "ARMATURE"))]
+          or rigged(o))]
 room = [o for o in sc.objects if o.type == "MESH" and o not in figure]
 
 
@@ -65,6 +73,7 @@ def colour_of(ob):
 
 flat_mats = {ob.name: flat(colour_of(ob), f"flat_{ob.name}") for ob in room}
 her_mat = flat(HER, "flat_her")
+her_mats = {ob.name: flat(tuple(ob["flat_rgb"]), f"flat_{ob.name}") for ob in figure if "flat_rgb" in ob}   # dressed
 clay = bpy.data.materials.new("clay"); clay.use_nodes = True
 clay.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (0.6, 0.6, 0.6, 1)
 
@@ -72,7 +81,8 @@ clay.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (0.
 def use(kind):                  # every object gets its flat colour, or grey clay
     for ob in room + figure:
         ob.data.materials.clear()
-        ob.data.materials.append((her_mat if ob in figure else flat_mats[ob.name]) if kind == "flat" else clay)
+        ob.data.materials.append((her_mats.get(ob.name, her_mat) if ob in figure else flat_mats[ob.name]) if kind == "flat"
+                                 else clay)
 
 
 sc.render.engine = "CYCLES"; sc.cycles.device = "CPU"; sc.cycles.use_denoising = True

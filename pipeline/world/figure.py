@@ -5,7 +5,8 @@ capture clip (Motionbuilder-friendly BVH release; the bone names match the rig's
 
     docker run --rm --user $(id -u):$(id -g) -v $PWD:/work -w /work blender -b [SCENE.blend] \
         -P pipeline/world/figure.py -- OUT CLIP.bvh [--start S] [--frames N] [--at X,Y,Z | --standin]
-        [--face DEG | --face-towards OBJECT] [--test]
+        [--face DEG | --face-towards OBJECT] [--asset TYPE:FILE.mhclo:R,G,B ...] [--skin R,G,B] [--test] [--clay]
+MakeHuman assets (hair, clothes; ~/models/makehuman/data from makehumancommunity.org asset packs) mount at /mh.
 Adds the figure to the scene (a new one if none is given): the clip from its frame S (in 24 fps frames), N frames,
 moved so its first hip position is at X,Y (her lowest point on the floor at Z) or where the scene's stand-in was, turned
 to face DEG (0 = +Y) or OBJECT; saves OUT/figure.blend.
@@ -30,6 +31,10 @@ ap.add_argument("--at", default="0,0,0")
 ap.add_argument("--face", type=float, default=0.0)
 ap.add_argument("--face-towards", help="an object in the scene to face at frame 1 (e.g. cam_A)")
 ap.add_argument("--standin", action="store_true", help="put her where the scene's grey stand-in is, and remove it")
+ap.add_argument("--asset", action="append", default=[], metavar="TYPE:FILE.mhclo:R,G,B",
+                help="dress her: a MakeHuman hair/clothes asset (TYPE Hair or Clothes), in a flat colour (0-1 each); "
+                     "e.g. Hair:/mh/hair/long01/long01.mhclo:0.75,0.6,0.35")
+ap.add_argument("--skin", default="0.85,0.68,0.58", help="her skin's flat colour")
 ap.add_argument("--test", action="store_true")
 ap.add_argument("--clay", action="store_true", help="render each shot camera (cam_*) as clay: OUT/clay_<X>/%%04d.png")
 a = ap.parse_args(sys.argv[sys.argv.index("--") + 1:])
@@ -47,6 +52,24 @@ macro.update(gender=0.0, age=0.5, muscle=0.5, weight=0.45, height=0.55, proporti
 macro["race"] = {"asian": 0.0, "caucasian": 1.0, "african": 0.0}
 body = HumanService.create_human(macro_detail_dict=macro)
 rig = HumanService.add_builtin_rig(body, "cmu_mb")
+
+
+def colour(ob, rgb):            # one plain colour per part (hair, clothes, skin), remembered for flat_layout.py
+    m = bpy.data.materials.new(f"{ob.name}_flat"); m.use_nodes = True
+    m.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (*rgb, 1)
+    m.node_tree.nodes["Principled BSDF"].inputs["Roughness"].default_value = 0.9
+    ob.data.materials.clear(); ob.data.materials.append(m)
+    ob["flat_rgb"] = list(rgb)
+
+
+# dressed: from behind and at a distance she is her hair, build and clothes, and Layout-To-Render reproduces the layout's
+# figure, so a bald grey body stayed a mannequin (user review 2026-10-26). Assets go on before the T-pose is applied,
+# so they are re-posed with her.
+colour(body, [float(v) for v in a.skin.split(",")])
+for spec in a.asset:
+    kind, path, rgb = spec.split(":")
+    ob = HumanService.add_mhclo_asset(path, body, asset_type=kind, subdiv_levels=0)
+    colour(ob, [float(v) for v in rgb.split(",")])
 # the CMU clips are relative to a T pose; MakeHuman's rest pose has the arms down, so local rotations copied across
 # raised her arms in front of her (first test). Make the rig's rest pose MPFB's own T pose for this skeleton.
 bpy.context.view_layer.objects.active = rig

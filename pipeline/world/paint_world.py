@@ -27,6 +27,14 @@ from mathutils import Vector
 
 GOOD = 0.35          # a view paints a surface it sees at up to ~70 degrees off head-on
 FIG = ("torso", "head", "thigh_l", "thigh_r", "shin_l", "shin_r", "cloth")   # her stand-in (room_blockout.py)
+
+
+def rigged(o):                  # under an armature somewhere up its parents: her body, her hair and clothes (figure.py)
+    while o.parent is not None:
+        o = o.parent
+        if o.type == "ARMATURE":
+            return True
+    return False
 args = sys.argv[sys.argv.index("--") + 1:]
 out, mode = os.path.abspath(args[0]), args[1]
 dest = os.path.abspath(args[2]) if len(args) > 2 else out      # render: where tex_* and texviews go
@@ -36,7 +44,7 @@ views = json.load(open(f"{P}/views.json")) if os.path.exists(f"{P}/views.json") 
 sc = bpy.context.scene
 W, H = sc.render.resolution_x, sc.render.resolution_y
 figure = [o for o in sc.objects if o.type == "MESH" and (o.name.split(".")[0] in FIG     # the stand-in, or her
-          or (o.parent is not None and o.parent.type == "ARMATURE"))]                       # rigged body (figure.py)
+          or rigged(o))]                       # rigged body (figure.py)
 room = [o for o in sc.objects if o.type == "MESH" and o not in figure]
 shot_cams = sorted(o.name for o in sc.objects if o.type == "CAMERA")
 
