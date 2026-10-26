@@ -213,6 +213,9 @@ GRADE=(); [ -n "$TREAT" ] && GRADE=(--grade treatment --step "$(python3 -c "impo
 python3 pipeline/finish.py "$OUT" --audio "$SONG" --analysis "$ANA" --plan shots_merged.json --frames-dir "$OUT/ltx_chain_beat" \
   --src-fps 24 --no-flash $([ "${PULSE:-1}" = 0 ] && echo --no-pulse || echo --punch-lowhits) --name "$NAME" "${GRADE[@]}" $FINISH_ARGS \
   ${FX:+--fx "$(dirname "$(dirname "$OUT")")/$FX"}
+# NAME.mp4 appears only when the video is finished: while the lip-sync renders (an hour or more) the cut is NAME-nosync.mp4,
+# so nobody watches the cut without lip-sync as the result (Chronophobia v3, 2026-10-26)
+[ -n "$PHOTO" ] && mv "$OUT/$NAME.mp4" "$OUT/$NAME-nosync.mp4"
 # lip-sync (sing_inserts.py, bin/sing_inserts.sh): the sung scenes, lip-synced from their stills, cut into the video
 if [ -n "$PHOTO" ] && need lipsync; then
   python3 pipeline/sing_inserts.py plan "$OUT" "$ANA" "$STEM" --performer "$PERFORMER" > "$OUT/sing.log" 2>&1
@@ -237,14 +240,22 @@ print(' '.join(h + ':' + ','.join(map(str, sorted(ks))) for h, ks in got.items()
   MISSING=$(python3 -c "
 import json, os
 D = '$OUT/sing'
-ok = lambda k: os.path.getsize(f'{D}/it_out_{k}.mp4') > 0 if os.path.exists(f'{D}/it_out_{k}.mp4') else os.path.isdir(f'{D}/out_{k}')
-print(sum(not ok(r['k']) for r in json.load(open(f'{D}/inserts.json'))))")
+import subprocess
+def ok(r):                                        # a clip shorter than its insert was cut short: it counts as missing
+    p = f"{D}/it_out_{r['k']}.mp4"
+    if not os.path.exists(p): return os.path.isdir(f"{D}/out_{r['k']}")
+    d = subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', p],
+                       capture_output=True, text=True).stdout.strip()
+    if d and float(d) >= r['duration'] - 1: return True
+    os.replace(p, p + '.short')                   # set aside, so the next run renders it again
+    return False
+print(sum(not ok(r) for r in json.load(open(f'{D}/inserts.json'))))")
   if [ "$MISSING" = 0 ]; then touch "$OUT/sing/.done"; made
   else log "lip-sync: $MISSING inserts failed (see $OUT/sing.log); the video uses the rest; run again to retry them"; fi
 fi
 if [ -n "$PHOTO" ] && [ "$(python3 -c "import json;print(len(json.load(open('$OUT/sing/inserts.json'))))")" -gt 0 ]; then
-  mv "$OUT/$NAME.mp4" "$OUT/$NAME-nosync.mp4"
   python3 pipeline/sing_inserts.py splice "$OUT" "$OUT/$NAME-nosync.mp4" "$OUT/$NAME.mp4" \
     ${FX:+--fx "$(dirname "$(dirname "$OUT")")/$FX" --fx-analysis "$ANA"} | tee -a "$OUT/sing.log"   # effects inside an insert go back on
 fi
+[ -e "$OUT/$NAME.mp4" ] || mv "$OUT/$NAME-nosync.mp4" "$OUT/$NAME.mp4"     # no inserts: the cut is the video
 log "done: $OUT/$NAME.mp4"

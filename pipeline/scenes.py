@@ -40,7 +40,9 @@ MOVE = ("transition_in", "motion")
 def runs(shots):
     out = []
     for s in shots:
-        if out and s["prompt"] == out[-1]["prompt"]:
+        # a change of cast starts a new scene: merge_scenes.py can give a sung shot its neighbour's prompt, and a run
+        # keeps its first shot's cast, so the sung line lost its lip-sync (Noble Hunt v5, 2026-10-26)
+        if out and s["prompt"] == out[-1]["prompt"] and s.get("cast", "none") == out[-1]["cast"]:
             out[-1]["bars"][1] = s["i"]
             out[-1]["end"] = s["end"]
         else:

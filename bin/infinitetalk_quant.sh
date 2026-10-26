@@ -18,4 +18,4 @@ flock /tmp/poptok-gpu.lock docker run --gpus all --rm --user $(id -u):$(id -g) -
   --quant $Q --quant_dir /weights/InfiniteTalk/quant_models/$QF.safetensors \
   --input_json /work/$J --size infinitetalk-480 --sample_steps $STEPS --sample_text_guide_scale 1.0 \
   --sample_audio_guide_scale 2.0 --sample_shift 2 --mode streaming --motion_frame 9 --offload_model False \
-  --save_file /work/$O
+  --save_file /work/$O ${MAX_FRAMES:+--max_frame_num $MAX_FRAMES}

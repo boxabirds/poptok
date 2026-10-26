@@ -9,13 +9,15 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 OUT=$1; PLAN=$2
 source bin/hosts.sh
+# frames InfiniteTalk may make for insert K (25 fps): its default cap of 1000 (40 s) cut Chronophobia's 74 s insert short
+maxf() { python3 -c "import json,math;print(math.ceil([r for r in json.load(open('$OUT/sing/inserts.json')) if r['k']==$1][0]['duration']*25)+25)"; }
 render() {   # host, comma-separated insert numbers
   local h=$1 ks=$2 D=$OUT/sing
   if [ "$h" = gruntus ] || [ "$h" = local ]; then
     for k in ${ks//,/ }; do
       [ -s "$D/it_out_$k.mp4" ] && { echo "insert $k: already rendered"; continue; }
       echo "[$(date +%H:%M:%S)] insert $k on gruntus (int8)"
-      bin/infinitetalk_quant.sh "$D" it_insert_$k.json it_out_$k > "$D/it_insert_$k.log" 2>&1 \
+      MAX_FRAMES=$(maxf "$k") bin/infinitetalk_quant.sh "$D" it_insert_$k.json it_out_$k > "$D/it_insert_$k.log" 2>&1 \
         || echo "insert $k failed on gruntus (see $D/it_insert_$k.log)"
       echo "[$(date +%H:%M:%S)] insert $k done"
     done
@@ -33,7 +35,7 @@ render() {   # host, comma-separated insert numbers
         --lora_dir /weights/lora/Wan21_T2V_14B_lightx2v_cfg_step_distill_lora_rank32.safetensors --lora_scale 1.0 \
         --input_json /work/it_insert_$k.json --size infinitetalk-480 --sample_steps 4 --sample_text_guide_scale 1.0 \
         --sample_audio_guide_scale 2.0 --sample_shift 2 --mode streaming --motion_frame 9 --offload_model False \
-        --save_file /work/it_out_$k > it_insert_$k.log 2>&1" || echo "insert $k failed on $h (see $D/it_insert_$k.log there)"
+        --max_frame_num $(maxf "$k") --save_file /work/it_out_$k > it_insert_$k.log 2>&1" || echo "insert $k failed on $h (see $D/it_insert_$k.log there)"
       rsync -a "$h":poptok/"$D"/it_out_$k.mp4 "$h":poptok/"$D"/it_insert_$k.log "$D"/ || true
       echo "[$(date +%H:%M:%S)] insert $k done"; continue
     fi
