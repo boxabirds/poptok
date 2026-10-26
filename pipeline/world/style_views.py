@@ -1,7 +1,7 @@
 """Training targets for a per-world renderer (2026-10-26): restyle each clay view from flat_layout.py on its own with
-Qwen-Image-Edit (no stitching onto geometry: paint_world.py's stitched views were incoherent). From the fourth view on,
-a sheet of material samples cut from the first three styled views goes in as picture 2, so every view is made of the same
-materials; a sheet of samples, not a whole view, because Qwen-Edit copies a whole reference image's camera.
+Qwen-Image-Edit (no stitching onto geometry: paint_world.py's stitched views were incoherent), one picture only, the same
+prompt and seed for every view. (--sheet adds a sheet of material samples from the first views as picture 2, for
+consistent materials; it made Qwen ignore the layout, so targets no longer matched their layouts.)
 
     python3 pipeline/world/style_views.py VIEWS_DIR STYLE.json [--seed 7]
 STYLE.json: {"universe": "...", "place": "a few words, no list of objects"}. Writes VIEWS_DIR/NNN_styled.png for each
@@ -20,6 +20,8 @@ ap = argparse.ArgumentParser()
 ap.add_argument("views")
 ap.add_argument("style")
 ap.add_argument("--seed", type=int, default=7)
+ap.add_argument("--sheet", action="store_true", help="add the material-sample sheet as picture 2 (off: with it, Qwen "
+                "ignored the layout and drew the same room corner in ~55 of 60 views, 2026-10-26)")
 a = ap.parse_args()
 st = json.load(open(a.style))
 BASE = ("Restyle this image. Keep EXACTLY its composition: the same camera position, angle and lens, the same framing, "
@@ -50,7 +52,7 @@ sheet = None
 for c in clays:
     out = c.replace("_clay.png", "_styled.png")
     done = sorted(glob.glob(f"{a.views}/*_styled.png"))
-    if sheet is None and len(done) >= 3:
+    if a.sheet and sheet is None and len(done) >= 3:
         sheet = swatches(done[:3]); sheet.save(f"{a.views}/swatches.png")
     if os.path.exists(out):
         continue
