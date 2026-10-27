@@ -6,6 +6,7 @@ forward in surges, the mids sway and turn it, the highs make the low sun glint i
     docker run --rm [--gpus all -e NVIDIA_DRIVER_CAPABILITIES=all] --user $(id -u):$(id -g) -v $PWD:/work -w /work \
         blender -b -P pipeline/world/ice_world.py -- CURVES.json OUT [--mode render|layout] [--frames N] [--seed S]
         [--res 1920x1080] [--samples 64] [--gpu]
+Motion (POC 2): forward only, a slow base speed eased up by the low band like breathing; a steady camera.
 render: Antarctica at dusk directly in Blender (Cycles: translucent white-blue ice, the sun setting on the horizon) ->
         OUT/render/%04d.png.  layout: grey clay (Workbench) for Layout-To-Render -> OUT/layout/%04d.png. Both: OUT/scene.blend.
 """
@@ -48,31 +49,35 @@ def smooth(v, k):
 
 
 # --- the camera's path through the music ------------------------------------------------------------------------
-low, mid, high = smooth(band("low"), 0.25), smooth(band("mid"), 0.08), band("high")
-surge = [0.0] * N                                      # each low transient: a forward surge that decays over ~0.5 s
-for f in C["bands"]["low"]["hits"]:
-    for i in range(f, min(N, f + 14)):
-        surge[i] += 1.6 * math.exp(-(i - f) / 4)
-speed = [2.2 + 3.0 * low[i] + surge[i] for i in range(N)]   # metres per second
+# Forward only, breathing (user review of POC 1, 2026-10-26: "utterly nausea-inducing ... accelerated a bit by
+# low-frequency sounds (which sound a bit like breathing) ... NO movement backwards"). The low band's loudness, through
+# an envelope that rises quickly and releases slowly, eases a slow base speed up; nothing else moves the camera.
+high = band("high")
+env, e = [], 0.0
+for x in band("low"):
+    e += (x - e) * (0.30 if x > e else 0.04)        # breath: quick in, slow out
+    env.append(e)
+speed = smooth([1.4 + 2.6 * v for v in env], 0.15)  # metres per second, never below 1.4: never backwards
 dist = [0.0]
 for i in range(1, N):
     dist.append(dist[-1] + speed[i] / C["fps"])
 L = dist[-1] + 40
 
 
-def path(s):                    # a gently meandering line through the ice field, distance s along it
-    return Vector((6 * math.sin(s / 23) + 3 * math.sin(s / 9.5), s, 0))
+def path(s):                    # a long, slow curve through the ice field, distance s along it
+    return Vector((5 * math.sin(s / 45), s, 0))
 
 
 # --- the ice sheet: rolling, wind-carved, with pressure ridges --------------------------------------------------
 def height(x, y):
     p = Vector((x * 0.035, y * 0.035, 0.3))
     h = 1.6 * noise.noise(p) + 0.6 * noise.noise(p * 3.1)
-    ridge = 1 - abs(noise.noise(Vector((x * 0.012, y * 0.05, 1.7))))      # pressure ridges, across the path
-    h += 2.2 * max(0, ridge - 0.75) / 0.25
-    d = abs(x - path(y).x)                                                  # keep the corridor walkable
+    ridge = 1 - abs(noise.noise(Vector((x * 0.012, y * 0.05, 1.7))))      # pressure ridges, across the path:
+    h += 3.0 * max(0, ridge - 0.7) ** 2 / 0.09                              # sharp-crested, not smooth swells
+    h += 0.5 * max(0, noise.noise(Vector((x * 0.25, y * 0.25, 5.1))))      # broken, lumpy ice between them
+    d = abs(x - path(y).x)                                                  # keep the corridor open
     h += 0.25 * noise.noise(Vector((x * 0.4, y * 0.12, 3.3)))            # sastrugi: wind-carved ridges
-    return h * min(1, 0.5 + d / 18)
+    return h * min(1, 0.35 + d / 14)
 
 
 def grid(name, x0, x1, y0, y1, n, fn):
@@ -113,45 +118,90 @@ def spire(name, base, h, r, sides, lean, rot):
     return ob
 
 
-spires = []
-y = 4.0
+def box(name, base, size, rot):  # a slab or a serac: a box, its top edges knocked off unevenly
+    import bmesh
+    me = bpy.data.meshes.new(name); bm = bmesh.new()
+    bmesh.ops.create_cube(bm, size=1.0)
+    for v in bm.verts:
+        v.co.x *= size[0]; v.co.y *= size[1]; v.co.z = (v.co.z + 0.5) * size[2] - 0.6
+        if v.co.z > 0:
+            v.co.z *= rnd.uniform(0.7, 1.15)
+    bm.to_mesh(me); bm.free()
+    ob = bpy.data.objects.new(name, me); sc.collection.objects.link(ob)
+    ob.location = base; ob.rotation_euler = rot
+    return ob
+
+
+def mound(name, base, r, h):    # an ice hummock the formations grow out of, in the sheet's own ice
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=8, radius=1, location=base)
+    ob = bpy.context.object; ob.name = name
+    ob.scale = (r * rnd.uniform(0.8, 1.2), r * rnd.uniform(0.8, 1.2), h)
+    ob.location.z -= h * 0.45
+    for v in ob.data.vertices:              # lumpy, not a dome
+        v.co *= 1 + 0.18 * noise.noise(v.co * 2.3 + Vector((base.x, base.y, 0)) * 0.1)
+    return ob
+
+
+# Denser and more integrated than POC 1 ("not nearly enough geometry ... very sharp spikes and some very smooth areas.
+# Maybe they can be a bit more integrated?"): clusters that grow out of hummocks, broken slabs tilted out of the ice,
+# blocky seracs, and only a few needles; every few metres on both sides, the corridor kept open.
+spires, mounds = [], []
+y = 3.0
 while y < L + 160:
     for side in (-1, 1):
-        if rnd.random() < 0.8:
-            px = path(y).x + side * rnd.uniform(4.5, 30)
-            hgt = rnd.uniform(2, 9) * (1 + 1.5 * (abs(px - path(y).x) > 15))
-            spires.append(spire(f"spire{len(spires)}", Vector((px, y, height(px, y))), hgt, rnd.uniform(0.6, 2.2),
-                                rnd.choice((5, 6, 7)), (rnd.uniform(-0.25, 0.25), rnd.uniform(-0.25, 0.25)),
-                                rnd.uniform(0, 6.3)))
-            if rnd.random() < 0.5:                  # a cluster of smaller shards at its foot
-                for _ in range(rnd.randint(2, 5)):
-                    q = spires[-1].location + Vector((rnd.uniform(-3, 3), rnd.uniform(-3, 3), 0))
-                    q.z = height(q.x, q.y)
-                    spires.append(spire(f"shard{len(spires)}", q, rnd.uniform(0.6, 2.5), rnd.uniform(0.2, 0.7),
-                                        rnd.choice((4, 5, 6)), (rnd.uniform(-0.6, 0.6), rnd.uniform(-0.6, 0.6)),
+        for _ in range(rnd.randint(1, 3)):
+            off = rnd.uniform(3.5, 34)
+            px = path(y).x + side * off; py = y + rnd.uniform(-1.5, 1.5)
+            base = Vector((px, py, height(px, py)))
+            big = 1 + 1.2 * (off > 14)
+            kind = rnd.random()
+            r0 = rnd.uniform(1.0, 2.6) * big
+            mounds.append(mound(f"mound{len(mounds)}", base, r0 * 1.6, rnd.uniform(0.5, 1.4) * big))
+            if kind < 0.35:                     # a cluster of leaning crystals out of the hummock
+                for c_ in range(rnd.randint(3, 7)):
+                    q = base + Vector((rnd.uniform(-r0, r0), rnd.uniform(-r0, r0), 0)); q.z = height(q.x, q.y)
+                    spires.append(spire(f"crystal{len(spires)}", q, rnd.uniform(1.2, 4.5) * big, rnd.uniform(0.3, 0.9) * big,
+                                        rnd.choice((5, 6, 7)), (rnd.uniform(-0.45, 0.45), rnd.uniform(-0.45, 0.45)),
                                         rnd.uniform(0, 6.3)))
-    y += rnd.uniform(3, 7)
+            elif kind < 0.65:                   # broken slabs tilted up out of the ice, in a row
+                ang = rnd.uniform(0, 6.3)
+                for c_ in range(rnd.randint(2, 5)):
+                    q = base + Vector((math.cos(ang) * c_ * 1.6, math.sin(ang) * c_ * 1.6, 0)); q.z = height(q.x, q.y)
+                    spires.append(box(f"slab{len(spires)}", q, (rnd.uniform(1.2, 3.0) * big, rnd.uniform(0.25, 0.6),
+                                      rnd.uniform(1.0, 3.2) * big),
+                                      (rnd.uniform(0.3, 1.1), rnd.uniform(-0.3, 0.3), ang + rnd.uniform(-0.4, 0.4))))
+            elif kind < 0.9:                    # blocky seracs
+                for c_ in range(rnd.randint(1, 3)):
+                    q = base + Vector((rnd.uniform(-r0, r0), rnd.uniform(-r0, r0), 0)); q.z = height(q.x, q.y)
+                    w = rnd.uniform(1.0, 2.8) * big
+                    spires.append(box(f"serac{len(spires)}", q, (w, w * rnd.uniform(0.6, 1.2), rnd.uniform(1.5, 5) * big),
+                                      (rnd.uniform(-0.15, 0.15), rnd.uniform(-0.15, 0.15), rnd.uniform(0, 6.3))))
+            else:                               # now and then a tall needle
+                spires.append(spire(f"needle{len(spires)}", base, rnd.uniform(5, 11) * big, rnd.uniform(0.6, 1.4),
+                                    rnd.choice((5, 6)), (rnd.uniform(-0.2, 0.2), rnd.uniform(-0.2, 0.2)), rnd.uniform(0, 6.3)))
+    y += rnd.uniform(2.0, 4.0)
 for k in range(14):                                 # distant ice cliffs and tabular bergs on the horizon
     yy = L + rnd.uniform(60, 200); xx = rnd.uniform(-120, 120)
     spires.append(spire(f"cliff{k}", Vector((xx, yy, 0)), rnd.uniform(12, 35), rnd.uniform(10, 30), rnd.choice((6, 7, 8)),
                         (0, 0), rnd.uniform(0, 6.3)))
 
-# --- camera -------------------------------------------------------------------------------------------------------
+# --- camera: steady -----------------------------------------------------------------------------------------------
+# No roll, no sway, no lens change, no bobbing over every bump (POC 1's motion was nauseating): eye height above a
+# heavily smoothed ground, looking far ahead along the slow curve.
+def ground(s_, span=10.0, n=11):
+    return sum(height(path(s_ + span * (k / (n - 1) - 0.5)).x, s_ + span * (k / (n - 1) - 0.5)) for k in range(n)) / n
+
+
 cam = bpy.data.objects.new("cam", bpy.data.cameras.new("cam")); sc.collection.objects.link(cam); sc.camera = cam
-cam.data.lens = 24; cam.data.clip_end = 2000
+cam.data.lens = 26; cam.data.clip_end = 2000
+zs = smooth([ground(d) + 1.8 for d in dist], 0.08)
 for i in range(N):
-    s = dist[i]
-    p = path(s)
-    p.z = height(p.x, s) + 1.6 + 1.2 * mid[i]                       # rises a little with the mids
-    look = path(s + 12); look.z = height(look.x, s + 12) + 1.0
-    sway = 0.18 * (mid[i] - 0.5) * math.sin(i / 11)                  # the mids sway the view
-    look.x += 6 * sway
+    s_ = dist[i]
+    p = path(s_); p.z = zs[i]
+    look = path(s_ + 30); look.z = zs[i] - 0.6
     cam.location = p
     cam.rotation_euler = (look - p).to_track_quat("-Z", "Y").to_euler()
-    cam.rotation_euler.y += 0.04 * math.sin(i / 17) * (0.5 + mid[i])  # a slight roll
-    cam.data.lens = 24 - 3 * min(1, surge[i])                         # a surge widens the view a touch
     cam.keyframe_insert("location", frame=i + 1); cam.keyframe_insert("rotation_euler", frame=i + 1)
-    cam.data.keyframe_insert("lens", frame=i + 1)
 
 # --- look ---------------------------------------------------------------------------------------------------------
 if a.mode == "layout":                  # grey clay for Layout-To-Render: shape and motion only
@@ -232,6 +282,8 @@ else:                                   # Antarctica at dusk, rendered
     ab2.inputs["Color"].default_value = (0.6, 0.82, 1.0, 1); ab2.inputs["Density"].default_value = 0.03
     cliff_m.node_tree.links.new(ab2.outputs["Volume"], cliff_m.node_tree.nodes["Material Output"].inputs["Volume"])
     sheet.data.materials.append(sheet_m)
+    for m_ in mounds:
+        m_.data.materials.append(sheet_m)
     for s_ in spires:
         big = max(s_.dimensions) > 12
         s_.data.materials.append(cliff_m if big else spire_m)
