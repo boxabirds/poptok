@@ -24,6 +24,8 @@ ap.add_argument("--seed", type=int, default=7)
 ap.add_argument("--res", default="1920x1080")
 ap.add_argument("--samples", type=int, default=64)
 ap.add_argument("--gpu", action="store_true")
+ap.add_argument("--theme", default="ice", choices=["ice", "chrome"], help="chrome: the same world in polished chrome, the "
+                "ground rippled liquid metal (user, 2026-10-27, after the Liquid Mercury universe)")
 a = ap.parse_args(sys.argv[sys.argv.index("--") + 1:])
 out = os.path.abspath(a.out)
 C = json.load(open(a.curves))
@@ -289,7 +291,26 @@ else:                                   # Antarctica at dusk, rendered
         s_.data.materials.append(cliff_m if big else spire_m)
         for p in s_.data.polygons:
             p.use_smooth = False
-    sc.cycles.max_bounces = 8; sc.cycles.transmission_bounces = 8; sc.cycles.glossy_bounces = 4
+    if a.theme == "chrome":            # every surface mirror-polished metal, the ground a rippled liquid
+        def chrome(name, rough, tint=(0.92, 0.93, 0.95)):
+            m = bpy.data.materials.new(name); m.use_nodes = True
+            b = m.node_tree.nodes["Principled BSDF"]
+            b.inputs["Base Color"].default_value = (*tint, 1); b.inputs["Metallic"].default_value = 1.0
+            b.inputs["Roughness"].default_value = rough
+            return m
+        ground = chrome("liquid_chrome", 0.03)
+        nt_ = ground.node_tree; b = nt_.nodes["Principled BSDF"]
+        tc = nt_.nodes.new("ShaderNodeTexCoord")
+        wv = nt_.nodes.new("ShaderNodeTexWave"); wv.wave_type = "RINGS"; wv.inputs["Scale"].default_value = 0.15
+        wv.inputs["Distortion"].default_value = 6.0; wv.inputs["Detail"].default_value = 4.0
+        nt_.links.new(tc.outputs["Object"], wv.inputs["Vector"])
+        bump = nt_.nodes.new("ShaderNodeBump"); bump.inputs["Strength"].default_value = 0.25
+        nt_.links.new(wv.outputs["Fac"], bump.inputs["Height"]); nt_.links.new(bump.outputs["Normal"], b.inputs["Normal"])
+        solid = chrome("chrome", 0.06); brushed = chrome("chrome_brushed", 0.22, (0.85, 0.87, 0.92))
+        for ob in [sheet] + mounds + spires:
+            ob.data.materials.clear()
+            ob.data.materials.append(ground if ob is sheet or ob in mounds else (brushed if rnd.random() < 0.3 else solid))
+    sc.cycles.max_bounces = 8; sc.cycles.transmission_bounces = 8; sc.cycles.glossy_bounces = 8 if a.theme == "chrome" else 4
 
 os.makedirs(out, exist_ok=True)
 bpy.ops.wm.save_as_mainfile(filepath=f"{out}/scene_{a.mode}.blend")
