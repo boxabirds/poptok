@@ -14,11 +14,17 @@ RUN pip install --no-cache-dir imageio imageio-ffmpeg tqdm easydict opencv-pytho
       tensorboard pandas lpips zstandard kornia timm \
     && pip install --no-cache-dir git+https://github.com/EasternJournalist/utils3d.git@9a4eb15e4021b67b12c460c7057d642626897ec8
 RUN git clone -b main --recursive https://github.com/microsoft/TRELLIS.2.git /opt/trellis2
+# the extensions pin -std=c++17; this torch (2.14) requires C++20, so each build's flags are moved to c++20
 RUN mkdir -p /tmp/ext && cd /tmp/ext \
     && git clone -b v0.4.0 https://github.com/NVlabs/nvdiffrast.git && pip install --no-build-isolation ./nvdiffrast \
-    && git clone -b renderutils https://github.com/JeffreyXiang/nvdiffrec.git && pip install --no-build-isolation ./nvdiffrec \
-    && git clone --recursive https://github.com/JeffreyXiang/CuMesh.git && pip install --no-build-isolation ./CuMesh \
-    && git clone --recursive https://github.com/JeffreyXiang/FlexGEMM.git && pip install --no-build-isolation ./FlexGEMM \
+    && git clone -b renderutils https://github.com/JeffreyXiang/nvdiffrec.git && pip install --no-build-isolation ./nvdiffrec
+RUN cd /tmp/ext && git clone --recursive https://github.com/JeffreyXiang/CuMesh.git \
+    && grep -rl "c++17" CuMesh --include=setup.py --include=*.toml --include=CMakeLists.txt | xargs -r sed -i 's/c++17/c++20/g' \
+    && pip install --no-build-isolation ./CuMesh
+RUN cd /tmp/ext && git clone --recursive https://github.com/JeffreyXiang/FlexGEMM.git \
+    && grep -rl "c++17" FlexGEMM --include=setup.py --include=*.toml --include=CMakeLists.txt | xargs -r sed -i 's/c++17/c++20/g' \
+    && pip install --no-build-isolation ./FlexGEMM
+RUN grep -rl "c++17" /opt/trellis2/o-voxel --include=setup.py --include=*.toml --include=CMakeLists.txt | xargs -r sed -i 's/c++17/c++20/g' \
     && pip install --no-build-isolation /opt/trellis2/o-voxel && rm -rf /tmp/ext
 RUN sed -i "s|        pipeline.rembg_model = getattr(rembg, args\['rembg_model'\]\['name'\])(\*\*args\['rembg_model'\]\['args'\])|        pipeline.rembg_model = None if os.environ.get('TRELLIS2_NO_REMBG') else getattr(rembg, args['rembg_model']['name'])(**args['rembg_model']['args'])|" /opt/trellis2/trellis2/pipelines/trellis2_image_to_3d.py \
     && grep -q "TRELLIS2_NO_REMBG" /opt/trellis2/trellis2/pipelines/trellis2_image_to_3d.py \
