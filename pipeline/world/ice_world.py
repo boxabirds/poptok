@@ -30,6 +30,9 @@ ap.add_argument("--breath", default="0.8,6.0", help="BASE,GAIN: speed (m/s) = BA
 ap.add_argument("--breath-norm", default="window", choices=["window", "song"], help="window: the breath envelope is "
                 "stretched to its own 5-95th percentile in the clip and curved (^1.5), so troughs are slow and swells surge "
                 "(user on POC 4, 2026-10-27: 'not seeing much variation in speed'); song: as POC 1-4")
+ap.add_argument("--sparkles", action="store_true", help="the tweets (music_curves 'tweets') flash as sparkles in the sky")
+ap.add_argument("--mist", type=float, default=0, help="max density of a low mist that comes and goes with the mids "
+                "(music_curves 'mist'); 0 = none, ~0.05 = thick")
 ap.add_argument("--snow", type=int, default=0, help="snow flurries: this many flakes drifting through the corridor, "
                 "gusting sideways with the highs")
 ap.add_argument("--theme", default="ice", choices=["ice", "chrome", "icechrome"], help="chrome: the same world in polished chrome, "
@@ -83,6 +86,19 @@ L = dist[-1] + 40
 
 def path(s):                    # a long, slow curve through the ice field, distance s along it
     return Vector((5 * math.sin(s / 45), s, 0))
+
+
+# The low sun, in frame and unblocked (user, 2026-10-27: "we seem to have lost all detail in the sky too -- no sunlight
+# coming through the ice"; POC 1's sun glowed on the horizon behind the crystals, but from POC 2 the denser ice and the
+# distant cliffs hid it). Its azimuth (degrees, + = towards +x, as the Nishita sky's sun_rotation) is set from the clip's
+# mean heading, a little left of centre; the sky's sun disc and the sun lamp share it; nothing tall stands in its way.
+HEAD = sum(math.degrees(math.atan(5 / 45 * math.cos(d / 45))) for d in dist) / N
+SUN_AZ = HEAD - 9
+SUN_FROM = Vector((path(dist[-1]).x, dist[-1], 0))
+
+
+def in_sun(x, y, wide=7):       # beyond the camera's last position and within `wide` degrees of the sun's bearing
+    return y > dist[-1] + 8 and abs(math.degrees(math.atan2(x - SUN_FROM.x, y - SUN_FROM.y)) - SUN_AZ) < wide
 
 
 # --- the ice sheet: rolling, wind-carved, with pressure ridges --------------------------------------------------
@@ -169,6 +185,8 @@ while y < L + 160:
         for _ in range(rnd.randint(1, 3)):
             off = rnd.uniform(3.5, 34)
             px = path(y).x + side * off; py = y + rnd.uniform(-1.5, 1.5)
+            if off > 10 and in_sun(px, py):
+                continue
             base = Vector((px, py, height(px, py)))
             big = 1 + 1.2 * (off > 14)
             kind = rnd.random()
@@ -199,6 +217,8 @@ while y < L + 160:
     y += rnd.uniform(2.0, 4.0)
 for k in range(14):                                 # distant ice cliffs and tabular bergs on the horizon
     yy = L + rnd.uniform(60, 200); xx = rnd.uniform(-120, 120)
+    while in_sun(xx, yy, 12):
+        xx = rnd.uniform(-120, 120)
     spires.append(spire(f"cliff{k}", Vector((xx, yy, 0)), rnd.uniform(12, 35), rnd.uniform(10, 30), rnd.choice((6, 7, 8)),
                         (0, 0), rnd.uniform(0, 6.3)))
 
@@ -245,14 +265,14 @@ else:                                   # Antarctica at dusk, rendered
     w = bpy.data.worlds.new("dusk"); sc.world = w; w.use_nodes = True
     nt = w.node_tree; nt.nodes.clear()
     sky = nt.nodes.new("ShaderNodeTexSky"); sky.sky_type = "NISHITA"
-    sky.sun_elevation = math.radians(3.0); sky.sun_rotation = math.radians(-12)  # the sun on the horizon, ahead
+    sky.sun_elevation = math.radians(3.0); sky.sun_rotation = math.radians(SUN_AZ)  # the sun on the horizon, ahead
     sky.altitude = 50; sky.air_density = 1.4; sky.dust_density = 2.0; sky.sun_size = math.radians(1.2)
     bgn = nt.nodes.new("ShaderNodeBackground"); bgn.inputs["Strength"].default_value = 0.35
     o = nt.nodes.new("ShaderNodeOutputWorld")
     nt.links.new(sky.outputs["Color"], bgn.inputs["Color"]); nt.links.new(bgn.outputs["Background"], o.inputs["Surface"])
     sun = bpy.data.objects.new("sun", bpy.data.lights.new("sun", "SUN")); sc.collection.objects.link(sun)
     sun.data.color = (1.0, 0.55, 0.3); sun.data.angle = math.radians(1.2)
-    sun.rotation_euler = (math.radians(88.5), 0, math.radians(180))      # low, from far ahead (+y), grazing the ice
+    sun.rotation_euler = (math.radians(88.5), 0, math.radians(180 - SUN_AZ))      # low, from far ahead (+y), grazing the ice
     for i in range(N):                                                  # the highs make the low sun glint
         sun.data.energy = 3.0 + 4.0 * high[i] ** 2
         sun.data.keyframe_insert("energy", frame=i + 1)
@@ -325,7 +345,8 @@ else:                                   # Antarctica at dusk, rendered
         for ob in [sheet] + mounds + spires:
             ob.data.materials.clear()
             ob.data.materials.append(ground if ob is sheet or ob in mounds else (brushed if rnd.random() < 0.3 else solid))
-    if a.theme == "icechrome":         # mercury frozen into the ice
+    if a.theme == "icechrome":         # a mix: separate ice and chrome formations side by side (user, 2026-10-27: "I
+        # didn't want chrome in the ice, a mix. with chrome inside you don't get the light going through any more")
         def chrome(name, rough):
             m = bpy.data.materials.new(name); m.use_nodes = True
             b = m.node_tree.nodes["Principled BSDF"]
@@ -333,64 +354,88 @@ else:                                   # Antarctica at dusk, rendered
             b.inputs["Roughness"].default_value = rough
             return m
         solid = chrome("chrome", 0.05)
-        nt_ = sheet_m.node_tree; b = nt_.nodes["Principled BSDF"]     # the sheet's cracks run with chrome
-        inv = nt_.nodes.new("ShaderNodeMath"); inv.operation = "SUBTRACT"; inv.inputs[0].default_value = 1.0
-        nt_.links.new(nt_.nodes["Map Range"].outputs["Result"], inv.inputs[1])
-        nt_.links.new(inv.outputs["Value"], b.inputs["Metallic"])
-        for s_ in list(spires):
-            if max(s_.dimensions) > 12:
-                continue
-            if rnd.random() < 0.3:                                      # some formations solid chrome
+        for s_ in spires:
+            if max(s_.dimensions) <= 12 and rnd.random() < 0.35:
                 s_.data.materials.clear(); s_.data.materials.append(solid)
-            else:                                                       # a chrome core inside the ice
-                core = s_.copy(); core.data = s_.data.copy(); sc.collection.objects.link(core)
-                core.scale = (0.45, 0.45, 0.7)
-                core.data.materials.clear(); core.data.materials.append(solid)
-    if a.snow:                         # snow flurries: flakes drift through the corridor, gusting sideways on the highs
-        # Organic, not CGI (user, 2026-10-27: "like it's an alien planet rather than CGI"): ragged flakes of very different
-        # sizes, the nearest out of focus, and spindrift: fine snow streaming low over the ice.
-        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=1)
-        flake = bpy.context.object; flake.name = "flake"; flake.location = (0, -500, -50)
-        for v in flake.data.vertices:          # a ragged, flattened clump, not a ball
-            v.co.z *= 0.35; v.co *= rnd.uniform(0.6, 1.3)
-        fm = bpy.data.materials.new("snow"); fm.use_nodes = True
-        fb = fm.node_tree.nodes["Principled BSDF"]
-        fb.inputs["Base Color"].default_value = (1, 1, 1, 1); fb.inputs["Roughness"].default_value = 0.6
-        fb.inputs["Subsurface Weight"].default_value = 0.5
-        fb.inputs["Emission Color"].default_value = (1.0, 0.82, 0.7, 1); fb.inputs["Emission Strength"].default_value = 0.6
-        flake.data.materials.append(fm)
-
-        # Emitted continuously from upwind, from 3 s before the clip, each flake living ~4 s, so the snow never runs out
-        # (POC 5 bug: all flakes born at frame 0 were blown out of the corridor within 2 s, user: "why does the snow stop?")
-        PRE, LIFE = 72, 96
-
-        def flurry(name, z0, z1, width, count, size, rand, mass):
-            bpy.ops.mesh.primitive_cube_add(size=1)
-            em = bpy.context.object; em.name = name
-            em.location = (-6, (L - 30) / 2, (z0 + z1) / 2); em.scale = (width + 12, L + 30, z1 - z0)   # wider upwind (-x)
-            ps = em.modifiers.new(name, "PARTICLE_SYSTEM").particle_system.settings
-            em.show_instancer_for_render = False      # hide_render on the emitter would hide its flakes too
-            ps.count = int(count * (N + PRE) / LIFE); ps.frame_start, ps.frame_end = -PRE, N   # ~count alive at any time
-            ps.lifetime = LIFE; ps.lifetime_random = 0.3
-            ps.emit_from = "VOLUME"; ps.distribution = "RAND"; ps.normal_factor = 0
-            ps.physics_type = "NEWTON"; ps.mass = mass; ps.drag_factor = 1.0; ps.brownian_factor = 0.6
-            ps.effector_weights.gravity = 0.04
-            ps.render_type = "OBJECT"; ps.instance_object = flake; ps.use_rotations = True
-            ps.rotation_mode = "NONE"; ps.rotation_factor_random = 1.0; ps.angular_velocity_mode = "RAND"
-            ps.angular_velocity_factor = 3.0
-            ps.particle_size = size; ps.size_random = rand
-            em.particle_systems[0].point_cache.frame_start = -PRE; em.particle_systems[0].point_cache.frame_end = N
-        flurry("flurry", 0.3, 7.0, 16, a.snow, 0.035, 0.9, 0.02)          # falling flakes, 1-6 cm
-        flurry("spindrift", 0.0, 0.5, 30, a.snow // 2, 0.008, 0.8, 0.005)  # fine snow streaming over the ground
-        cam.data.dof.use_dof = True; cam.data.dof.focus_distance = 14; cam.data.dof.aperture_fstop = 2.0
-        wind = bpy.data.objects.new("wind", None); sc.collection.objects.link(wind)
-        wind.empty_display_type = "SINGLE_ARROW"; bpy.context.view_layer.objects.active = wind
-        bpy.ops.object.forcefield_toggle(); wind.field.type = "WIND"
-        wind.rotation_euler = (0, math.radians(90), math.radians(-15))  # blowing across the path, a little towards us
+    if a.sparkles:                     # tweets -> sparkles in the dusk sky (user, 2026-10-27: tight band-pass)
+        # ~600 points of light on a far dome ahead, in 16 patches; each tweet lights one patch, which fades in ~0.2 s
+        G = 16; T = C["tweets"]; mats = []
+        for g in range(G):
+            m = bpy.data.materials.new(f"sparkle{g}"); m.use_nodes = True; nt_ = m.node_tree; nt_.nodes.clear()
+            em_ = nt_.nodes.new("ShaderNodeEmission"); em_.inputs["Color"].default_value = (0.85, 0.92, 1.0, 1)
+            tr = nt_.nodes.new("ShaderNodeBsdfTransparent"); ad = nt_.nodes.new("ShaderNodeAddShader")  # unlit: invisible
+            o_ = nt_.nodes.new("ShaderNodeOutputMaterial")
+            nt_.links.new(tr.outputs[0], ad.inputs[0]); nt_.links.new(em_.outputs[0], ad.inputs[1])
+            nt_.links.new(ad.outputs[0], o_.inputs["Surface"])
+            mats.append((m, em_))
+        cy = (L - 40) / 2
+        for k in range(600):
+            g = rnd.randrange(G)
+            az = math.radians(rnd.gauss(0, 30)); el = math.radians(rnd.uniform(4, 30)); R = 800
+            bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=rnd.uniform(1.2, 2.6),
+                                                  location=(R * math.sin(az) * math.cos(el), cy + R * math.cos(az) * math.cos(el),
+                                                            R * math.sin(el)))
+            o = bpy.context.object; o.data.materials.append(mats[g][0])
+            o.visible_shadow = False; o.visible_diffuse = False; o.visible_glossy = True; o.pass_index = 7
+        group_of = [rnd.randrange(G) for _ in T["hits"]]
+        for g, (m, em_) in enumerate(mats):
+            for i in range(N):
+                v = sum(st * math.exp(-(i - h) / 5) for h, st, gg in zip(T["hits"], T["hit_strength"], group_of)
+                        if gg == g and h <= i)
+                em_.inputs["Strength"].default_value = 60 * v
+                em_.inputs["Strength"].keyframe_insert("default_value", frame=i + 1)
+        # star-shaped glints on the sparkles only (masked by object index, so the sun gets no cross)
+        bpy.context.view_layer.use_pass_object_index = True
+        sc.use_nodes = True; ct = sc.node_tree; ct.nodes.clear()
+        rl = ct.nodes.new("CompositorNodeRLayers")
+        idm = ct.nodes.new("CompositorNodeIDMask"); idm.index = 7; idm.use_antialiasing = True
+        only = ct.nodes.new("CompositorNodeMixRGB"); only.blend_type = "MULTIPLY"; only.inputs["Fac"].default_value = 1
+        gl = ct.nodes.new("CompositorNodeGlare")
+        gl.glare_type = "STREAKS"; gl.streaks = 4; gl.angle_offset = math.radians(45); gl.threshold = 0.5
+        gl.mix = 1.0; gl.quality = "HIGH"; gl.fade = 0.88                # mix 1: the streaks alone
+        add = ct.nodes.new("CompositorNodeMixRGB"); add.blend_type = "ADD"; add.inputs["Fac"].default_value = 1
+        co = ct.nodes.new("CompositorNodeComposite")
+        ct.links.new(rl.outputs["IndexOB"], idm.inputs["ID value"])
+        ct.links.new(rl.outputs["Image"], only.inputs[1]); ct.links.new(idm.outputs["Alpha"], only.inputs[2])
+        ct.links.new(only.outputs["Image"], gl.inputs["Image"])
+        ct.links.new(rl.outputs["Image"], add.inputs[1]); ct.links.new(gl.outputs["Image"], add.inputs[2])
+        ct.links.new(add.outputs["Image"], co.inputs["Image"])
+    if a.mist:                         # mids -> a low mist that comes and goes, lit gold by the low sun
+        mi = C["mist"]; mi = [mi[min(i, len(mi) - 1)] for i in range(N)]
+        q = sorted(mi); lo_, hi_ = q[int(0.05 * (N - 1))], q[int(0.95 * (N - 1))]
+        mi = [min(1, max(0, (v - lo_) / (hi_ - lo_ + 1e-9))) ** 1.5 for v in mi]
+        bpy.ops.mesh.primitive_cube_add(size=1)
+        mc = bpy.context.object; mc.name = "mist"
+        mc.location = (0, (L - 30) / 2, 2.5); mc.scale = (120, L + 120, 5)
+        m = bpy.data.materials.new("mist"); m.use_nodes = True; nt_ = m.node_tree; nt_.nodes.clear()
+        pv = nt_.nodes.new("ShaderNodeVolumePrincipled")
+        pv.inputs["Color"].default_value = (0.85, 0.9, 1.0, 1); pv.inputs["Anisotropy"].default_value = 0.6
+        tc = nt_.nodes.new("ShaderNodeTexCoord"); mp = nt_.nodes.new("ShaderNodeMapping")
+        nz = nt_.nodes.new("ShaderNodeTexNoise"); nz.inputs["Scale"].default_value = 0.08; nz.inputs["Detail"].default_value = 3
+        ramp = nt_.nodes.new("ShaderNodeMapRange")                   # patchy banks, not a uniform fog
+        ramp.inputs["From Min"].default_value, ramp.inputs["From Max"].default_value = 0.42, 0.7
+        hgt = nt_.nodes.new("ShaderNodeSeparateXYZ")                 # thinning with height
+        hf = nt_.nodes.new("ShaderNodeMapRange")
+        hf.inputs["From Min"].default_value, hf.inputs["From Max"].default_value = 4.5, 0.0
+        mul = nt_.nodes.new("ShaderNodeMath"); mul.operation = "MULTIPLY"
+        dens = nt_.nodes.new("ShaderNodeMath"); dens.operation = "MULTIPLY"
+        out_ = nt_.nodes.new("ShaderNodeOutputMaterial")
+        nt_.links.new(tc.outputs["Generated"], mp.inputs["Vector"])
+        nt_.links.new(tc.outputs["Object"], hgt.inputs[0])
+        tcw = nt_.nodes.new("ShaderNodeTexCoord")
+        nt_.links.new(tcw.outputs["Object"], mp.inputs["Vector"])
+        nt_.links.new(mp.outputs["Vector"], nz.inputs["Vector"]); nt_.links.new(nz.outputs["Fac"], ramp.inputs["Value"])
+        nt_.links.new(hgt.outputs["Z"], hf.inputs["Value"])
+        nt_.links.new(ramp.outputs["Result"], mul.inputs[0]); nt_.links.new(hf.outputs["Result"], mul.inputs[1])
+        nt_.links.new(mul.outputs["Value"], dens.inputs[0]); nt_.links.new(dens.outputs["Value"], pv.inputs["Density"])
+        nt_.links.new(pv.outputs["Volume"], out_.inputs["Volume"])
+        mc.data.materials.append(m)
         for i in range(N):
-            wind.field.strength = 0.02 + 0.12 * high[i] ** 2
-            wind.field.keyframe_insert("strength", frame=i + 1)
-        sc.render.use_motion_blur = True; sc.render.motion_blur_shutter = 0.5
+            dens.inputs[1].default_value = a.mist * mi[i]
+            dens.inputs[1].keyframe_insert("default_value", frame=i + 1)
+            mp.inputs["Location"].default_value = (0.004 * i, 0.0015 * i, 0)      # banks drifting across
+            mp.inputs["Location"].keyframe_insert("default_value", frame=i + 1)
+        sc.cycles.volume_step_rate = 4; sc.cycles.volume_max_steps = 256
     sc.cycles.max_bounces = 8; sc.cycles.transmission_bounces = 8
     sc.cycles.glossy_bounces = 8 if a.theme in ("chrome", "icechrome") else 4
 
