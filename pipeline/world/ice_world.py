@@ -31,6 +31,8 @@ ap.add_argument("--swifts", action="store_true", help="the tweets send swifts te
 ap.add_argument("--sun-color", default="1.0,0.55,0.3")
 ap.add_argument("--exposure", type=float, default=0.0)
 ap.add_argument("--look", default="AgX - Medium High Contrast")
+ap.add_argument("--ice-absorb", type=float, default=0.35, help="blue absorption density inside the ice "
+                "formations: higher, the sunlight through them comes out a deeper blue")
 ap.add_argument("--only", default="", help="render just these frames, e.g. 22,110 (quick tests)")
 ap.add_argument("--seed", type=int, default=7)
 ap.add_argument("--res", default="1920x1080")
@@ -57,7 +59,10 @@ N = a.frames or len(C["energy"])
 rnd = random.Random(a.seed)
 bpy.ops.wm.read_factory_settings(use_empty=True)
 sc = bpy.context.scene
-sc.render.fps = int(C["fps"]); sc.frame_start, sc.frame_end = 1, N
+# The clip is frames FO+1 .. FO+N of the scene; frames 1 .. FO are a run-up for the snow (a particle cache is clipped to
+# the scene range, which cannot start before 0, so the run-up has to be inside it). Output files are numbered 1 .. N.
+FO = 72
+sc.render.fps = int(C["fps"]); sc.frame_start, sc.frame_end = 1, FO + N
 W, H = (int(v) for v in a.res.split("x"))
 sc.render.resolution_x, sc.render.resolution_y = W, H
 
@@ -249,7 +254,7 @@ for i in range(N):
     look = path(s_ + 30); look.z = zs[i] - 0.6
     cam.location = p
     cam.rotation_euler = (look - p).to_track_quat("-Z", "Y").to_euler()
-    cam.keyframe_insert("location", frame=i + 1); cam.keyframe_insert("rotation_euler", frame=i + 1)
+    cam.keyframe_insert("location", frame=i + 1 + FO); cam.keyframe_insert("rotation_euler", frame=i + 1 + FO)
 
 # --- look ---------------------------------------------------------------------------------------------------------
 if a.mode == "layout":                  # grey clay for Layout-To-Render: shape and motion only
@@ -289,7 +294,7 @@ else:                                   # Antarctica at dusk, rendered
     SUN_E = [float(v) for v in a.sun_energy.split(",")]
     for i in range(N):                                                  # the highs make the low sun glint
         sun.data.energy = SUN_E[0] + SUN_E[1] * high[i] ** 2
-        sun.data.keyframe_insert("energy", frame=i + 1)
+        sun.data.keyframe_insert("energy", frame=i + 1 + FO)
 
     def ice(name, tint, rough, trans):
         m = bpy.data.materials.new(name); m.use_nodes = True
@@ -326,7 +331,7 @@ else:                                   # Antarctica at dusk, rendered
     nt_.links.new(nz.outputs["Fac"], bump.inputs["Height"]); nt_.links.new(bump.outputs["Normal"], b.inputs["Normal"])
     spire_m = ice("ice_spire", (0.78, 0.9, 1.0), 0.04, 0.95)
     ab = spire_m.node_tree.nodes.new("ShaderNodeVolumeAbsorption")      # blue deep inside: translucent white-blue ice
-    ab.inputs["Color"].default_value = (0.45, 0.75, 1.0, 1); ab.inputs["Density"].default_value = 0.35
+    ab.inputs["Color"].default_value = (0.45, 0.75, 1.0, 1); ab.inputs["Density"].default_value = a.ice_absorb
     spire_m.node_tree.links.new(ab.outputs["Volume"], spire_m.node_tree.nodes["Material Output"].inputs["Volume"])
     cliff_m = ice("ice_cliff", (0.85, 0.92, 1.0), 0.15, 0.6)               # big pieces: lighter, or absorption turns
     ab2 = cliff_m.node_tree.nodes.new("ShaderNodeVolumeAbsorption")         # them cobalt (it grows with thickness)
@@ -387,7 +392,7 @@ else:                                   # Antarctica at dusk, rendered
 
         # Emitted continuously from upwind, from 3 s before the clip, each flake living ~4 s, so the snow never runs out
         # (POC 5 bug: all flakes born at frame 0 were blown out of the corridor within 2 s, user: "why does the snow stop?")
-        PRE, LIFE = 72, 96
+        PRE, LIFE = FO, 96
 
         def flurry(name, z0, z1, width, count, size, rand, mass):
             bpy.ops.mesh.primitive_cube_add(size=1)
@@ -395,7 +400,7 @@ else:                                   # Antarctica at dusk, rendered
             em.location = (-6, (L - 30) / 2, (z0 + z1) / 2); em.scale = (width + 12, L + 30, z1 - z0)   # wider upwind (-x)
             ps = em.modifiers.new(name, "PARTICLE_SYSTEM").particle_system.settings
             em.show_instancer_for_render = False      # hide_render on the emitter would hide its flakes too
-            ps.count = int(count * (N + PRE) / LIFE); ps.frame_start, ps.frame_end = -PRE, N   # ~count alive at any time
+            ps.count = int(count * (N + PRE) / LIFE); ps.frame_start, ps.frame_end = 1 + FO - PRE, FO + N   # ~count alive at any time
             ps.lifetime = LIFE; ps.lifetime_random = 0.3
             ps.emit_from = "VOLUME"; ps.distribution = "RAND"; ps.normal_factor = 0
             ps.physics_type = "NEWTON"; ps.mass = mass; ps.drag_factor = 1.0; ps.brownian_factor = 0.6
@@ -404,7 +409,7 @@ else:                                   # Antarctica at dusk, rendered
             ps.rotation_mode = "NONE"; ps.rotation_factor_random = 1.0; ps.angular_velocity_mode = "RAND"
             ps.angular_velocity_factor = 3.0
             ps.particle_size = size; ps.size_random = rand
-            em.particle_systems[0].point_cache.frame_start = -PRE; em.particle_systems[0].point_cache.frame_end = N
+            em.particle_systems[0].point_cache.frame_start = 1 + FO - PRE; em.particle_systems[0].point_cache.frame_end = FO + N
         flurry("flurry", 0.3, 7.0, 16, a.snow, 0.07, 0.9, 0.02)           # falling flakes, 2-13 cm
         flurry("spindrift", 0.0, 0.5, 30, a.snow // 2, 0.016, 0.8, 0.005)  # fine snow streaming over the ground
         cam.data.dof.use_dof = True; cam.data.dof.focus_distance = 14; cam.data.dof.aperture_fstop = 2.0
@@ -414,7 +419,7 @@ else:                                   # Antarctica at dusk, rendered
         wind.rotation_euler = (0, math.radians(90), math.radians(-15))  # blowing across the path, a little towards us
         for i in range(N):
             wind.field.strength = 0.02 + 0.12 * high[i] ** 2
-            wind.field.keyframe_insert("strength", frame=i + 1)
+            wind.field.keyframe_insert("strength", frame=i + 1 + FO)
         sc.render.use_motion_blur = True; sc.render.motion_blur_shutter = 0.5
     sc.cycles.max_bounces = 8; sc.cycles.transmission_bounces = 8
     if a.swifts:                       # tweets -> swifts (user, 2026-10-27: "like swift birds making short fluffy contrails
@@ -422,6 +427,7 @@ else:                                   # Antarctica at dusk, rendered
         # tears along a long swooping curve in ~1/3 s; behind it a short contrail of soft volume, which spreads and fades
         # as its tail catches up with the head.
         T = C["tweets"]; DRAW, LINGER, TAIL = 8, 30, 0.5
+        BIRD = 1.65                                                   # swift size (x its distance / 80 m)
         # the swift at the head (user, 2026-10-27: "they're birds so should have a head of the contrail with a bird-like
         # shape"): a dark silhouette from below, nose +y, span 2.1 units: sickle wings swept back, a forked tail
         half = [(0.0, 0.55), (0.06, 0.45), (0.08, 0.15), (0.35, 0.12), (0.65, 0.0), (0.9, -0.2), (1.05, -0.45),
@@ -473,7 +479,7 @@ else:                                   # Antarctica at dusk, rendered
                 t_ = (s - cum[j - 1]) / max(1e-6, cum[j] - cum[j - 1])
                 return P[j - 1].lerp(P[j], t_), (P[j] - P[j - 1]).normalized()
             bird = bpy.data.objects.new(f"swift_bird{k}", bm_); sc.collection.objects.link(bird)
-            bird.scale = (1.1 * D / 80,) * 3; bird.visible_shadow = False
+            bird.scale = (BIRD * D / 80,) * 3; bird.visible_shadow = False
             bird.cycles.use_motion_blur = False   # ~11 m per frame: blurred, it smeared into a faint streak
             flap0 = rnd.uniform(0, 6.3)
             cu.bevel_factor_mapping_start = cu.bevel_factor_mapping_end = "SPLINE"
@@ -520,15 +526,15 @@ else:                                   # Antarctica at dusk, rendered
                     q_ = q_ @ Quaternion((0, 1, 0), 0.45 * math.sin(age * 0.7 + flap0))
                     bird.rotation_euler = q_.to_euler()
                     beat = 1 - 0.35 * max(0.0, math.sin(age * 3.1 + flap0)) * (age % 6 < 3)  # bursts of quick beats
-                    bird.scale = (1.1 * D / 80 * beat, 1.1 * D / 80, 1.1 * D / 80)
+                    bird.scale = (BIRD * D / 80 * beat, BIRD * D / 80, BIRD * D / 80)
                 bird.hide_render = not (0 <= age <= DRAW + 6)
                 for prop in ("location", "rotation_euler", "scale", "hide_render"):
-                    bird.keyframe_insert(prop, frame=i + 1)
+                    bird.keyframe_insert(prop, frame=i + 1 + FO)
                 cu.bevel_depth = (0.35 + 1.0 * min(1.0, grow)) * D / 80      # the contrail spreads as it ages
                 dens.inputs[1].default_value = base * fade
                 for prop in ("bevel_factor_end", "bevel_factor_start", "bevel_depth"):
-                    cu.keyframe_insert(prop, frame=i + 1)
-                dens.inputs[1].keyframe_insert("default_value", frame=i + 1)
+                    cu.keyframe_insert(prop, frame=i + 1 + FO)
+                dens.inputs[1].keyframe_insert("default_value", frame=i + 1 + FO)
     if a.sparkles:                     # tweets -> sparkles in the dusk sky (user, 2026-10-27: tight band-pass)
         # ~600 points of light on a far dome ahead, in 16 patches; each tweet lights one patch, which fades in ~0.2 s
         G = 16; T = C["tweets"]; mats = []
@@ -556,7 +562,7 @@ else:                                   # Antarctica at dusk, rendered
                         if gg == g and h <= i)
                 v = v if v > 0.02 else 0                              # dark between tweets
                 em_.inputs["Strength"].default_value = 150 * v
-                em_.inputs["Strength"].keyframe_insert("default_value", frame=i + 1)
+                em_.inputs["Strength"].keyframe_insert("default_value", frame=i + 1 + FO)
         # star-shaped glints on the sparkles only: glare on the emission pass (the sparkles are see-through, so an
         # object-index mask never records them; the sky and sun are not in this pass, so the sun gets no cross)
         bpy.context.view_layer.use_pass_emit = True
@@ -604,16 +610,16 @@ else:                                   # Antarctica at dusk, rendered
         mc.data.materials.append(m)
         for i in range(N):
             dens.inputs[1].default_value = a.mist * mi[i]
-            dens.inputs[1].keyframe_insert("default_value", frame=i + 1)
+            dens.inputs[1].keyframe_insert("default_value", frame=i + 1 + FO)
             mp.inputs["Location"].default_value = (0.004 * i, 0.0015 * i, 0)      # banks drifting across
-            mp.inputs["Location"].keyframe_insert("default_value", frame=i + 1)
+            mp.inputs["Location"].keyframe_insert("default_value", frame=i + 1 + FO)
         sc.cycles.volume_step_rate = 4; sc.cycles.volume_max_steps = 256
     sc.cycles.max_bounces = 8; sc.cycles.transmission_bounces = 8
     sc.cycles.glossy_bounces = 8 if a.theme in ("chrome", "icechrome") else 4
 
 if a.snow and os.environ.get("SNOW_CHECK"):     # flakes within 20 m in front of the camera, per second, no render
     for f in range(1, N + 1, int(C["fps"])):
-        sc.frame_set(f); dg = bpy.context.evaluated_depsgraph_get()
+        sc.frame_set(f + FO); dg = bpy.context.evaluated_depsgraph_get()
         cp = cam.matrix_world.translation; fw = cam.matrix_world.to_quaternion() @ Vector((0, 0, -1))
         n_ = {}
         for ob in bpy.data.objects:
@@ -624,16 +630,18 @@ if a.snow and os.environ.get("SNOW_CHECK"):     # flakes within 20 m in front of
         print("snow check frame", f, n_, flush=True)
     sys.exit(0)
 os.makedirs(out, exist_ok=True)
-# bake the snow first: rendering frame 1 cold (with motion blur sampling its sub-frames) smeared the whole of POC 7's
-# first frame
+# bake the snow over the whole scene range, run-up included
 if a.snow:
     bpy.ops.ptcache.bake_all(bake=True)
 bpy.ops.wm.save_as_mainfile(filepath=f"{out}/scene_{a.mode}.blend")
 sc.render.filepath = f"{out}/{a.mode}/"
 if a.only:
     for f in (int(v) for v in a.only.split(",")):
-        sc.frame_set(f); sc.render.filepath = f"{out}/{a.mode}/{f:04d}.png"
+        sc.frame_set(f + FO); sc.render.filepath = f"{out}/{a.mode}/{f:04d}.png"
         bpy.ops.render.render(write_still=True)
 else:
+    sc.frame_start = FO + 1
     bpy.ops.render.render(animation=True)
+    for k in range(1, N + 1):                  # scene frame FO+k -> file k
+        os.replace(f"{out}/{a.mode}/{FO + k:04d}.png", f"{out}/{a.mode}/{k:04d}.png")
 print("ice ok", out, N, "frames")
