@@ -36,7 +36,7 @@ ap.add_argument("--ice-absorb", type=float, default=0.35, help="blue absorption 
 ap.add_argument("--layers", default="", help="music_layers.py JSON: the song's other layers, each with its own visual")
 ap.add_argument("--layer-fx", default="chime,drone,pad,subbass,clicks", help="which of the layers to show")
 ap.add_argument("--chime-glow", type=float, default=6.0, help="emission of a crystal lit by a chime note")
-ap.add_argument("--halo", type=float, default=0.8, help="peak brightness of the drone's ice halo round the sun")
+ap.add_argument("--halo", type=float, default=2.5, help="peak brightness of the drone's ice halo round the sun")
 ap.add_argument("--cloud-sweep", type=float, default=45.0, help="metres the cloud shadows slide at each chord change")
 ap.add_argument("--drift", type=float, default=0.25, help="peak density of the sub-bass's low ground drift")
 ap.add_argument("--crack-glow", type=float, default=25.0, help="emission of a click's glinting crack")
@@ -567,8 +567,13 @@ else:                                   # Antarctica at dusk, rendered
             mu = nt_.nodes.new("ShaderNodeMath"); mu.operation = "MULTIPLY"; mu.inputs[1].default_value = k
             em = nt_.nodes.new("ShaderNodeEmission"); em.inputs["Color"].default_value = (*color, 1)
             o_ = nt_.nodes.new("ShaderNodeOutputMaterial")
+            on_ = nt_.nodes.new("ShaderNodeMath"); on_.operation = "MULTIPLY"; on_.use_clamp = True    # unlit: unseen
+            on_.inputs[1].default_value = 4.0                    # (an unlit emitter renders black)
+            tr = nt_.nodes.new("ShaderNodeBsdfTransparent"); mxs = nt_.nodes.new("ShaderNodeMixShader")
             nt_.links.new(oi.outputs["Color"], sp_.inputs[0]); nt_.links.new(sp_.outputs[0], mu.inputs[0])
-            nt_.links.new(mu.outputs[0], em.inputs["Strength"]); nt_.links.new(em.outputs[0], o_.inputs["Surface"])
+            nt_.links.new(sp_.outputs[0], on_.inputs[0]); nt_.links.new(on_.outputs[0], mxs.inputs["Fac"])
+            nt_.links.new(mu.outputs[0], em.inputs["Strength"]); nt_.links.new(tr.outputs[0], mxs.inputs[1])
+            nt_.links.new(em.outputs[0], mxs.inputs[2]); nt_.links.new(mxs.outputs[0], o_.inputs["Surface"])
             return m
 
         def key_flash(ob, h, st, tau, span):                     # object colour: 0, a flash of st at h, decaying
@@ -587,7 +592,7 @@ else:                                   # Antarctica at dusk, rendered
             mu = nt_.nodes.new("ShaderNodeMath"); mu.operation = "MULTIPLY"; mu.inputs[1].default_value = a.chime_glow
             nt_.links.new(oi.outputs["Color"], sp_.inputs[0]); nt_.links.new(sp_.outputs[0], mu.inputs[0])
             nt_.links.new(mu.outputs[0], b_.inputs["Emission Strength"])
-            b_.inputs["Emission Color"].default_value = (0.55, 0.82, 1.0, 1)
+            b_.inputs["Emission Color"].default_value = (0.35, 0.7, 1.0, 1)
             lit = [s_ for s_ in spires if s_.active_material is spire_m]
             for s_ in lit:
                 s_.color = (0, 0, 0, 1)
@@ -618,7 +623,8 @@ else:                                   # Antarctica at dusk, rendered
                 key_flash(best, h, 0.35 + 0.65 * nt["strength"], 9, 50)
                 pl = bpy.data.objects.new(f"chime{n_}", bpy.data.lights.new(f"chime{n_}", "POINT"))
                 sc.collection.objects.link(pl); pl.location = centre[best.name]
-                pl.data.color = (0.55, 0.82, 1.0); pl.data.shadow_soft_size = 0.4
+                pl.data.color = (0.35, 0.7, 1.0); pl.data.shadow_soft_size = 0.4
+                pl.visible_glossy = pl.visible_transmission = False     # seen through the ice it was a white disc
                 for i in (h - 1, h + 51):
                     if 0 <= i < N:
                         pl.data.energy = 0; pl.data.keyframe_insert("energy", frame=i + 1 + FO)
@@ -657,7 +663,8 @@ else:                                   # Antarctica at dusk, rendered
             hue.inputs["From Min"].default_value, hue.inputs["From Max"].default_value = 0.97, 1.08
             nt_.links.new(ln.outputs["Value"], hue.inputs["Value"])
             mx = nt_.nodes.new("ShaderNodeMix"); mx.data_type = "RGBA"
-            mx.inputs["A"].default_value = (1.0, 0.72, 0.55, 1); mx.inputs["B"].default_value = (0.82, 0.9, 1.0, 1)
+            col = {s_.identifier: s_ for s_ in mx.inputs}   # by identifier: inputs["A"] is the float A, not the colour
+            col["A_Color"].default_value = (1.0, 0.72, 0.55, 1); col["B_Color"].default_value = (0.82, 0.9, 1.0, 1)
             nt_.links.new(hue.outputs["Result"], mx.inputs["Factor"])
             em = nt_.nodes.new("ShaderNodeEmission"); tr = nt_.nodes.new("ShaderNodeBsdfTransparent")
             ad = nt_.nodes.new("ShaderNodeAddShader"); o_ = nt_.nodes.new("ShaderNodeOutputMaterial")
