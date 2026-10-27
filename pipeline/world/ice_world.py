@@ -6,7 +6,8 @@ forward in surges, the mids sway and turn it, the highs make the low sun glint i
     docker run --rm [--gpus all -e NVIDIA_DRIVER_CAPABILITIES=all] --user $(id -u):$(id -g) -v $PWD:/work -w /work \
         blender -b -P pipeline/world/ice_world.py -- CURVES.json OUT [--mode render|layout] [--frames N] [--seed S]
         [--res 1920x1080] [--samples 64] [--gpu]
-Motion (POC 2): forward only, a slow base speed eased up by the low band like breathing; a steady camera.
+Motion (POC 2, 5): forward only, a slow base speed surging with the low band like breathing; a steady camera.
+--theme ice|chrome|icechrome, --snow N flakes.
 render: Antarctica at dusk directly in Blender (Cycles: translucent white-blue ice, the sun setting on the horizon) ->
         OUT/render/%04d.png.  layout: grey clay (Workbench) for Layout-To-Render -> OUT/layout/%04d.png. Both: OUT/scene.blend.
 """
@@ -24,10 +25,17 @@ ap.add_argument("--seed", type=int, default=7)
 ap.add_argument("--res", default="1920x1080")
 ap.add_argument("--samples", type=int, default=64)
 ap.add_argument("--gpu", action="store_true")
-ap.add_argument("--breath", default="1.4,2.6", help="BASE,GAIN: speed (m/s) = BASE + GAIN x the low band's breath "
-                "envelope (POC 4: 0.9,4.0, so each low swell is felt)")
-ap.add_argument("--theme", default="ice", choices=["ice", "chrome"], help="chrome: the same world in polished chrome, the "
-                "ground rippled liquid metal (user, 2026-10-27, after the Liquid Mercury universe)")
+ap.add_argument("--breath", default="0.8,6.0", help="BASE,GAIN: speed (m/s) = BASE + GAIN x the low band's breath, "
+                "scaled 0..1 within the clip (POC 5: 0.8,6.0, about 1 to 6.5 m/s on each swell)")
+ap.add_argument("--breath-norm", default="window", choices=["window", "song"], help="window: the breath envelope is "
+                "stretched to its own 5-95th percentile in the clip and curved (^1.5), so troughs are slow and swells surge "
+                "(user on POC 4, 2026-10-27: 'not seeing much variation in speed'); song: as POC 1-4")
+ap.add_argument("--snow", type=int, default=0, help="snow flurries: this many flakes drifting through the corridor, "
+                "gusting sideways with the highs")
+ap.add_argument("--theme", default="ice", choices=["ice", "chrome", "icechrome"], help="chrome: the same world in polished chrome, "
+                "the ground rippled liquid metal (user, 2026-10-27, after the Liquid Mercury universe). icechrome: the ice "
+                "with mercury frozen into it: chrome cores inside the crystals, chrome veins in the sheet's cracks, some "
+                "formations solid chrome (user, 2026-10-27: 'a combination of ice and chrome somehow')")
 a = ap.parse_args(sys.argv[sys.argv.index("--") + 1:])
 out = os.path.abspath(a.out)
 C = json.load(open(a.curves))
@@ -57,10 +65,14 @@ def smooth(v, k):
 # low-frequency sounds (which sound a bit like breathing) ... NO movement backwards"). The low band's loudness, through
 # an envelope that rises quickly and releases slowly, eases a slow base speed up; nothing else moves the camera.
 high = band("high")
-env, e = [], 0.0
-for x in band("low"):
+low = band("low")
+env, e = [], (low[0] if a.breath_norm == "window" else 0.0)
+for x in low:
     e += (x - e) * (0.30 if x > e else 0.04)        # breath: quick in, slow out
     env.append(e)
+if a.breath_norm == "window":                       # the swells, not the song's overall loudness, set the range
+    q = sorted(env); lo_, hi_ = q[int(0.05 * (N - 1))], q[int(0.95 * (N - 1))]
+    env = [min(1, max(0, (v - lo_) / (hi_ - lo_ + 1e-9))) ** 1.5 for v in env]
 B0, BG = (float(v) for v in a.breath.split(","))
 speed = smooth([B0 + BG * v for v in env], 0.15)    # metres per second, never below B0: never backwards
 dist = [0.0]
@@ -313,7 +325,69 @@ else:                                   # Antarctica at dusk, rendered
         for ob in [sheet] + mounds + spires:
             ob.data.materials.clear()
             ob.data.materials.append(ground if ob is sheet or ob in mounds else (brushed if rnd.random() < 0.3 else solid))
-    sc.cycles.max_bounces = 8; sc.cycles.transmission_bounces = 8; sc.cycles.glossy_bounces = 8 if a.theme == "chrome" else 4
+    if a.theme == "icechrome":         # mercury frozen into the ice
+        def chrome(name, rough):
+            m = bpy.data.materials.new(name); m.use_nodes = True
+            b = m.node_tree.nodes["Principled BSDF"]
+            b.inputs["Base Color"].default_value = (0.92, 0.93, 0.95, 1); b.inputs["Metallic"].default_value = 1.0
+            b.inputs["Roughness"].default_value = rough
+            return m
+        solid = chrome("chrome", 0.05)
+        nt_ = sheet_m.node_tree; b = nt_.nodes["Principled BSDF"]     # the sheet's cracks run with chrome
+        inv = nt_.nodes.new("ShaderNodeMath"); inv.operation = "SUBTRACT"; inv.inputs[0].default_value = 1.0
+        nt_.links.new(nt_.nodes["Map Range"].outputs["Result"], inv.inputs[1])
+        nt_.links.new(inv.outputs["Value"], b.inputs["Metallic"])
+        for s_ in list(spires):
+            if max(s_.dimensions) > 12:
+                continue
+            if rnd.random() < 0.3:                                      # some formations solid chrome
+                s_.data.materials.clear(); s_.data.materials.append(solid)
+            else:                                                       # a chrome core inside the ice
+                core = s_.copy(); core.data = s_.data.copy(); sc.collection.objects.link(core)
+                core.scale = (0.45, 0.45, 0.7)
+                core.data.materials.clear(); core.data.materials.append(solid)
+    if a.snow:                         # snow flurries: flakes drift through the corridor, gusting sideways on the highs
+        # Organic, not CGI (user, 2026-10-27: "like it's an alien planet rather than CGI"): ragged flakes of very different
+        # sizes, the nearest out of focus, and spindrift: fine snow streaming low over the ice.
+        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=1)
+        flake = bpy.context.object; flake.name = "flake"; flake.location = (0, -500, -50)
+        for v in flake.data.vertices:          # a ragged, flattened clump, not a ball
+            v.co.z *= 0.35; v.co *= rnd.uniform(0.6, 1.3)
+        fm = bpy.data.materials.new("snow"); fm.use_nodes = True
+        fb = fm.node_tree.nodes["Principled BSDF"]
+        fb.inputs["Base Color"].default_value = (1, 1, 1, 1); fb.inputs["Roughness"].default_value = 0.6
+        fb.inputs["Subsurface Weight"].default_value = 0.5
+        fb.inputs["Emission Color"].default_value = (1.0, 0.82, 0.7, 1); fb.inputs["Emission Strength"].default_value = 0.6
+        flake.data.materials.append(fm)
+
+        def flurry(name, z0, z1, width, count, size, rand, mass):
+            bpy.ops.mesh.primitive_cube_add(size=1)
+            em = bpy.context.object; em.name = name
+            em.location = (0, (L - 30) / 2, (z0 + z1) / 2); em.scale = (width, L + 30, z1 - z0)
+            ps = em.modifiers.new(name, "PARTICLE_SYSTEM").particle_system.settings
+            em.show_instancer_for_render = False      # hide_render on the emitter would hide its flakes too
+            ps.count = count; ps.frame_start = ps.frame_end = 0; ps.lifetime = N + 10
+            ps.emit_from = "VOLUME"; ps.distribution = "RAND"; ps.normal_factor = 0
+            ps.physics_type = "NEWTON"; ps.mass = mass; ps.drag_factor = 0.5; ps.brownian_factor = 0.6
+            ps.effector_weights.gravity = 0.04
+            ps.render_type = "OBJECT"; ps.instance_object = flake; ps.use_rotations = True
+            ps.rotation_mode = "NONE"; ps.rotation_factor_random = 1.0; ps.angular_velocity_mode = "RAND"
+            ps.angular_velocity_factor = 3.0
+            ps.particle_size = size; ps.size_random = rand
+            em.particle_systems[0].point_cache.frame_start = 0; em.particle_systems[0].point_cache.frame_end = N
+        flurry("flurry", 0.3, 7.0, 16, a.snow, 0.035, 0.9, 0.02)          # falling flakes, 1-6 cm
+        flurry("spindrift", 0.0, 0.5, 30, a.snow // 2, 0.008, 0.8, 0.005)  # fine snow streaming over the ground
+        cam.data.dof.use_dof = True; cam.data.dof.focus_distance = 14; cam.data.dof.aperture_fstop = 2.0
+        wind = bpy.data.objects.new("wind", None); sc.collection.objects.link(wind)
+        wind.empty_display_type = "SINGLE_ARROW"; bpy.context.view_layer.objects.active = wind
+        bpy.ops.object.forcefield_toggle(); wind.field.type = "WIND"
+        wind.rotation_euler = (0, math.radians(90), math.radians(-15))  # blowing across the path, a little towards us
+        for i in range(N):
+            wind.field.strength = 0.08 + 0.5 * high[i] ** 2
+            wind.field.keyframe_insert("strength", frame=i + 1)
+        sc.render.use_motion_blur = True; sc.render.motion_blur_shutter = 0.5
+    sc.cycles.max_bounces = 8; sc.cycles.transmission_bounces = 8
+    sc.cycles.glossy_bounces = 8 if a.theme in ("chrome", "icechrome") else 4
 
 os.makedirs(out, exist_ok=True)
 bpy.ops.wm.save_as_mainfile(filepath=f"{out}/scene_{a.mode}.blend")
