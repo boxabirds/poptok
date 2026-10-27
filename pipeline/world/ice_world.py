@@ -21,6 +21,7 @@ ap.add_argument("curves")
 ap.add_argument("out")
 ap.add_argument("--mode", default="render", choices=["render", "layout"])
 ap.add_argument("--frames", type=int, default=0)
+ap.add_argument("--only", default="", help="render just these frames, e.g. 22,110 (quick tests)")
 ap.add_argument("--seed", type=int, default=7)
 ap.add_argument("--res", default="1920x1080")
 ap.add_argument("--samples", type=int, default=64)
@@ -265,14 +266,14 @@ else:                                   # Antarctica at dusk, rendered
     w = bpy.data.worlds.new("dusk"); sc.world = w; w.use_nodes = True
     nt = w.node_tree; nt.nodes.clear()
     sky = nt.nodes.new("ShaderNodeTexSky"); sky.sky_type = "NISHITA"
-    sky.sun_elevation = math.radians(3.0); sky.sun_rotation = math.radians(SUN_AZ)  # the sun on the horizon, ahead
-    sky.altitude = 50; sky.air_density = 1.4; sky.dust_density = 2.0; sky.sun_size = math.radians(1.2)
-    bgn = nt.nodes.new("ShaderNodeBackground"); bgn.inputs["Strength"].default_value = 0.35
+    sky.sun_elevation = math.radians(1.5); sky.sun_rotation = math.radians(SUN_AZ)  # the sun on the horizon, ahead
+    sky.altitude = 50; sky.air_density = 2.2; sky.dust_density = 0.7; sky.sun_size = math.radians(1.2)
+    bgn = nt.nodes.new("ShaderNodeBackground"); bgn.inputs["Strength"].default_value = 0.22
     o = nt.nodes.new("ShaderNodeOutputWorld")
     nt.links.new(sky.outputs["Color"], bgn.inputs["Color"]); nt.links.new(bgn.outputs["Background"], o.inputs["Surface"])
     sun = bpy.data.objects.new("sun", bpy.data.lights.new("sun", "SUN")); sc.collection.objects.link(sun)
     sun.data.color = (1.0, 0.55, 0.3); sun.data.angle = math.radians(1.2)
-    sun.rotation_euler = (math.radians(88.5), 0, math.radians(180 - SUN_AZ))      # low, from far ahead (+y), grazing the ice
+    sun.rotation_euler = (math.radians(90 - 1.5), 0, math.radians(180 - SUN_AZ))      # low, from far ahead (+y), grazing the ice
     for i in range(N):                                                  # the highs make the low sun glint
         sun.data.energy = 3.0 + 4.0 * high[i] ** 2
         sun.data.keyframe_insert("energy", frame=i + 1)
@@ -357,6 +358,52 @@ else:                                   # Antarctica at dusk, rendered
         for s_ in spires:
             if max(s_.dimensions) <= 12 and rnd.random() < 0.35:
                 s_.data.materials.clear(); s_.data.materials.append(solid)
+    if a.snow:                         # snow flurries: flakes drift through the corridor, gusting sideways on the highs
+        # Organic, not CGI (user, 2026-10-27: "like it's an alien planet rather than CGI"): ragged flakes of very different
+        # sizes, the nearest out of focus, and spindrift: fine snow streaming low over the ice.
+        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=1)
+        flake = bpy.context.object; flake.name = "flake"; flake.location = (0, -500, -50)
+        for v in flake.data.vertices:          # a ragged, flattened clump, not a ball
+            v.co.z *= 0.35; v.co *= rnd.uniform(0.6, 1.3)
+        fm = bpy.data.materials.new("snow"); fm.use_nodes = True
+        fb = fm.node_tree.nodes["Principled BSDF"]
+        fb.inputs["Base Color"].default_value = (0.78, 0.82, 0.9, 1); fb.inputs["Roughness"].default_value = 0.6
+        fb.inputs["Subsurface Weight"].default_value = 0.5
+        fb.inputs["Emission Color"].default_value = (1.0, 0.82, 0.7, 1); fb.inputs["Emission Strength"].default_value = 0.25
+        flake.data.materials.append(fm)
+
+        # Emitted continuously from upwind, from 3 s before the clip, each flake living ~4 s, so the snow never runs out
+        # (POC 5 bug: all flakes born at frame 0 were blown out of the corridor within 2 s, user: "why does the snow stop?")
+        PRE, LIFE = 72, 96
+
+        def flurry(name, z0, z1, width, count, size, rand, mass):
+            bpy.ops.mesh.primitive_cube_add(size=1)
+            em = bpy.context.object; em.name = name
+            em.location = (-6, (L - 30) / 2, (z0 + z1) / 2); em.scale = (width + 12, L + 30, z1 - z0)   # wider upwind (-x)
+            ps = em.modifiers.new(name, "PARTICLE_SYSTEM").particle_system.settings
+            em.show_instancer_for_render = False      # hide_render on the emitter would hide its flakes too
+            ps.count = int(count * (N + PRE) / LIFE); ps.frame_start, ps.frame_end = -PRE, N   # ~count alive at any time
+            ps.lifetime = LIFE; ps.lifetime_random = 0.3
+            ps.emit_from = "VOLUME"; ps.distribution = "RAND"; ps.normal_factor = 0
+            ps.physics_type = "NEWTON"; ps.mass = mass; ps.drag_factor = 1.0; ps.brownian_factor = 0.6
+            ps.effector_weights.gravity = 0.04
+            ps.render_type = "OBJECT"; ps.instance_object = flake; ps.use_rotations = True
+            ps.rotation_mode = "NONE"; ps.rotation_factor_random = 1.0; ps.angular_velocity_mode = "RAND"
+            ps.angular_velocity_factor = 3.0
+            ps.particle_size = size; ps.size_random = rand
+            em.particle_systems[0].point_cache.frame_start = -PRE; em.particle_systems[0].point_cache.frame_end = N
+        flurry("flurry", 0.3, 7.0, 16, a.snow, 0.07, 0.9, 0.02)           # falling flakes, 2-13 cm
+        flurry("spindrift", 0.0, 0.5, 30, a.snow // 2, 0.016, 0.8, 0.005)  # fine snow streaming over the ground
+        cam.data.dof.use_dof = True; cam.data.dof.focus_distance = 14; cam.data.dof.aperture_fstop = 2.0
+        wind = bpy.data.objects.new("wind", None); sc.collection.objects.link(wind)
+        wind.empty_display_type = "SINGLE_ARROW"; bpy.context.view_layer.objects.active = wind
+        bpy.ops.object.forcefield_toggle(); wind.field.type = "WIND"
+        wind.rotation_euler = (0, math.radians(90), math.radians(-15))  # blowing across the path, a little towards us
+        for i in range(N):
+            wind.field.strength = 0.02 + 0.12 * high[i] ** 2
+            wind.field.keyframe_insert("strength", frame=i + 1)
+        sc.render.use_motion_blur = True; sc.render.motion_blur_shutter = 0.5
+    sc.cycles.max_bounces = 8; sc.cycles.transmission_bounces = 8
     if a.sparkles:                     # tweets -> sparkles in the dusk sky (user, 2026-10-27: tight band-pass)
         # ~600 points of light on a far dome ahead, in 16 patches; each tweet lights one patch, which fades in ~0.2 s
         G = 16; T = C["tweets"]; mats = []
@@ -372,7 +419,7 @@ else:                                   # Antarctica at dusk, rendered
         for k in range(600):
             g = rnd.randrange(G)
             az = math.radians(rnd.gauss(0, 30)); el = math.radians(rnd.uniform(4, 30)); R = 800
-            bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=rnd.uniform(1.2, 2.6),
+            bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=3, radius=rnd.uniform(2.4, 5.2),
                                                   location=(R * math.sin(az) * math.cos(el), cy + R * math.cos(az) * math.cos(el),
                                                             R * math.sin(el)))
             o = bpy.context.object; o.data.materials.append(mats[g][0])
@@ -380,24 +427,24 @@ else:                                   # Antarctica at dusk, rendered
         group_of = [rnd.randrange(G) for _ in T["hits"]]
         for g, (m, em_) in enumerate(mats):
             for i in range(N):
-                v = sum(st * math.exp(-(i - h) / 5) for h, st, gg in zip(T["hits"], T["hit_strength"], group_of)
+                v = sum(st * math.exp(-(i - h) / 3) for h, st, gg in zip(T["hits"], T["hit_strength"], group_of)
                         if gg == g and h <= i)
-                em_.inputs["Strength"].default_value = 60 * v
+                v = v if v > 0.02 else 0                              # dark between tweets
+                em_.inputs["Strength"].default_value = 150 * v
                 em_.inputs["Strength"].keyframe_insert("default_value", frame=i + 1)
-        # star-shaped glints on the sparkles only (masked by object index, so the sun gets no cross)
-        bpy.context.view_layer.use_pass_object_index = True
+        # star-shaped glints on the sparkles only: glare on the emission pass (the sparkles are see-through, so an
+        # object-index mask never records them; the sky and sun are not in this pass, so the sun gets no cross)
+        bpy.context.view_layer.use_pass_emit = True
         sc.use_nodes = True; ct = sc.node_tree; ct.nodes.clear()
         rl = ct.nodes.new("CompositorNodeRLayers")
-        idm = ct.nodes.new("CompositorNodeIDMask"); idm.index = 7; idm.use_antialiasing = True
-        only = ct.nodes.new("CompositorNodeMixRGB"); only.blend_type = "MULTIPLY"; only.inputs["Fac"].default_value = 1
         gl = ct.nodes.new("CompositorNodeGlare")
-        gl.glare_type = "STREAKS"; gl.streaks = 4; gl.angle_offset = math.radians(45); gl.threshold = 0.5
-        gl.mix = 1.0; gl.quality = "HIGH"; gl.fade = 0.88                # mix 1: the streaks alone
+        gl.glare_type = "STREAKS"; gl.streaks = 4; gl.angle_offset = 0; gl.threshold = 1.0
+        gl.mix = 1.0; gl.quality = "HIGH"; gl.fade = 0.82                # mix 1: the streaks alone
         add = ct.nodes.new("CompositorNodeMixRGB"); add.blend_type = "ADD"; add.inputs["Fac"].default_value = 1
         co = ct.nodes.new("CompositorNodeComposite")
-        ct.links.new(rl.outputs["IndexOB"], idm.inputs["ID value"])
-        ct.links.new(rl.outputs["Image"], only.inputs[1]); ct.links.new(idm.outputs["Alpha"], only.inputs[2])
-        ct.links.new(only.outputs["Image"], gl.inputs["Image"])
+        dim = ct.nodes.new("CompositorNodeMixRGB"); dim.blend_type = "MULTIPLY"; dim.inputs["Fac"].default_value = 1
+        dim.inputs[2].default_value = (0.2, 0.2, 0.2, 1)            # short, faint spikes (like a star's), not crosses
+        ct.links.new(rl.outputs["Emit"], dim.inputs[1]); ct.links.new(dim.outputs["Image"], gl.inputs["Image"])
         ct.links.new(rl.outputs["Image"], add.inputs[1]); ct.links.new(gl.outputs["Image"], add.inputs[2])
         ct.links.new(add.outputs["Image"], co.inputs["Image"])
     if a.mist:                         # mids -> a low mist that comes and goes, lit gold by the low sun
@@ -454,5 +501,10 @@ if a.snow and os.environ.get("SNOW_CHECK"):     # flakes within 20 m in front of
 os.makedirs(out, exist_ok=True)
 bpy.ops.wm.save_as_mainfile(filepath=f"{out}/scene_{a.mode}.blend")
 sc.render.filepath = f"{out}/{a.mode}/"
-bpy.ops.render.render(animation=True)
+if a.only:
+    for f in (int(v) for v in a.only.split(",")):
+        sc.frame_set(f); sc.render.filepath = f"{out}/{a.mode}/{f:04d}.png"
+        bpy.ops.render.render(write_still=True)
+else:
+    bpy.ops.render.render(animation=True)
 print("ice ok", out, N, "frames")
