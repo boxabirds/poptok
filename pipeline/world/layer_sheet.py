@@ -24,7 +24,9 @@ def ok(f):                              # event frame f (0-based, as in the JSON
     return max(1, min(N, f + 1))
 
 
-def mid(hits, lo=10):                   # an event well inside the clip, so its before/after frames exist
+def mid(hits, lo=10):
+    if not hits:
+        return N // 2                   # an event well inside the clip, so its before/after frames exist
     hs = [h for h in hits if lo <= h <= N - 12]
     return hs[len(hs) // 2] if hs else hits[0]
 
@@ -34,11 +36,12 @@ def extremes(v):                        # the quietest and loudest frames
     return i0, i1
 
 
-tw = C["tweets"]["hits"]; t0 = max(tw, key=lambda h: sum(1 for x in tw if abs(x - h) < 8)) if tw else 1
-kick = C["bands"]["low"]["hits"]; k0 = mid(kick)
-ch = LY["pad"]["changes"]; c0 = mid(ch)
-ph = [n["frame"] for n in LY["chime"]]; n0 = mid(ph)
-cl = LY["clicks"]["hits"]; cs = LY["clicks"]["strength"]; x0 = max(zip(cs, cl))[1] if cl else 1
+IN = lambda hs: [h for h in hs if h < N]   # events inside the rendered frames (a dry run renders only the start)
+tw = IN(C["tweets"]["hits"]); t0 = max(tw, key=lambda h: sum(1 for x in tw if abs(x - h) < 8)) if tw else 1
+kick = IN(C["bands"]["low"]["hits"]); k0 = mid(kick)
+ch = IN(LY["pad"]["changes"]) or [N // 2]; c0 = mid(ch)
+ph = IN([n["frame"] for n in LY["chime"]]); n0 = mid(ph)
+x0 = max(((s_, h) for s_, h in zip(LY["clicks"]["strength"], LY["clicks"]["hits"]) if h < N), default=(0, 1))[1]
 s_lo, s_hi = extremes(LY["subbass"]); d_lo, d_hi = extremes(LY["drone"]["energy"])
 rows = [("1 heartbeat (camera surge; motion, see video)", [k0 - 6, k0, k0 + 8]),
         ("2 swifts (tweet)", [t0, t0 + 3, t0 + 7]),
