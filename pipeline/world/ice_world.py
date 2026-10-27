@@ -14,7 +14,7 @@ render: Antarctica at dusk directly in Blender (Cycles: translucent white-blue i
 import argparse, json, math, os, random, sys
 
 import bpy
-from mathutils import Vector, noise
+from mathutils import Matrix, Quaternion, Vector, noise
 
 ap = argparse.ArgumentParser()
 ap.add_argument("curves")
@@ -422,6 +422,23 @@ else:                                   # Antarctica at dusk, rendered
         # tears along a long swooping curve in ~1/3 s; behind it a short contrail of soft volume, which spreads and fades
         # as its tail catches up with the head.
         T = C["tweets"]; DRAW, LINGER, TAIL = 8, 30, 0.5
+        # the swift at the head (user, 2026-10-27: "they're birds so should have a head of the contrail with a bird-like
+        # shape"): a dark silhouette from below, nose +y, span 2.1 units: sickle wings swept back, a forked tail
+        half = [(0.0, 0.55), (0.06, 0.45), (0.08, 0.15), (0.35, 0.12), (0.65, 0.0), (0.9, -0.2), (1.05, -0.45),
+                (0.8, -0.3), (0.5, -0.15), (0.2, -0.08), (0.07, -0.2), (0.12, -0.62), (0.0, -0.42)]
+        ring = half + [(-x, y) for x, y in reversed(half[1:-1])]
+        bm_ = bpy.data.meshes.new("swift"); bm_.from_pydata([(x, y, 0) for x, y in ring], [], [list(range(len(ring)))])
+        bm_.update()
+        bird_m = bpy.data.materials.new("swift"); bird_m.use_nodes = True
+        bb = bird_m.node_tree.nodes["Principled BSDF"]
+        bb.inputs["Base Color"].default_value = (0.03, 0.03, 0.035, 1); bb.inputs["Roughness"].default_value = 0.7
+        bm_.materials.append(bird_m)
+        tp_cu = bpy.data.curves.new("contrail_taper", "CURVE")       # radius along the visible contrail: 0 at the old
+        tsp = tp_cu.splines.new("POLY"); prof = [(0, 0.0), (0.2, 0.55), (0.55, 1.0), (0.85, 0.75), (1.0, 0.12)]
+        tsp.points.add(len(prof) - 1)                                 # tail, thin where it leaves the bird
+        for j, (x, y) in enumerate(prof):
+            tsp.points[j].co = (x, y, 0, 1)
+        taper = bpy.data.objects.new("contrail_taper", tp_cu); sc.collection.objects.link(taper); taper.hide_render = True
         for k, (h, st) in enumerate(zip(T["hits"], T["hit_strength"])):
             if h >= N:
                 continue
@@ -441,9 +458,24 @@ else:                                   # Antarctica at dusk, rendered
             lift = max(0.0, c0.z + 5 - min(p.z for p in P))           # never below the horizon line
             cu = bpy.data.curves.new(f"swift{k}", "CURVE"); cu.dimensions = "3D"
             sp = cu.splines.new("POLY"); sp.points.add(M - 1)
+            P = [p + up * lift for p in P]
             for j, p in enumerate(P):
-                sp.points[j].co = (p.x, p.y, p.z + lift, 1)
+                sp.points[j].co = (p.x, p.y, p.z, 1)
             cu.bevel_resolution = 3; cu.use_fill_caps = True
+            cu.taper_object = taper; cu.use_map_taper = True
+            cum = [0.0]
+            for j in range(1, M):
+                cum.append(cum[-1] + (P[j] - P[j - 1]).length)
+
+            def along(e_):                                            # point and heading at arc-length fraction e_
+                s = e_ * cum[-1]
+                j = max(1, min(M - 1, next((q for q in range(1, M) if cum[q] >= s), M - 1)))
+                t_ = (s - cum[j - 1]) / max(1e-6, cum[j] - cum[j - 1])
+                return P[j - 1].lerp(P[j], t_), (P[j] - P[j - 1]).normalized()
+            bird = bpy.data.objects.new(f"swift_bird{k}", bm_); sc.collection.objects.link(bird)
+            bird.scale = (1.1 * D / 80,) * 3; bird.visible_shadow = False
+            bird.cycles.use_motion_blur = False   # ~11 m per frame: blurred, it smeared into a faint streak
+            flap0 = rnd.uniform(0, 6.3)
             cu.bevel_factor_mapping_start = cu.bevel_factor_mapping_end = "SPLINE"
             ob = bpy.data.objects.new(f"swift{k}", cu); sc.collection.objects.link(ob)
             ob.visible_shadow = False
@@ -451,9 +483,10 @@ else:                                   # Antarctica at dusk, rendered
             pv = nt_.nodes.new("ShaderNodeVolumePrincipled")
             pv.inputs["Color"].default_value = (0.92, 0.95, 1.0, 1); pv.inputs["Anisotropy"].default_value = 0.5
             tc = nt_.nodes.new("ShaderNodeTexCoord")
-            nz = nt_.nodes.new("ShaderNodeTexNoise"); nz.inputs["Scale"].default_value = 1.5; nz.inputs["Detail"].default_value = 6
+            nz = nt_.nodes.new("ShaderNodeTexNoise"); nz.inputs["Scale"].default_value = 3.0; nz.inputs["Detail"].default_value = 8
+            nz.inputs["Roughness"].default_value = 0.65
             mr = nt_.nodes.new("ShaderNodeMapRange")                  # puffs, not a smooth tube
-            mr.inputs["From Min"].default_value, mr.inputs["From Max"].default_value = 0.2, 0.6
+            mr.inputs["From Min"].default_value, mr.inputs["From Max"].default_value = 0.35, 0.75
             dens = nt_.nodes.new("ShaderNodeMath"); dens.operation = "MULTIPLY"
             out_ = nt_.nodes.new("ShaderNodeOutputMaterial")
             nt_.links.new(tc.outputs["Object"], nz.inputs["Vector"]); nt_.links.new(nz.outputs["Fac"], mr.inputs["Value"])
@@ -464,7 +497,7 @@ else:                                   # Antarctica at dusk, rendered
             nt_.links.new(glow.outputs["Value"], pv.inputs["Emission Strength"])
             nt_.links.new(pv.outputs["Volume"], out_.inputs["Volume"])
             cu.materials.append(m)
-            base = 2.0 * (0.5 + 0.5 * st)
+            base = 1.2 * (0.5 + 0.5 * st)
             for i in range(max(0, h - 1), min(N, h + DRAW + LINGER + 2)):
                 age = i - h
                 if age < 0:
@@ -475,7 +508,23 @@ else:                                   # Antarctica at dusk, rendered
                     q = min(1.0, (age - DRAW) / LINGER)
                     e_, s_ = 1.0, min(1.0, 1 - TAIL + TAIL * q); fade, grow = 1 - q, age / (DRAW + LINGER)
                 cu.bevel_factor_end, cu.bevel_factor_start = e_, s_
-                cu.bevel_depth = (0.6 + 1.4 * min(1.0, grow)) * D / 80      # the contrail spreads as it ages
+                if 0 <= age <= DRAW + 6:
+                    pos, hd_ = along(min(1.0, e_))
+                    pos = pos + hd_ * max(0, age - DRAW) * cum[-1] / DRAW   # past the end: on at the same speed
+                    bird.location = pos
+                    # wings turned to the camera (laid flat they were edge-on from the ground: invisible), rolling a
+                    # little through the turns
+                    cp_ = path(dist[i]); cp_.z = zs[i]
+                    nz_ = (cp_ - pos); nz_ = (nz_ - hd_ * nz_.dot(hd_)).normalized()
+                    q_ = Matrix((hd_.cross(nz_), hd_, nz_)).transposed().to_quaternion()
+                    q_ = q_ @ Quaternion((0, 1, 0), 0.45 * math.sin(age * 0.7 + flap0))
+                    bird.rotation_euler = q_.to_euler()
+                    beat = 1 - 0.35 * max(0.0, math.sin(age * 3.1 + flap0)) * (age % 6 < 3)  # bursts of quick beats
+                    bird.scale = (1.1 * D / 80 * beat, 1.1 * D / 80, 1.1 * D / 80)
+                bird.hide_render = not (0 <= age <= DRAW + 6)
+                for prop in ("location", "rotation_euler", "scale", "hide_render"):
+                    bird.keyframe_insert(prop, frame=i + 1)
+                cu.bevel_depth = (0.35 + 1.0 * min(1.0, grow)) * D / 80      # the contrail spreads as it ages
                 dens.inputs[1].default_value = base * fade
                 for prop in ("bevel_factor_end", "bevel_factor_start", "bevel_depth"):
                     cu.keyframe_insert(prop, frame=i + 1)
