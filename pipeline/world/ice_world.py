@@ -37,7 +37,7 @@ ap.add_argument("--layers", default="", help="music_layers.py JSON: the song's o
 ap.add_argument("--layer-fx", default="chime,drone,pad,subbass,clicks", help="which of the layers to show")
 ap.add_argument("--chime-glow", type=float, default=6.0, help="emission of a crystal lit by a chime note")
 ap.add_argument("--halo", type=float, default=2.5, help="peak brightness of the drone's ice halo round the sun")
-ap.add_argument("--cloud-sweep", type=float, default=45.0, help="metres the cloud shadows slide at each chord change")
+ap.add_argument("--cloud-sweep", type=float, default=70.0, help="metres the cloud shadows slide at each chord change")
 ap.add_argument("--drift", type=float, default=0.25, help="peak density of the sub-bass's low ground drift")
 ap.add_argument("--crack-glow", type=float, default=25.0, help="emission of a click's glinting crack")
 ap.add_argument("--only", default="", help="render just these frames, e.g. 22,110 (quick tests)")
@@ -69,6 +69,7 @@ sc = bpy.context.scene
 # The clip is frames FO+1 .. FO+N of the scene; frames 1 .. FO are a run-up for the snow (a particle cache is clipped to
 # the scene range, which cannot start before 0, so the run-up has to be inside it). Output files are numbered 1 .. N.
 FO = 72
+CLOUD_H = 12                                        # the cloud layer: metres above the path (--layers pad)
 sc.render.fps = int(C["fps"]); sc.frame_start, sc.frame_end = 1, FO + N
 W, H = (int(v) for v in a.res.split("x"))
 sc.render.resolution_x, sc.render.resolution_y = W, H
@@ -434,6 +435,7 @@ else:                                   # Antarctica at dusk, rendered
         # tears along a long swooping curve in ~1/3 s; behind it a short contrail of soft volume, which spreads and fades
         # as its tail catches up with the head.
         T = C["tweets"]; DRAW, LINGER, TAIL = 8, 30, 0.5
+        TRAIL_MIN = 16 if a.layers else 5                             # metres above the camera (see the cloud layer)
         BIRD = 1.65                                                   # swift size (x its distance / 80 m)
         # the swift at the head (user, 2026-10-27: "they're birds so should have a head of the contrail with a bird-like
         # shape"): a dark silhouette from below, nose +y, span 2.1 units: sickle wings swept back, a forked tail
@@ -468,7 +470,7 @@ else:                                   # Antarctica at dusk, rendered
                 u += math.cos(hd) * Lp / M; v += math.sin(hd) * Lp / M; uv.append((u, v))
             mu, mv = sum(p[0] for p in uv) / M, sum(p[1] for p in uv) / M
             P = [ctr + rt * (p[0] - mu) + up * 0.55 * (p[1] - mv) + fw * 0.5 * (p[1] - mv) for p in uv]
-            lift = max(0.0, c0.z + 5 - min(p.z for p in P))           # never below the horizon line
+            lift = max(0.0, c0.z + TRAIL_MIN - min(p.z for p in P))   # never low: above the horizon line, the clouds
             cu = bpy.data.curves.new(f"swift{k}", "CURVE"); cu.dimensions = "3D"
             sp = cu.splines.new("POLY"); sp.points.add(M - 1)
             P = [p + up * lift for p in P]
@@ -592,7 +594,7 @@ else:                                   # Antarctica at dusk, rendered
             mu = nt_.nodes.new("ShaderNodeMath"); mu.operation = "MULTIPLY"; mu.inputs[1].default_value = a.chime_glow
             nt_.links.new(oi.outputs["Color"], sp_.inputs[0]); nt_.links.new(sp_.outputs[0], mu.inputs[0])
             nt_.links.new(mu.outputs[0], b_.inputs["Emission Strength"])
-            b_.inputs["Emission Color"].default_value = (0.35, 0.7, 1.0, 1)
+            b_.inputs["Emission Color"].default_value = (0.2, 0.55, 1.0, 1)
             lit = [s_ for s_ in spires if s_.active_material is spire_m]
             for s_ in lit:
                 s_.color = (0, 0, 0, 1)
@@ -607,23 +609,28 @@ else:                                   # Antarctica at dusk, rendered
                 k_ = 0 if first else k_ + 1
                 c0, fw, rt = cam_at(h)
                 want_side, want_d = (1 if k_ % 2 == 0 else -1), 14 + 5 * k_     # alternate sides, walking away
-                best, bs = None, 1e9
+                cand = []
                 for s_ in lit:
                     if s_.name in used:
                         continue
                     r_ = centre[s_.name] - c0; df, dl = r_.dot(fw), r_.dot(rt)
                     if df < 8 or df > 45 or abs(math.degrees(math.atan2(dl, df))) > 26 or dl * want_side < 1.5:
                         continue
-                    sc_ = abs(df - want_d) + 0.3 * abs(abs(math.degrees(math.atan2(dl, df))) - 14)
-                    if sc_ < bs:
-                        best, bs = s_, sc_
+                    cand.append((abs(df - want_d) + 0.3 * abs(abs(math.degrees(math.atan2(dl, df))) - 14), s_.name, s_))
+                best = None
+                for _, _, s_ in sorted(cand):            # the best one the camera can actually see (POC 11: the last
+                    r_ = centre[s_.name] - c0            # phrase lit crystals hidden behind a ridge)
+                    hit, _, _, _, ob_, _ = sc.ray_cast(bpy.context.evaluated_depsgraph_get(), c0, r_.normalized(),
+                                                       distance=r_.length + 1)
+                    if hit and ob_ is not None and ob_.name == s_.name:
+                        best = s_; break
                 if best is None:
                     continue
                 used.add(best.name)
                 key_flash(best, h, 0.35 + 0.65 * nt["strength"], 9, 50)
                 pl = bpy.data.objects.new(f"chime{n_}", bpy.data.lights.new(f"chime{n_}", "POINT"))
                 sc.collection.objects.link(pl); pl.location = centre[best.name]
-                pl.data.color = (0.35, 0.7, 1.0); pl.data.shadow_soft_size = 0.4
+                pl.data.color = (0.2, 0.55, 1.0); pl.data.shadow_soft_size = 0.4
                 pl.visible_glossy = pl.visible_transmission = False     # seen through the ice it was a white disc
                 for i in (h - 1, h + 51):
                     if 0 <= i < N:
@@ -679,16 +686,22 @@ else:                                   # Antarctica at dusk, rendered
                 dens_.inputs[1].default_value = a.halo * at(dr, i) ** 1.5
                 dens_.inputs[1].keyframe_insert("default_value", frame=i + 1 + FO)
         if "pad" in FX:
-            # a broken cloud layer 40 m up, seen only through its shadows; it drifts slowly, and at each chord change it
-            # slides one cloud-width across in ~1.2 s, so the shadows sweep over the ice and the light changes
-            bpy.ops.mesh.primitive_plane_add(size=1, location=(0, L / 2, 40))
-            cl = bpy.context.object; cl.name = "clouds"; cl.scale = (500, L + 700, 1)
+            # a broken cloud layer, seen only through its shadows; it drifts slowly, and at each chord change it slides
+            # one cloud-width across in ~1.2 s, so the shadows sweep over the ice and the light changes. It is low, 12 m
+            # above the path, and the contrails all fly at least 16 m up (CLOUD_H, TRAIL_MIN): a contrail's shadow ray
+            # to the sun points up and away from it, so the clouds shade the land and never the contrails, which are
+            # sunlit (with the clouds higher, the contrails in their shadow vanished against the sky).
+            sd_ = (sun.rotation_euler.to_matrix() @ Vector((0, 0, 1))).normalized()
+            CH = sum(zs) / N - 1.8 + CLOUD_H
+            off = Vector((sd_.x, sd_.y, 0)).normalized() * CLOUD_H / math.tan(math.radians(max(a.sun_el, 5)))
+            bpy.ops.mesh.primitive_plane_add(size=1, location=(off.x, L / 2 + off.y, CH))
+            cl = bpy.context.object; cl.name = "clouds"; cl.scale = (500, L + 400, 1)
             for vis in ("visible_camera", "visible_diffuse", "visible_glossy", "visible_transmission",
                         "visible_volume_scatter"):
                 setattr(cl, vis, False)
             m = bpy.data.materials.new("clouds"); m.use_nodes = True; nt_ = m.node_tree; nt_.nodes.clear()
             tc = nt_.nodes.new("ShaderNodeTexCoord"); mp = nt_.nodes.new("ShaderNodeMapping")
-            nz = nt_.nodes.new("ShaderNodeTexNoise"); nz.inputs["Scale"].default_value = 0.03; nz.inputs["Detail"].default_value = 4
+            nz = nt_.nodes.new("ShaderNodeTexNoise"); nz.inputs["Scale"].default_value = 0.02; nz.inputs["Detail"].default_value = 4
             rg = nt_.nodes.new("ShaderNodeMapRange")
             rg.inputs["From Min"].default_value, rg.inputs["From Max"].default_value = 0.5, 0.56
             tr = nt_.nodes.new("ShaderNodeBsdfTransparent"); df_ = nt_.nodes.new("ShaderNodeBsdfDiffuse")
@@ -746,7 +759,7 @@ else:                                   # Antarctica at dusk, rendered
                 mp.inputs["Location"].keyframe_insert("default_value", frame=i + 1 + FO)
             sc.cycles.volume_step_rate = 4; sc.cycles.volume_max_steps = 256
         if "clicks" in FX:
-            # each tick: one or two hairline cracks on the ice 5-22 m ahead flash white-blue and fade within ~1/4 s
+            # each tick: one or two cracks on the ice 4-13 m ahead flash white-blue and fade within ~1/4 s
             crack_m = glow_material("crack", (0.7, 0.88, 1.0), a.crack_glow)
             CK = LY["clicks"]
             for k, (h, st) in enumerate(zip(CK["hits"], CK["strength"])):
@@ -754,21 +767,21 @@ else:                                   # Antarctica at dusk, rendered
                     continue
                 c0, fw, rt = cam_at(h)
                 for j in range(1 + (st > 0.5)):
-                    p0 = c0 + fw * rnd.uniform(5, 22) + rt * rnd.uniform(-7, 7)
+                    p0 = c0 + fw * rnd.uniform(4, 13) + rt * rnd.uniform(-5, 5)
                     ang = rnd.uniform(0, 2 * math.pi); pts = [p0]
                     for _ in range(rnd.randint(6, 10)):                     # a zigzag fracture
-                        ang += rnd.uniform(-0.8, 0.8); q = pts[-1] + Vector((math.cos(ang), math.sin(ang), 0)) * rnd.uniform(0.12, 0.3)
+                        ang += rnd.uniform(-0.8, 0.8); q = pts[-1] + Vector((math.cos(ang), math.sin(ang), 0)) * rnd.uniform(0.25, 0.6)
                         pts.append(q)
                     cu = bpy.data.curves.new(f"crack{k}_{j}", "CURVE"); cu.dimensions = "3D"
                     br = [pts]
                     if len(pts) > 4:                                        # a branch off the middle
                         b0 = pts[len(pts) // 2]; ang2 = ang + rnd.choice((-1, 1)) * rnd.uniform(0.7, 1.3)
-                        br.append([b0 + Vector((math.cos(ang2), math.sin(ang2), 0)) * 0.18 * t_ for t_ in range(4)])
+                        br.append([b0 + Vector((math.cos(ang2), math.sin(ang2), 0)) * 0.35 * t_ for t_ in range(4)])
                     for line in br:
                         sp = cu.splines.new("POLY"); sp.points.add(len(line) - 1)
                         for jj, q in enumerate(line):
                             sp.points[jj].co = (q.x, q.y, height(q.x, q.y) + 0.03, 1)
-                    cu.bevel_depth = 0.012
+                    cu.bevel_depth = 0.014
                     ob = bpy.data.objects.new(f"crack{k}_{j}", cu); sc.collection.objects.link(ob)
                     cu.materials.append(crack_m); ob.cycles.use_motion_blur = False
                     key_flash(ob, h, 0.3 + 0.7 * st, 2.5, 10)
