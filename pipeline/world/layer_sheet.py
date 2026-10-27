@@ -20,8 +20,8 @@ C, LY = json.load(open(a.curves)), json.load(open(a.layers))
 N = len([f for f in os.listdir(a.render) if f.endswith(".png")])
 
 
-def ok(f):
-    return max(1, min(N, f))
+def ok(f):                              # event frame f (0-based, as in the JSONs) is file f + 1
+    return max(1, min(N, f + 1))
 
 
 def mid(hits, lo=10):                   # an event well inside the clip, so its before/after frames exist
@@ -31,7 +31,7 @@ def mid(hits, lo=10):                   # an event well inside the clip, so its 
 
 def extremes(v):                        # the quietest and loudest frames
     i0 = min(range(N), key=lambda i: v[min(i, len(v) - 1)]); i1 = max(range(N), key=lambda i: v[min(i, len(v) - 1)])
-    return i0 + 1, i1 + 1
+    return i0, i1
 
 
 tw = C["tweets"]["hits"]; t0 = max(tw, key=lambda h: sum(1 for x in tw if abs(x - h) < 8)) if tw else 1
@@ -42,10 +42,10 @@ cl = LY["clicks"]["hits"]; cs = LY["clicks"]["strength"]; x0 = max(zip(cs, cl))[
 s_lo, s_hi = extremes(LY["subbass"]); d_lo, d_hi = extremes(LY["drone"]["energy"])
 rows = [("1 heartbeat (camera surge; motion, see video)", [k0 - 6, k0, k0 + 8]),
         ("2 swifts (tweet)", [t0, t0 + 3, t0 + 7]),
-        ("3 sub-bass: ground drift (quiet / loud)", [s_lo, s_hi, s_hi]),
+        ("3 sub-bass: ground drift (quiet / loud / loud+6)", [s_lo, s_hi, s_hi + 6]),
         ("4 chord change: cloud shadows", [c0 - 2, c0 + 14, c0 + 30]),
         ("5 chime: crystal lit", [n0 - 1, n0 + 1, n0 + 6]),
-        ("6 drone: sun halo (quiet / loud)", [d_lo, d_hi, d_hi]),
+        ("6 drone: sun halo (quiet / loud / loud+6)", [d_lo, d_hi, d_hi + 6]),
         ("7 click: crack glint", [x0 - 1, x0, x0 + 2])]
 ins, fc, st, lay = [], "", "", []
 for r, (name, fr) in enumerate(rows):
