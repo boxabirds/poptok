@@ -26,6 +26,11 @@ ap.add_argument("--sky", default="2.2,0.7,0.22", help="AIR,DUST,STRENGTH of the 
                 "1.4,1.0,0.35 a pale blue sky whose light, outweighing the low sun, turns the ice blue (POCs 1-4)")
 ap.add_argument("--sun-energy", default="3,4", help="BASE,GAIN: sun lamp energy = BASE + GAIN x high band^2")
 ap.add_argument("--mist-color", default="0.85,0.9,1.0")
+ap.add_argument("--swifts", action="store_true", help="the tweets send swifts tearing across the sky: each draws a long, fast "
+                "curve leaving a short fluffy contrail that spreads and fades")
+ap.add_argument("--sun-color", default="1.0,0.55,0.3")
+ap.add_argument("--exposure", type=float, default=0.0)
+ap.add_argument("--look", default="AgX - Medium High Contrast")
 ap.add_argument("--only", default="", help="render just these frames, e.g. 22,110 (quick tests)")
 ap.add_argument("--seed", type=int, default=7)
 ap.add_argument("--res", default="1920x1080")
@@ -267,7 +272,8 @@ else:                                   # Antarctica at dusk, rendered
         for d in prefs.devices:
             d.use = d.type != "CPU"
         sc.cycles.device = "GPU"
-    sc.view_settings.view_transform = "AgX"; sc.view_settings.look = "AgX - Medium High Contrast"
+    sc.view_settings.view_transform = "AgX"; sc.view_settings.look = a.look
+    sc.view_settings.exposure = a.exposure
     w = bpy.data.worlds.new("dusk"); sc.world = w; w.use_nodes = True
     nt = w.node_tree; nt.nodes.clear()
     sky = nt.nodes.new("ShaderNodeTexSky"); sky.sky_type = "NISHITA"
@@ -278,7 +284,7 @@ else:                                   # Antarctica at dusk, rendered
     o = nt.nodes.new("ShaderNodeOutputWorld")
     nt.links.new(sky.outputs["Color"], bgn.inputs["Color"]); nt.links.new(bgn.outputs["Background"], o.inputs["Surface"])
     sun = bpy.data.objects.new("sun", bpy.data.lights.new("sun", "SUN")); sc.collection.objects.link(sun)
-    sun.data.color = (1.0, 0.55, 0.3); sun.data.angle = math.radians(1.2)
+    sun.data.color = tuple(float(v) for v in a.sun_color.split(",")); sun.data.angle = math.radians(1.2)
     sun.rotation_euler = (math.radians(90 - a.sun_el), 0, math.radians(180 - SUN_AZ))      # low, from far ahead (+y), grazing the ice
     SUN_E = [float(v) for v in a.sun_energy.split(",")]
     for i in range(N):                                                  # the highs make the low sun glint
@@ -374,9 +380,9 @@ else:                                   # Antarctica at dusk, rendered
             v.co.z *= 0.35; v.co *= rnd.uniform(0.6, 1.3)
         fm = bpy.data.materials.new("snow"); fm.use_nodes = True
         fb = fm.node_tree.nodes["Principled BSDF"]
-        fb.inputs["Base Color"].default_value = (0.78, 0.82, 0.9, 1); fb.inputs["Roughness"].default_value = 0.6
+        fb.inputs["Base Color"].default_value = (1, 1, 1, 1); fb.inputs["Roughness"].default_value = 0.6
         fb.inputs["Subsurface Weight"].default_value = 0.5
-        fb.inputs["Emission Color"].default_value = (1.0, 0.82, 0.7, 1); fb.inputs["Emission Strength"].default_value = 0.25
+        fb.inputs["Emission Color"].default_value = (0.85, 0.9, 1.0, 1); fb.inputs["Emission Strength"].default_value = 0.8   # far flakes: snow, not grey specks against the sky
         flake.data.materials.append(fm)
 
         # Emitted continuously from upwind, from 3 s before the clip, each flake living ~4 s, so the snow never runs out
@@ -411,6 +417,69 @@ else:                                   # Antarctica at dusk, rendered
             wind.field.keyframe_insert("strength", frame=i + 1)
         sc.render.use_motion_blur = True; sc.render.motion_blur_shutter = 0.5
     sc.cycles.max_bounces = 8; sc.cycles.transmission_bounces = 8
+    if a.swifts:                       # tweets -> swifts (user, 2026-10-27: "like swift birds making short fluffy contrails
+        # in the sky ... they move very fast, so the curves would be long and fast-drawn"). Each tweet: an unseen swift
+        # tears along a long swooping curve in ~1/3 s; behind it a short contrail of soft volume, which spreads and fades
+        # as its tail catches up with the head.
+        T = C["tweets"]; DRAW, LINGER, TAIL = 8, 30, 0.5
+        for k, (h, st) in enumerate(zip(T["hits"], T["hit_strength"])):
+            if h >= N:
+                continue
+            c0 = path(dist[h]); c0.z = zs[h]
+            fw = path(dist[h] + 30) - c0; fw.z = 0; fw.normalize()
+            rt = Vector((fw.y, -fw.x, 0)); up = Vector((0, 0, 1))
+            D = rnd.uniform(55, 110)                                  # how far ahead it flies
+            ctr = c0 + fw * D + rt * rnd.uniform(-0.4, 0.4) * D + up * rnd.uniform(0.12, 0.3) * D
+            th, k1, k2 = rnd.uniform(0, 2 * math.pi), rnd.uniform(-2.5, 2.5), rnd.uniform(-2.5, 2.5)
+            Lp, M = rnd.uniform(0.7, 1.2) * D, 48                    # a swoop: the heading bends one way, then may whip back
+            uv, u, v = [], 0.0, 0.0
+            for j in range(M):
+                t = j / (M - 1); hd = th + k1 * t + k2 * t * t
+                u += math.cos(hd) * Lp / M; v += math.sin(hd) * Lp / M; uv.append((u, v))
+            mu, mv = sum(p[0] for p in uv) / M, sum(p[1] for p in uv) / M
+            P = [ctr + rt * (p[0] - mu) + up * 0.55 * (p[1] - mv) + fw * 0.5 * (p[1] - mv) for p in uv]
+            lift = max(0.0, c0.z + 5 - min(p.z for p in P))           # never below the horizon line
+            cu = bpy.data.curves.new(f"swift{k}", "CURVE"); cu.dimensions = "3D"
+            sp = cu.splines.new("POLY"); sp.points.add(M - 1)
+            for j, p in enumerate(P):
+                sp.points[j].co = (p.x, p.y, p.z + lift, 1)
+            cu.bevel_resolution = 3; cu.use_fill_caps = True
+            cu.bevel_factor_mapping_start = cu.bevel_factor_mapping_end = "SPLINE"
+            ob = bpy.data.objects.new(f"swift{k}", cu); sc.collection.objects.link(ob)
+            ob.visible_shadow = False
+            m = bpy.data.materials.new(f"contrail{k}"); m.use_nodes = True; nt_ = m.node_tree; nt_.nodes.clear()
+            pv = nt_.nodes.new("ShaderNodeVolumePrincipled")
+            pv.inputs["Color"].default_value = (0.92, 0.95, 1.0, 1); pv.inputs["Anisotropy"].default_value = 0.5
+            tc = nt_.nodes.new("ShaderNodeTexCoord")
+            nz = nt_.nodes.new("ShaderNodeTexNoise"); nz.inputs["Scale"].default_value = 1.5; nz.inputs["Detail"].default_value = 6
+            mr = nt_.nodes.new("ShaderNodeMapRange")                  # puffs, not a smooth tube
+            mr.inputs["From Min"].default_value, mr.inputs["From Max"].default_value = 0.2, 0.6
+            dens = nt_.nodes.new("ShaderNodeMath"); dens.operation = "MULTIPLY"
+            out_ = nt_.nodes.new("ShaderNodeOutputMaterial")
+            nt_.links.new(tc.outputs["Object"], nz.inputs["Vector"]); nt_.links.new(nz.outputs["Fac"], mr.inputs["Value"])
+            nt_.links.new(mr.outputs["Result"], dens.inputs[0]); nt_.links.new(dens.outputs["Value"], pv.inputs["Density"])
+            glow = nt_.nodes.new("ShaderNodeMath"); glow.operation = "MULTIPLY"; glow.inputs[1].default_value = 1.5
+            pv.inputs["Emission Color"].default_value = (0.95, 0.97, 1.0, 1)  # self-lit a little: in its own shadow it
+            nt_.links.new(dens.outputs["Value"], glow.inputs[0])            # read as a dark line against the sky
+            nt_.links.new(glow.outputs["Value"], pv.inputs["Emission Strength"])
+            nt_.links.new(pv.outputs["Volume"], out_.inputs["Volume"])
+            cu.materials.append(m)
+            base = 2.0 * (0.5 + 0.5 * st)
+            for i in range(max(0, h - 1), min(N, h + DRAW + LINGER + 2)):
+                age = i - h
+                if age < 0:
+                    e_, s_, fade, grow = 0.0, 0.0, 1.0, 0.0
+                elif age <= DRAW:
+                    e_ = age / DRAW; s_ = max(0.0, e_ - TAIL); fade, grow = 1.0, age / (DRAW + LINGER)
+                else:
+                    q = min(1.0, (age - DRAW) / LINGER)
+                    e_, s_ = 1.0, min(1.0, 1 - TAIL + TAIL * q); fade, grow = 1 - q, age / (DRAW + LINGER)
+                cu.bevel_factor_end, cu.bevel_factor_start = e_, s_
+                cu.bevel_depth = (0.6 + 1.4 * min(1.0, grow)) * D / 80      # the contrail spreads as it ages
+                dens.inputs[1].default_value = base * fade
+                for prop in ("bevel_factor_end", "bevel_factor_start", "bevel_depth"):
+                    cu.keyframe_insert(prop, frame=i + 1)
+                dens.inputs[1].keyframe_insert("default_value", frame=i + 1)
     if a.sparkles:                     # tweets -> sparkles in the dusk sky (user, 2026-10-27: tight band-pass)
         # ~600 points of light on a far dome ahead, in 16 patches; each tweet lights one patch, which fades in ~0.2 s
         G = 16; T = C["tweets"]; mats = []
