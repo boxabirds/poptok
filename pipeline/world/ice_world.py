@@ -41,7 +41,9 @@ ap.add_argument("--cloud-sweep", type=float, default=70.0, help="metres the clou
 ap.add_argument("--drift", type=float, default=0.25, help="peak density of the sub-bass's low ground drift")
 ap.add_argument("--crack-glow", type=float, default=25.0, help="emission of a click's glinting crack")
 ap.add_argument("--range", default="", help="A,B: render only clip frames A..B (1-based; a chunk of a long song). "
-                "The world is the same in every chunk; the snow is simulated for the chunk alone, after its own run-up")
+                "The world is the same in every chunk; with --snow-cache the snow is too, so chunks join seamlessly")
+ap.add_argument("--bake-snow", default="", help="DIR: bake the whole song's snow to DIR (once) and stop")
+ap.add_argument("--snow-cache", default="", help="DIR/blendcache_snow from --bake-snow: read the snow from it, no bake")
 ap.add_argument("--only", default="", help="render just these frames, e.g. 22,110 (quick tests)")
 ap.add_argument("--seed", type=int, default=7)
 ap.add_argument("--res", default="1920x1080")
@@ -409,12 +411,16 @@ else:                                   # Antarctica at dusk, rendered
         def flurry(name, z0, z1, width, count, size, rand, mass):
             bpy.ops.mesh.primitive_cube_add(size=1)
             em = bpy.context.object; em.name = name
-            ya, yb = dist[R0 - 1] - 15, dist[R1 - 1] + 45             # this chunk's stretch of the path (all of it for a clip)
-            em.location = (-6, (ya + yb) / 2, (z0 + z1) / 2); em.scale = (width + 12, yb - ya, z1 - z0)   # wider upwind (-x)
+            # a 60 m box travelling with the camera (15 m behind it to 45 m ahead), so the snow is as dense on a whole
+            # song's walk as on a clip's; flakes, once born, keep to the world
+            em.scale = (width + 12, 60, z1 - z0)                                                 # wider upwind (-x)
+            for i in range(N):
+                em.location = (-6, dist[i] + 15, (z0 + z1) / 2); em.keyframe_insert("location", frame=i + 1 + FO)
             ps = em.modifiers.new(name, "PARTICLE_SYSTEM").particle_system.settings
             em.show_instancer_for_render = False      # hide_render on the emitter would hide its flakes too
-            ps.count = int(count * (R1 - R0 + 1 + PRE) / LIFE)               # ~count alive at any time
-            ps.frame_start, ps.frame_end = R0 + FO - PRE, R1 + FO
+            ps.count = int(count * 60 / 108 * (N + PRE) / LIFE)   # --snow: flakes along a 10 s clip's ~108 m corridor
+                                                                   # (POCs 6-13), so the same density on any length
+            ps.frame_start, ps.frame_end = 1 + FO - PRE, FO + N
             ps.lifetime = LIFE; ps.lifetime_random = 0.3
             ps.emit_from = "VOLUME"; ps.distribution = "RAND"; ps.normal_factor = 0
             ps.physics_type = "NEWTON"; ps.mass = mass; ps.drag_factor = 1.0; ps.brownian_factor = 0.6
@@ -423,7 +429,10 @@ else:                                   # Antarctica at dusk, rendered
             ps.rotation_mode = "NONE"; ps.rotation_factor_random = 1.0; ps.angular_velocity_mode = "RAND"
             ps.angular_velocity_factor = 3.0
             ps.particle_size = size; ps.size_random = rand
-            em.particle_systems[0].point_cache.frame_start = R0 + FO - PRE; em.particle_systems[0].point_cache.frame_end = R1 + FO
+            pc = em.particle_systems[0].point_cache; pc.name = name
+            pc.frame_start, pc.frame_end = 1 + FO - PRE, FO + N
+            if a.snow_cache:                       # one bake of the whole song, read by every chunk: continuous snow
+                pc.use_external = True; pc.filepath = os.path.abspath(a.snow_cache)
         flurry("flurry", 0.3, 7.0, 16, a.snow, 0.07, 0.9, 0.02)           # falling flakes, 2-13 cm
         flurry("spindrift", 0.0, 0.5, 30, a.snow // 2, 0.016, 0.8, 0.005)  # fine snow streaming over the ground
         cam.data.dof.use_dof = True; cam.data.dof.focus_distance = 14; cam.data.dof.aperture_fstop = 2.0
@@ -898,9 +907,22 @@ if a.snow and os.environ.get("SNOW_CHECK"):     # flakes within 20 m in front of
         print("snow check frame", f, n_, flush=True)
     sys.exit(0)
 os.makedirs(out, exist_ok=True)
-# bake the snow over the chunk's range, run-up included
-sc.frame_start, sc.frame_end = R0, R1 + FO
-if a.snow:
+if a.bake_snow:                         # bake the whole song's snow to disk once (--snow-cache then reads it), and stop
+    os.makedirs(a.bake_snow, exist_ok=True)
+    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(os.path.abspath(a.bake_snow), "snow.blend"))
+    for ob in bpy.data.objects:                 # (a disk cache needs a saved file: set after saving, or it silently
+        for ps_ in ob.particle_systems:         # stays in memory)
+            ps_.point_cache.use_disk_cache = True
+    assert all(ps_.point_cache.use_disk_cache for ob in bpy.data.objects for ps_ in ob.particle_systems)
+    sc.frame_start, sc.frame_end = 1, FO + N
+    bpy.ops.ptcache.bake_all(bake=True)
+    cdir = os.path.join(os.path.abspath(a.bake_snow), "blendcache_snow")
+    assert os.path.isdir(cdir) and len(os.listdir(cdir)) > N, f"no disk cache in {cdir}"
+    print("snow baked", cdir, len(os.listdir(cdir)), "files", flush=True)
+    sys.exit(0)
+# bake the snow over the scene range, run-up included (unless it was baked once for the whole song)
+sc.frame_start, sc.frame_end = 1, FO + N
+if a.snow and not a.snow_cache:
     bpy.ops.ptcache.bake_all(bake=True)
 bpy.ops.wm.save_as_mainfile(filepath=f"{out}/scene_{a.mode}.blend")
 sc.render.filepath = f"{out}/{a.mode}/"
