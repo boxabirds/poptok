@@ -24,6 +24,8 @@ ap.add_argument("--seed", type=int, default=7)
 ap.add_argument("--res", default="1920x1080")
 ap.add_argument("--samples", type=int, default=64)
 ap.add_argument("--gpu", action="store_true")
+ap.add_argument("--breath", default="1.4,2.6", help="BASE,GAIN: speed (m/s) = BASE + GAIN x the low band's breath "
+                "envelope (POC 4: 0.9,4.0, so each low swell is felt)")
 ap.add_argument("--theme", default="ice", choices=["ice", "chrome"], help="chrome: the same world in polished chrome, the "
                 "ground rippled liquid metal (user, 2026-10-27, after the Liquid Mercury universe)")
 a = ap.parse_args(sys.argv[sys.argv.index("--") + 1:])
@@ -59,7 +61,8 @@ env, e = [], 0.0
 for x in band("low"):
     e += (x - e) * (0.30 if x > e else 0.04)        # breath: quick in, slow out
     env.append(e)
-speed = smooth([1.4 + 2.6 * v for v in env], 0.15)  # metres per second, never below 1.4: never backwards
+B0, BG = (float(v) for v in a.breath.split(","))
+speed = smooth([B0 + BG * v for v in env], 0.15)    # metres per second, never below B0: never backwards
 dist = [0.0]
 for i in range(1, N):
     dist.append(dist[-1] + speed[i] / C["fps"])
