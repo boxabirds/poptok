@@ -44,6 +44,11 @@ ap.add_argument("--range", default="", help="A,B: render only clip frames A..B (
                 "The world is the same in every chunk; with --snow-cache the snow is too, so chunks join seamlessly")
 ap.add_argument("--bake-snow", default="", help="DIR: bake the whole song's snow to DIR (once) and stop")
 ap.add_argument("--snow-cache", default="", help="DIR/blendcache_snow from --bake-snow: read the snow from it, no bake")
+ap.add_argument("--sky-model", default="single", choices=["single", "multiple"], help="Blender 5.x sky: single scattering "
+                "(= 4.2's Nishita) or multiple scattering")
+ap.add_argument("--bloom-size", type=float, default=0.875, help="Blender 5.x glare size (0..1; 4.2's size 8 ~ 0.875)")
+ap.add_argument("--volume-unbiased", action="store_true", help="Blender 5.x: unbiased null-scattering volumes "
+                "(default: biased ray marching, as 4.2)")
 ap.add_argument("--only", default="", help="render just these frames, e.g. 22,110 (quick tests)")
 ap.add_argument("--seed", type=int, default=7)
 ap.add_argument("--res", default="1920x1080")
@@ -281,7 +286,7 @@ else:                                   # Antarctica at dusk, rendered
     sc.render.engine = "CYCLES"; sc.cycles.samples = a.samples; sc.cycles.use_denoising = True
     if a.gpu:
         prefs = bpy.context.preferences.addons["cycles"].preferences
-        for t_ in ("OPTIX", "CUDA"):
+        for t_ in ("OPTIX", "CUDA", "METAL"):          # METAL: the M5 (quintus) renders chunks too
             try:
                 prefs.compute_device_type = t_; prefs.get_devices()
                 if any(d.type == t_ for d in prefs.devices):
@@ -295,10 +300,15 @@ else:                                   # Antarctica at dusk, rendered
     sc.view_settings.exposure = a.exposure
     w = bpy.data.worlds.new("dusk"); sc.world = w; w.use_nodes = True
     nt = w.node_tree; nt.nodes.clear()
-    sky = nt.nodes.new("ShaderNodeTexSky"); sky.sky_type = "NISHITA"
+    sky = nt.nodes.new("ShaderNodeTexSky")
+    if bpy.app.version >= (5, 0):            # 5.x: Nishita is "single scattering"; "multiple scattering" is new
+        sky.sky_type = "MULTIPLE_SCATTERING" if a.sky_model == "multiple" else "SINGLE_SCATTERING"
+    else:
+        sky.sky_type = "NISHITA"
     sky.sun_elevation = math.radians(a.sun_el); sky.sun_rotation = math.radians(SUN_AZ)  # the sun on the horizon, ahead
     AIR, DUST, SKY_K = (float(v) for v in a.sky.split(","))
-    sky.altitude = 50; sky.air_density = AIR; sky.dust_density = DUST; sky.sun_size = math.radians(1.2)
+    sky.altitude = 50; sky.air_density = AIR
+    setattr(sky, "aerosol_density" if bpy.app.version >= (5, 0) else "dust_density", DUST); sky.sun_size = math.radians(1.2)
     bgn = nt.nodes.new("ShaderNodeBackground"); bgn.inputs["Strength"].default_value = SKY_K
     o = nt.nodes.new("ShaderNodeOutputWorld")
     nt.links.new(sky.outputs["Color"], bgn.inputs["Color"]); nt.links.new(bgn.outputs["Background"], o.inputs["Surface"])
@@ -339,9 +349,11 @@ else:                                   # Antarctica at dusk, rendered
     nt_.links.new(add.outputs["Vector"], vo.inputs["Vector"])
     nt_.links.new(vo.outputs["Distance"], cr.inputs["Value"])
     mx = nt_.nodes.new("ShaderNodeMix"); mx.data_type = "RGBA"
-    mx.inputs["A"].default_value = (0.55, 0.74, 0.92, 1); mx.inputs["B"].default_value = (0.84, 0.91, 1.0, 1)
+    col = {s_.identifier: s_ for s_ in mx.inputs}          # by identifier (inputs["A"] is ambiguous across versions)
+    col["A_Color"].default_value = (0.55, 0.74, 0.92, 1); col["B_Color"].default_value = (0.84, 0.91, 1.0, 1)
     nt_.links.new(cr.outputs["Result"], mx.inputs["Factor"]); nt_.links.new(mx.outputs["Result"], b.inputs["Base Color"])
     bump = nt_.nodes.new("ShaderNodeBump"); bump.inputs["Strength"].default_value = 0.35
+    bump.inputs["Distance"].default_value = 1.0          # 4.2's default; 5.x's is 0.001, which flattened the snow grain
     nt_.links.new(nz.outputs["Fac"], bump.inputs["Height"]); nt_.links.new(bump.outputs["Normal"], b.inputs["Normal"])
     spire_m = ice("ice_spire", (0.78, 0.9, 1.0), 0.04, 0.95)
     ab = spire_m.node_tree.nodes.new("ShaderNodeVolumeAbsorption")      # blue deep inside: translucent white-blue ice
@@ -610,12 +622,25 @@ else:                                   # Antarctica at dusk, rendered
             nt_.links.new(oi.outputs["Color"], sp_.inputs[0]); nt_.links.new(sp_.outputs[0], mu.inputs[0])
             nt_.links.new(mu.outputs[0], b_.inputs["Emission Strength"])
             b_.inputs["Emission Color"].default_value = (0.2, 0.55, 1.0, 1)
-            lit = [s_ for s_ in spires if s_.active_material is spire_m]
+            lit = [s_ for s_ in spires if s_.active_material == spire_m]     # == : 5.x makes new wrappers ("is" never matched)
             for s_ in lit:
                 s_.color = (0, 0, 0, 1)
             centre = {s_.name: s_.matrix_world @ (sum((v.co for v in s_.data.vertices), Vector()) / len(s_.data.vertices))
                       for s_ in lit}
             used, notes = set(), LY["chime"]
+            dg = bpy.context.evaluated_depsgraph_get()
+            SEE_THROUGH = {"flurry", "spindrift", "mist", "drift", "clouds", "halo"}   # invisible boxes and planes
+
+            def seen(p0, p1, name):                 # the first solid thing on the line of sight is this object
+                d_ = (p1 - p0).normalized(); left = (p1 - p0).length + 1
+                for _ in range(12):
+                    hit, loc, _, _, ob_, _ = sc.ray_cast(dg, p0, d_, distance=left)
+                    if not hit or ob_ is None:
+                        return False
+                    if ob_.name not in SEE_THROUGH:
+                        return ob_.name == name
+                    left -= (loc - p0).length + 1e-3; p0 = loc + d_ * 1e-3
+                return False
             for n_, nt in enumerate(notes):
                 h = nt["frame"]
                 if h >= N:
@@ -635,9 +660,7 @@ else:                                   # Antarctica at dusk, rendered
                 best = None
                 for _, _, s_ in sorted(cand):            # the best one the camera can actually see (POC 11: the last
                     r_ = centre[s_.name] - c0            # phrase lit crystals hidden behind a ridge)
-                    hit, _, _, _, ob_, _ = sc.ray_cast(bpy.context.evaluated_depsgraph_get(), c0, r_.normalized(),
-                                                       distance=r_.length + 1)
-                    if hit and ob_ is not None and ob_.name == s_.name:
+                    if seen(c0, centre[s_.name], s_.name):
                         best = s_; break
                 if best is None:
                     continue
@@ -804,14 +827,28 @@ else:                                   # Antarctica at dusk, rendered
             # a soft bloom round whatever glows (lit crystals, cracks, halo; POC 12: "didn't notice it"): fog glow on the
             # emission pass above its threshold, added to the image (the snow flakes' faint self-light stays below it)
             bpy.context.view_layer.use_pass_emit = True
-            sc.use_nodes = True; ct = sc.node_tree; ct.nodes.clear()
-            rl = ct.nodes.new("CompositorNodeRLayers"); gl = ct.nodes.new("CompositorNodeGlare")
-            gl.glare_type = "FOG_GLOW"; gl.threshold = 1.5; gl.size = 8; gl.mix = 1.0; gl.quality = "HIGH"
-            add = ct.nodes.new("CompositorNodeMixRGB"); add.blend_type = "ADD"; add.inputs["Fac"].default_value = 1
-            co = ct.nodes.new("CompositorNodeComposite")
-            ct.links.new(rl.outputs["Emit"], gl.inputs["Image"])
-            ct.links.new(rl.outputs["Image"], add.inputs[1]); ct.links.new(gl.outputs["Image"], add.inputs[2])
-            ct.links.new(add.outputs["Image"], co.inputs["Image"])
+            if bpy.app.version >= (5, 0):        # 5.x: the compositor is a node group; the glare's settings are inputs
+                ct = bpy.data.node_groups.new("bloom", "CompositorNodeTree"); sc.compositing_node_group = ct
+                ct.interface.new_socket("Image", in_out="OUTPUT", socket_type="NodeSocketColor")
+                rl = ct.nodes.new("CompositorNodeRLayers"); gl = ct.nodes.new("CompositorNodeGlare")
+                gl.inputs["Type"].default_value = "Fog Glow"; gl.inputs["Quality"].default_value = "High"
+                gl.inputs["Threshold"].default_value = 1.5; gl.inputs["Size"].default_value = a.bloom_size
+                add = ct.nodes.new("ShaderNodeMix"); add.data_type = "RGBA"; add.blend_type = "ADD"
+                add.inputs["Factor"].default_value = 1
+                io = {s_.identifier: s_ for s_ in add.inputs}
+                co = ct.nodes.new("NodeGroupOutput")
+                ct.links.new(rl.outputs["Emission"], gl.inputs["Image"])          # 5.x: the "Emit" pass is "Emission"
+                ct.links.new(rl.outputs["Image"], io["A_Color"]); ct.links.new(gl.outputs["Glare"], io["B_Color"])
+                ct.links.new(add.outputs["Result"], co.inputs[0])
+            else:
+                sc.use_nodes = True; ct = sc.node_tree; ct.nodes.clear()
+                rl = ct.nodes.new("CompositorNodeRLayers"); gl = ct.nodes.new("CompositorNodeGlare")
+                gl.glare_type = "FOG_GLOW"; gl.threshold = 1.5; gl.size = 8; gl.mix = 1.0; gl.quality = "HIGH"
+                add = ct.nodes.new("CompositorNodeMixRGB"); add.blend_type = "ADD"; add.inputs["Fac"].default_value = 1
+                co = ct.nodes.new("CompositorNodeComposite")
+                ct.links.new(rl.outputs["Emit"], gl.inputs["Image"])
+                ct.links.new(rl.outputs["Image"], add.inputs[1]); ct.links.new(gl.outputs["Image"], add.inputs[2])
+                ct.links.new(add.outputs["Image"], co.inputs["Image"])
     if a.sparkles:                     # tweets -> sparkles in the dusk sky (user, 2026-10-27: tight band-pass)
         # ~600 points of light on a far dome ahead, in 16 patches; each tweet lights one patch, which fades in ~0.2 s
         G = 16; T = C["tweets"]; mats = []
@@ -891,6 +928,8 @@ else:                                   # Antarctica at dusk, rendered
             mp.inputs["Location"].default_value = (0.004 * i, 0.0015 * i, 0)      # banks drifting across
             mp.inputs["Location"].keyframe_insert("default_value", frame=i + 1 + FO)
         sc.cycles.volume_step_rate = 4; sc.cycles.volume_max_steps = 256
+    if bpy.app.version >= (5, 0):       # 4.2's ray-marched volumes (5.x defaults to unbiased null scattering)
+        sc.cycles.volume_biased = not a.volume_unbiased
     sc.cycles.max_bounces = 8; sc.cycles.transmission_bounces = 8
     sc.cycles.glossy_bounces = 8 if a.theme in ("chrome", "icechrome") else 4
 
