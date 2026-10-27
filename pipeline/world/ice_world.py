@@ -40,6 +40,8 @@ ap.add_argument("--halo", type=float, default=2.5, help="peak brightness of the 
 ap.add_argument("--cloud-sweep", type=float, default=70.0, help="metres the cloud shadows slide at each chord change")
 ap.add_argument("--drift", type=float, default=0.25, help="peak density of the sub-bass's low ground drift")
 ap.add_argument("--crack-glow", type=float, default=25.0, help="emission of a click's glinting crack")
+ap.add_argument("--range", default="", help="A,B: render only clip frames A..B (1-based; a chunk of a long song). "
+                "The world is the same in every chunk; the snow is simulated for the chunk alone, after its own run-up")
 ap.add_argument("--only", default="", help="render just these frames, e.g. 22,110 (quick tests)")
 ap.add_argument("--seed", type=int, default=7)
 ap.add_argument("--res", default="1920x1080")
@@ -71,6 +73,7 @@ sc = bpy.context.scene
 FO = 72
 CLOUD_H = 12                                        # the cloud layer: metres above the path (--layers pad)
 sc.render.fps = int(C["fps"]); sc.frame_start, sc.frame_end = 1, FO + N
+R0, R1 = (int(v) for v in a.range.split(",")) if a.range else (1, N)
 W, H = (int(v) for v in a.res.split("x"))
 sc.render.resolution_x, sc.render.resolution_y = W, H
 
@@ -137,14 +140,15 @@ def height(x, y):
     return h * min(1, 0.35 + d / 14)
 
 
-def grid(name, x0, x1, y0, y1, n, fn):
+def grid(name, x0, x1, y0, y1, n, fn, ny=0):   # n x ny quads (ny defaults to n)
     import bmesh
     me = bpy.data.meshes.new(name); bm = bmesh.new()
-    vs = [[bm.verts.new((x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * j / n, 0)) for i in range(n + 1)] for j in range(n + 1)]
+    ny = ny or n
+    vs = [[bm.verts.new((x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * j / ny, 0)) for i in range(n + 1)] for j in range(ny + 1)]
     for row in vs:
         for v in row:
             v.co.z = fn(v.co.x, v.co.y)
-    for j in range(n):
+    for j in range(ny):
         for i in range(n):
             bm.faces.new((vs[j][i], vs[j][i + 1], vs[j + 1][i + 1], vs[j + 1][i]))
     bm.to_mesh(me); bm.free()
@@ -154,7 +158,7 @@ def grid(name, x0, x1, y0, y1, n, fn):
     return ob
 
 
-sheet = grid("ice_sheet", -140, 140, -60, L + 220, 260, height)
+sheet = grid("ice_sheet", -140, 140, -60, L + 220, 260, height, max(260, int((L + 280) / 1.1)))   # ~1.1 m along the path
 
 
 # --- ice spires and shards: tall, sharp, leaning crystals, thicker near the path but never on it ----------------
@@ -405,10 +409,12 @@ else:                                   # Antarctica at dusk, rendered
         def flurry(name, z0, z1, width, count, size, rand, mass):
             bpy.ops.mesh.primitive_cube_add(size=1)
             em = bpy.context.object; em.name = name
-            em.location = (-6, (L - 30) / 2, (z0 + z1) / 2); em.scale = (width + 12, L + 30, z1 - z0)   # wider upwind (-x)
+            ya, yb = dist[R0 - 1] - 15, dist[R1 - 1] + 45             # this chunk's stretch of the path (all of it for a clip)
+            em.location = (-6, (ya + yb) / 2, (z0 + z1) / 2); em.scale = (width + 12, yb - ya, z1 - z0)   # wider upwind (-x)
             ps = em.modifiers.new(name, "PARTICLE_SYSTEM").particle_system.settings
             em.show_instancer_for_render = False      # hide_render on the emitter would hide its flakes too
-            ps.count = int(count * (N + PRE) / LIFE); ps.frame_start, ps.frame_end = 1 + FO - PRE, FO + N   # ~count alive at any time
+            ps.count = int(count * (R1 - R0 + 1 + PRE) / LIFE)               # ~count alive at any time
+            ps.frame_start, ps.frame_end = R0 + FO - PRE, R1 + FO
             ps.lifetime = LIFE; ps.lifetime_random = 0.3
             ps.emit_from = "VOLUME"; ps.distribution = "RAND"; ps.normal_factor = 0
             ps.physics_type = "NEWTON"; ps.mass = mass; ps.drag_factor = 1.0; ps.brownian_factor = 0.6
@@ -417,7 +423,7 @@ else:                                   # Antarctica at dusk, rendered
             ps.rotation_mode = "NONE"; ps.rotation_factor_random = 1.0; ps.angular_velocity_mode = "RAND"
             ps.angular_velocity_factor = 3.0
             ps.particle_size = size; ps.size_random = rand
-            em.particle_systems[0].point_cache.frame_start = 1 + FO - PRE; em.particle_systems[0].point_cache.frame_end = FO + N
+            em.particle_systems[0].point_cache.frame_start = R0 + FO - PRE; em.particle_systems[0].point_cache.frame_end = R1 + FO
         flurry("flurry", 0.3, 7.0, 16, a.snow, 0.07, 0.9, 0.02)           # falling flakes, 2-13 cm
         flurry("spindrift", 0.0, 0.5, 30, a.snow // 2, 0.016, 0.8, 0.005)  # fine snow streaming over the ground
         cam.data.dof.use_dof = True; cam.data.dof.focus_distance = 14; cam.data.dof.aperture_fstop = 2.0
@@ -892,7 +898,8 @@ if a.snow and os.environ.get("SNOW_CHECK"):     # flakes within 20 m in front of
         print("snow check frame", f, n_, flush=True)
     sys.exit(0)
 os.makedirs(out, exist_ok=True)
-# bake the snow over the whole scene range, run-up included
+# bake the snow over the chunk's range, run-up included
+sc.frame_start, sc.frame_end = R0, R1 + FO
 if a.snow:
     bpy.ops.ptcache.bake_all(bake=True)
 bpy.ops.wm.save_as_mainfile(filepath=f"{out}/scene_{a.mode}.blend")
@@ -902,8 +909,8 @@ if a.only:
         sc.frame_set(f + FO); sc.render.filepath = f"{out}/{a.mode}/{f:04d}.png"
         bpy.ops.render.render(write_still=True)
 else:
-    sc.frame_start = FO + 1
+    sc.frame_start = FO + R0
     bpy.ops.render.render(animation=True)
-    for k in range(1, N + 1):                  # scene frame FO+k -> file k
+    for k in range(R0, R1 + 1):                # scene frame FO+k -> file k
         os.replace(f"{out}/{a.mode}/{FO + k:04d}.png", f"{out}/{a.mode}/{k:04d}.png")
 print("ice ok", out, N, "frames")
