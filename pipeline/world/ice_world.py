@@ -970,8 +970,10 @@ if a.only:
         sc.frame_set(f + FO); sc.render.filepath = f"{out}/{a.mode}/{f:04d}.png"
         bpy.ops.render.render(write_still=True)
 else:
-    sc.frame_start = FO + R0
+    sc.frame_start, sc.frame_end = FO + R0, FO + R1      # (the end too: it was left at the song's end after the bake)
     bpy.ops.render.render(animation=True)
     for k in range(R0, R1 + 1):                # scene frame FO+k -> file k
         os.replace(f"{out}/{a.mode}/{FO + k:04d}.png", f"{out}/{a.mode}/{k:04d}.png")
-print("ice ok", out, N, "frames")
+print("ice ok", out, N, "frames; range", R0, R1, "; layers:",          # so a launcher can check what it built
+      " ".join(f"{k}={sum(o.name.startswith(k) for o in bpy.data.objects)}" for k in ("halo", "clouds", "drift", "chime", "crack", "swift_bird")),
+      "; sun_el", a.sun_el, "look", a.look)
