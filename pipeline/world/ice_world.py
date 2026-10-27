@@ -56,6 +56,7 @@ ap.add_argument("--samples", type=int, default=64)
 ap.add_argument("--gpu", action="store_true")
 ap.add_argument("--breath", default="0.8,6.0", help="BASE,GAIN: speed (m/s) = BASE + GAIN x the low band's breath, "
                 "scaled 0..1 within the clip (POC 5: 0.8,6.0, about 1 to 6.5 m/s on each swell)")
+ap.add_argument("--breath-window", type=float, default=10.0, help="seconds over which --breath-norm window stretches")
 ap.add_argument("--breath-norm", default="window", choices=["window", "song"], help="window: the breath envelope is "
                 "stretched to its own 5-95th percentile in the clip and curved (^1.5), so troughs are slow and swells surge "
                 "(user on POC 4, 2026-10-27: 'not seeing much variation in speed'); song: as POC 1-4")
@@ -108,8 +109,16 @@ for x in low:
     e += (x - e) * (0.30 if x > e else 0.04)        # breath: quick in, slow out
     env.append(e)
 if a.breath_norm == "window":                       # the swells, not the song's overall loudness, set the range
-    q = sorted(env); lo_, hi_ = q[int(0.05 * (N - 1))], q[int(0.95 * (N - 1))]
-    env = [min(1, max(0, (v - lo_) / (hi_ - lo_ + 1e-9))) ** 1.5 for v in env]
+    # over a rolling window of --breath-window seconds (a clip no longer than it: the whole clip, as POCs 4-13), so a
+    # whole song surges in its quiet sections as much as in its loud ones (user on the song's dry run, 2026-10-27:
+    # "there's no movement variation in that example": stretched over the whole song the quiet intro barely moved)
+    Wn = int(a.breath_window * C["fps"]); out_ = []
+    for i in range(N):
+        j0 = 0 if N <= Wn else min(max(0, i - Wn // 2), N - Wn)
+        q = sorted(env[j0:j0 + min(N, Wn)]); n_ = len(q)
+        lo_, hi_ = q[int(0.05 * (n_ - 1))], q[int(0.95 * (n_ - 1))]
+        out_.append(min(1, max(0, (env[i] - lo_) / (hi_ - lo_ + 1e-9))) ** 1.5)
+    env = out_
 B0, BG = (float(v) for v in a.breath.split(","))
 speed = smooth([B0 + BG * v for v in env], 0.15)    # metres per second, never below B0: never backwards
 dist = [0.0]
@@ -976,4 +985,5 @@ else:
         os.replace(f"{out}/{a.mode}/{FO + k:04d}.png", f"{out}/{a.mode}/{k:04d}.png")
 print("ice ok", out, N, "frames; range", R0, R1, "; layers:",          # so a launcher can check what it built
       " ".join(f"{k}={sum(o.name.startswith(k) for o in bpy.data.objects)}" for k in ("halo", "clouds", "drift", "chime", "crack", "swift_bird")),
-      "; sun_el", a.sun_el, "look", a.look)
+      "; sun_el", a.sun_el, "look", a.look,
+      "; speed m/s %.1f-%.1f" % (min(speed[R0 - 1:R1]), max(speed[R0 - 1:R1])))
