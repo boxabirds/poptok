@@ -33,6 +33,13 @@ ap.add_argument("--exposure", type=float, default=0.0)
 ap.add_argument("--look", default="AgX - Medium High Contrast")
 ap.add_argument("--ice-absorb", type=float, default=0.35, help="blue absorption density inside the ice "
                 "formations: higher, the sunlight through them comes out a deeper blue")
+ap.add_argument("--layers", default="", help="music_layers.py JSON: the song's other layers, each with its own visual")
+ap.add_argument("--layer-fx", default="chime,drone,pad,subbass,clicks", help="which of the layers to show")
+ap.add_argument("--chime-glow", type=float, default=6.0, help="emission of a crystal lit by a chime note")
+ap.add_argument("--halo", type=float, default=0.8, help="peak brightness of the drone's ice halo round the sun")
+ap.add_argument("--cloud-sweep", type=float, default=45.0, help="metres the cloud shadows slide at each chord change")
+ap.add_argument("--drift", type=float, default=0.25, help="peak density of the sub-bass's low ground drift")
+ap.add_argument("--crack-glow", type=float, default=25.0, help="emission of a click's glinting crack")
 ap.add_argument("--only", default="", help="render just these frames, e.g. 22,110 (quick tests)")
 ap.add_argument("--seed", type=int, default=7)
 ap.add_argument("--res", default="1920x1080")
@@ -535,6 +542,229 @@ else:                                   # Antarctica at dusk, rendered
                 for prop in ("bevel_factor_end", "bevel_factor_start", "bevel_depth"):
                     cu.keyframe_insert(prop, frame=i + 1 + FO)
                 dens.inputs[1].keyframe_insert("default_value", frame=i + 1 + FO)
+    # --- the song's other layers (user, 2026-10-27: "identify if you can extract other unique sounds from the audio and
+    # add those as visuals too"; music_layers.py separates them with Demucs). Each layer has one visual of its own:
+    #   chime (4-note bell motif) -> each note lights one crystal from inside, a phrase walks across four of them
+    #   drone (a pure 937 Hz tone that swells and fades) -> a 22-degree ice halo round the sun, as bright as the drone
+    #   pad (chord changes) -> cloud shadows sweep across the ice at each change
+    #   subbass (the sustained low swell) -> ground drift: low blowing snow that rises with it
+    #   clicks (broadband ticks) -> hairline cracks glinting on the ice surface for a moment
+    if a.layers:
+        LY = json.load(open(a.layers)); FX = set(a.layer_fx.split(","))
+        bpy.context.view_layer.update()
+
+        def at(v, i):
+            return v[min(i, len(v) - 1)]
+
+        def cam_at(i):                                            # camera position, forward and right at frame i
+            c0 = path(dist[i]); c0.z = zs[i]
+            fw = path(dist[i] + 30) - c0; fw.z = 0; fw.normalize()
+            return c0, fw, Vector((fw.y, -fw.x, 0))
+
+        def glow_material(name, color, k):                        # emission = k x the object's colour (keyed per object)
+            m = bpy.data.materials.new(name); m.use_nodes = True; nt_ = m.node_tree; nt_.nodes.clear()
+            oi = nt_.nodes.new("ShaderNodeObjectInfo"); sp_ = nt_.nodes.new("ShaderNodeSeparateColor")
+            mu = nt_.nodes.new("ShaderNodeMath"); mu.operation = "MULTIPLY"; mu.inputs[1].default_value = k
+            em = nt_.nodes.new("ShaderNodeEmission"); em.inputs["Color"].default_value = (*color, 1)
+            o_ = nt_.nodes.new("ShaderNodeOutputMaterial")
+            nt_.links.new(oi.outputs["Color"], sp_.inputs[0]); nt_.links.new(sp_.outputs[0], mu.inputs[0])
+            nt_.links.new(mu.outputs[0], em.inputs["Strength"]); nt_.links.new(em.outputs[0], o_.inputs["Surface"])
+            return m
+
+        def key_flash(ob, h, st, tau, span):                     # object colour: 0, a flash of st at h, decaying
+            for i in (h - 1, h + span + 1):
+                if 0 <= i < N:
+                    ob.color = (0, 0, 0, 1); ob.keyframe_insert("color", frame=i + 1 + FO)
+            for i in range(h, min(N, h + span + 1)):
+                g = st * math.exp(-(i - h) / tau)
+                ob.color = (g, g, g, 1); ob.keyframe_insert("color", frame=i + 1 + FO)
+            return [ob.color]
+
+        if "chime" in FX:
+            # the crystals' own ice glows from inside: emission = the object's colour (black unless a note lights it)
+            nt_ = spire_m.node_tree; b_ = nt_.nodes["Principled BSDF"]
+            oi = nt_.nodes.new("ShaderNodeObjectInfo"); sp_ = nt_.nodes.new("ShaderNodeSeparateColor")
+            mu = nt_.nodes.new("ShaderNodeMath"); mu.operation = "MULTIPLY"; mu.inputs[1].default_value = a.chime_glow
+            nt_.links.new(oi.outputs["Color"], sp_.inputs[0]); nt_.links.new(sp_.outputs[0], mu.inputs[0])
+            nt_.links.new(mu.outputs[0], b_.inputs["Emission Strength"])
+            b_.inputs["Emission Color"].default_value = (0.55, 0.82, 1.0, 1)
+            lit = [s_ for s_ in spires if s_.active_material is spire_m]
+            for s_ in lit:
+                s_.color = (0, 0, 0, 1)
+            centre = {s_.name: s_.matrix_world @ (sum((v.co for v in s_.data.vertices), Vector()) / len(s_.data.vertices))
+                      for s_ in lit}
+            used, notes = set(), LY["chime"]
+            for n_, nt in enumerate(notes):
+                h = nt["frame"]
+                if h >= N:
+                    continue
+                first = n_ == 0 or h - notes[n_ - 1]["frame"] > 20              # a new phrase starts on the right
+                k_ = 0 if first else k_ + 1
+                c0, fw, rt = cam_at(h)
+                want_side, want_d = (1 if k_ % 2 == 0 else -1), 14 + 5 * k_     # alternate sides, walking away
+                best, bs = None, 1e9
+                for s_ in lit:
+                    if s_.name in used:
+                        continue
+                    r_ = centre[s_.name] - c0; df, dl = r_.dot(fw), r_.dot(rt)
+                    if df < 8 or df > 45 or abs(math.degrees(math.atan2(dl, df))) > 26 or dl * want_side < 1.5:
+                        continue
+                    sc_ = abs(df - want_d) + 0.3 * abs(abs(math.degrees(math.atan2(dl, df))) - 14)
+                    if sc_ < bs:
+                        best, bs = s_, sc_
+                if best is None:
+                    continue
+                used.add(best.name)
+                key_flash(best, h, 0.35 + 0.65 * nt["strength"], 9, 50)
+                pl = bpy.data.objects.new(f"chime{n_}", bpy.data.lights.new(f"chime{n_}", "POINT"))
+                sc.collection.objects.link(pl); pl.location = centre[best.name]
+                pl.data.color = (0.55, 0.82, 1.0); pl.data.shadow_soft_size = 0.4
+                for i in (h - 1, h + 51):
+                    if 0 <= i < N:
+                        pl.data.energy = 0; pl.data.keyframe_insert("energy", frame=i + 1 + FO)
+                for i in range(h, min(N, h + 51)):                     # it lights the snow and ice around it too
+                    pl.data.energy = a.chime_glow * 60 * (0.35 + 0.65 * nt["strength"]) * math.exp(-(i - h) / 9)
+                    pl.data.keyframe_insert("energy", frame=i + 1 + FO)
+        if "drone" in FX:
+            # a 22-degree halo: a ring on a camera-facing quad far off in the sun's direction, travelling with the camera
+            # (at infinity, like the sun); faintly red inside, white-blue outside; seen only by the camera
+            R = 1500; sd_ = (sun.rotation_euler.to_matrix() @ Vector((0, 0, 1))).normalized()
+            rr = R * math.tan(math.radians(22))
+            me = bpy.data.meshes.new("halo"); s2 = 1.45
+            me.from_pydata([(-s2, -s2, 0), (s2, -s2, 0), (s2, s2, 0), (-s2, s2, 0)], [], [(0, 1, 2, 3)])
+            halo = bpy.data.objects.new("halo", me); sc.collection.objects.link(halo)
+            halo.scale = (rr, rr, rr)
+            halo.rotation_euler = (-sd_).to_track_quat("-Z", "Y").to_euler()      # its +z faces the camera
+            for vis in ("visible_diffuse", "visible_shadow", "visible_volume_scatter"):
+                setattr(halo, vis, False)
+            halo.cycles.use_motion_blur = False
+            m = bpy.data.materials.new("halo"); m.use_nodes = True; nt_ = m.node_tree; nt_.nodes.clear()
+            tc = nt_.nodes.new("ShaderNodeTexCoord"); ln = nt_.nodes.new("ShaderNodeVectorMath"); ln.operation = "LENGTH"
+            nt_.links.new(tc.outputs["Object"], ln.inputs[0])
+            rise = nt_.nodes.new("ShaderNodeMapRange")                # sharp inner edge, soft outer fall-off
+            rise.inputs["From Min"].default_value, rise.inputs["From Max"].default_value = 0.955, 1.0
+            fall = nt_.nodes.new("ShaderNodeMapRange")
+            fall.inputs["From Min"].default_value, fall.inputs["From Max"].default_value = 1.0, 1.22
+            fall.inputs["To Min"].default_value, fall.inputs["To Max"].default_value = 1.0, 0.0
+            fall.interpolation_type = "SMOOTHSTEP"
+            for n2 in (rise, fall):
+                nt_.links.new(ln.outputs["Value"], n2.inputs["Value"])
+            prof = nt_.nodes.new("ShaderNodeMath"); prof.operation = "MULTIPLY"
+            nt_.links.new(rise.outputs["Result"], prof.inputs[0]); nt_.links.new(fall.outputs["Result"], prof.inputs[1])
+            dens_ = nt_.nodes.new("ShaderNodeMath"); dens_.operation = "MULTIPLY"
+            nt_.links.new(prof.outputs[0], dens_.inputs[0])
+            hue = nt_.nodes.new("ShaderNodeMapRange")
+            hue.inputs["From Min"].default_value, hue.inputs["From Max"].default_value = 0.97, 1.08
+            nt_.links.new(ln.outputs["Value"], hue.inputs["Value"])
+            mx = nt_.nodes.new("ShaderNodeMix"); mx.data_type = "RGBA"
+            mx.inputs["A"].default_value = (1.0, 0.72, 0.55, 1); mx.inputs["B"].default_value = (0.82, 0.9, 1.0, 1)
+            nt_.links.new(hue.outputs["Result"], mx.inputs["Factor"])
+            em = nt_.nodes.new("ShaderNodeEmission"); tr = nt_.nodes.new("ShaderNodeBsdfTransparent")
+            ad = nt_.nodes.new("ShaderNodeAddShader"); o_ = nt_.nodes.new("ShaderNodeOutputMaterial")
+            nt_.links.new(mx.outputs["Result"], em.inputs["Color"]); nt_.links.new(dens_.outputs[0], em.inputs["Strength"])
+            nt_.links.new(tr.outputs[0], ad.inputs[0]); nt_.links.new(em.outputs[0], ad.inputs[1])
+            nt_.links.new(ad.outputs[0], o_.inputs["Surface"])
+            me.materials.append(m)
+            dr = LY["drone"]["energy"]
+            for i in range(N):
+                c0, _, _ = cam_at(i)
+                halo.location = c0 + sd_ * R; halo.keyframe_insert("location", frame=i + 1 + FO)
+                dens_.inputs[1].default_value = a.halo * at(dr, i) ** 1.5
+                dens_.inputs[1].keyframe_insert("default_value", frame=i + 1 + FO)
+        if "pad" in FX:
+            # a broken cloud layer 40 m up, seen only through its shadows; it drifts slowly, and at each chord change it
+            # slides one cloud-width across in ~1.2 s, so the shadows sweep over the ice and the light changes
+            bpy.ops.mesh.primitive_plane_add(size=1, location=(0, L / 2, 40))
+            cl = bpy.context.object; cl.name = "clouds"; cl.scale = (500, L + 700, 1)
+            for vis in ("visible_camera", "visible_diffuse", "visible_glossy", "visible_transmission",
+                        "visible_volume_scatter"):
+                setattr(cl, vis, False)
+            m = bpy.data.materials.new("clouds"); m.use_nodes = True; nt_ = m.node_tree; nt_.nodes.clear()
+            tc = nt_.nodes.new("ShaderNodeTexCoord"); mp = nt_.nodes.new("ShaderNodeMapping")
+            nz = nt_.nodes.new("ShaderNodeTexNoise"); nz.inputs["Scale"].default_value = 0.03; nz.inputs["Detail"].default_value = 4
+            rg = nt_.nodes.new("ShaderNodeMapRange")
+            rg.inputs["From Min"].default_value, rg.inputs["From Max"].default_value = 0.5, 0.56
+            tr = nt_.nodes.new("ShaderNodeBsdfTransparent"); df_ = nt_.nodes.new("ShaderNodeBsdfDiffuse")
+            mxs = nt_.nodes.new("ShaderNodeMixShader"); o_ = nt_.nodes.new("ShaderNodeOutputMaterial")
+            tcw = bpy.data.objects.new("world_ref", None); sc.collection.objects.link(tcw); tc.object = tcw
+            nt_.links.new(tc.outputs["Object"], mp.inputs["Vector"]); nt_.links.new(mp.outputs["Vector"], nz.inputs["Vector"])
+            nt_.links.new(nz.outputs["Fac"], rg.inputs["Value"]); nt_.links.new(rg.outputs["Result"], mxs.inputs["Fac"])
+            nt_.links.new(tr.outputs[0], mxs.inputs[1]); nt_.links.new(df_.outputs[0], mxs.inputs[2])
+            nt_.links.new(mxs.outputs[0], o_.inputs["Surface"])
+            cl.data.materials.append(m)
+            ch = LY["pad"]["changes"]; SW = 28
+            for i in range(N):
+                x_ = 0.6 * i / C["fps"]
+                for c_ in ch:
+                    u_ = min(1.0, max(0.0, (i - c_) / SW)); x_ += a.cloud_sweep * (3 * u_ * u_ - 2 * u_ ** 3)
+                mp.inputs["Location"].default_value = (x_, 0, 0)
+                mp.inputs["Location"].keyframe_insert("default_value", frame=i + 1 + FO)
+        if "subbass" in FX:
+            # low drift: a ground-hugging volume (~1.5 m deep) of streaky blown snow travelling with the camera; its
+            # density rides the sub-bass, streaks blowing across the path in world space
+            bpy.ops.mesh.primitive_cube_add(size=1)
+            gd = bpy.context.object; gd.name = "drift"; gd.scale = (70, 90, 3.0)
+            m = bpy.data.materials.new("drift"); m.use_nodes = True; nt_ = m.node_tree; nt_.nodes.clear()
+            pv = nt_.nodes.new("ShaderNodeVolumePrincipled")
+            pv.inputs["Color"].default_value = (0.9, 0.95, 1.0, 1); pv.inputs["Anisotropy"].default_value = 0.55
+            tcw_ = bpy.data.objects.get("world_ref") or bpy.data.objects.new("world_ref", None)
+            if tcw_.name not in sc.collection.objects:
+                sc.collection.objects.link(tcw_)
+            tc = nt_.nodes.new("ShaderNodeTexCoord"); tc.object = tcw_; mp = nt_.nodes.new("ShaderNodeMapping")
+            mp.inputs["Scale"].default_value = (0.15, 0.6, 1.4)                # streaks drawn out along the wind (x)
+            nz = nt_.nodes.new("ShaderNodeTexNoise"); nz.inputs["Scale"].default_value = 1.0; nz.inputs["Detail"].default_value = 5
+            rg = nt_.nodes.new("ShaderNodeMapRange")
+            rg.inputs["From Min"].default_value, rg.inputs["From Max"].default_value = 0.45, 0.75
+            tco = nt_.nodes.new("ShaderNodeTexCoord"); sx = nt_.nodes.new("ShaderNodeSeparateXYZ")
+            hf = nt_.nodes.new("ShaderNodeMapRange")                     # densest at the ground, gone 2 m up
+            hf.inputs["From Min"].default_value, hf.inputs["From Max"].default_value = 0.5, -0.17
+            hf.interpolation_type = "SMOOTHSTEP"
+            mu = nt_.nodes.new("ShaderNodeMath"); mu.operation = "MULTIPLY"
+            dens_ = nt_.nodes.new("ShaderNodeMath"); dens_.operation = "MULTIPLY"
+            o_ = nt_.nodes.new("ShaderNodeOutputMaterial")
+            nt_.links.new(tc.outputs["Object"], mp.inputs["Vector"]); nt_.links.new(mp.outputs["Vector"], nz.inputs["Vector"])
+            nt_.links.new(nz.outputs["Fac"], rg.inputs["Value"])
+            nt_.links.new(tco.outputs["Object"], sx.inputs[0]); nt_.links.new(sx.outputs["Z"], hf.inputs["Value"])
+            nt_.links.new(rg.outputs["Result"], mu.inputs[0]); nt_.links.new(hf.outputs["Result"], mu.inputs[1])
+            nt_.links.new(mu.outputs[0], dens_.inputs[0]); nt_.links.new(dens_.outputs[0], pv.inputs["Density"])
+            nt_.links.new(pv.outputs["Volume"], o_.inputs["Volume"])
+            gd.data.materials.append(m)
+            sb = smooth(LY["subbass"], 0.25)
+            for i in range(N):
+                c0, fw, _ = cam_at(i)
+                gd.location = c0 + fw * 40 + Vector((0, 0, -1.8 + 0.5))   # ground - 1 m .. ground + 2 m; gd.keyframe_insert("location", frame=i + 1 + FO)
+                dens_.inputs[1].default_value = a.drift * at(sb, i) ** 1.5
+                dens_.inputs[1].keyframe_insert("default_value", frame=i + 1 + FO)
+                mp.inputs["Location"].default_value = (-0.05 * i, 0.01 * i, 0)     # blowing across at ~8 m/s
+                mp.inputs["Location"].keyframe_insert("default_value", frame=i + 1 + FO)
+            sc.cycles.volume_step_rate = 4; sc.cycles.volume_max_steps = 256
+        if "clicks" in FX:
+            # each tick: one or two hairline cracks on the ice 5-22 m ahead flash white-blue and fade within ~1/4 s
+            crack_m = glow_material("crack", (0.7, 0.88, 1.0), a.crack_glow)
+            CK = LY["clicks"]
+            for k, (h, st) in enumerate(zip(CK["hits"], CK["strength"])):
+                if h >= N:
+                    continue
+                c0, fw, rt = cam_at(h)
+                for j in range(1 + (st > 0.5)):
+                    p0 = c0 + fw * rnd.uniform(5, 22) + rt * rnd.uniform(-7, 7)
+                    ang = rnd.uniform(0, 2 * math.pi); pts = [p0]
+                    for _ in range(rnd.randint(6, 10)):                     # a zigzag fracture
+                        ang += rnd.uniform(-0.8, 0.8); q = pts[-1] + Vector((math.cos(ang), math.sin(ang), 0)) * rnd.uniform(0.12, 0.3)
+                        pts.append(q)
+                    cu = bpy.data.curves.new(f"crack{k}_{j}", "CURVE"); cu.dimensions = "3D"
+                    br = [pts]
+                    if len(pts) > 4:                                        # a branch off the middle
+                        b0 = pts[len(pts) // 2]; ang2 = ang + rnd.choice((-1, 1)) * rnd.uniform(0.7, 1.3)
+                        br.append([b0 + Vector((math.cos(ang2), math.sin(ang2), 0)) * 0.18 * t_ for t_ in range(4)])
+                    for line in br:
+                        sp = cu.splines.new("POLY"); sp.points.add(len(line) - 1)
+                        for jj, q in enumerate(line):
+                            sp.points[jj].co = (q.x, q.y, height(q.x, q.y) + 0.03, 1)
+                    cu.bevel_depth = 0.012
+                    ob = bpy.data.objects.new(f"crack{k}_{j}", cu); sc.collection.objects.link(ob)
+                    cu.materials.append(crack_m); ob.cycles.use_motion_blur = False
+                    key_flash(ob, h, 0.3 + 0.7 * st, 2.5, 10)
     if a.sparkles:                     # tweets -> sparkles in the dusk sky (user, 2026-10-27: tight band-pass)
         # ~600 points of light on a far dome ahead, in 16 patches; each tweet lights one patch, which fades in ~0.2 s
         G = 16; T = C["tweets"]; mats = []
