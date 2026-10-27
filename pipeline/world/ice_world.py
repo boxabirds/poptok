@@ -360,21 +360,26 @@ else:                                   # Antarctica at dusk, rendered
         fb.inputs["Emission Color"].default_value = (1.0, 0.82, 0.7, 1); fb.inputs["Emission Strength"].default_value = 0.6
         flake.data.materials.append(fm)
 
+        # Emitted continuously from upwind, from 3 s before the clip, each flake living ~4 s, so the snow never runs out
+        # (POC 5 bug: all flakes born at frame 0 were blown out of the corridor within 2 s, user: "why does the snow stop?")
+        PRE, LIFE = 72, 96
+
         def flurry(name, z0, z1, width, count, size, rand, mass):
             bpy.ops.mesh.primitive_cube_add(size=1)
             em = bpy.context.object; em.name = name
-            em.location = (0, (L - 30) / 2, (z0 + z1) / 2); em.scale = (width, L + 30, z1 - z0)
+            em.location = (-6, (L - 30) / 2, (z0 + z1) / 2); em.scale = (width + 12, L + 30, z1 - z0)   # wider upwind (-x)
             ps = em.modifiers.new(name, "PARTICLE_SYSTEM").particle_system.settings
             em.show_instancer_for_render = False      # hide_render on the emitter would hide its flakes too
-            ps.count = count; ps.frame_start = ps.frame_end = 0; ps.lifetime = N + 10
+            ps.count = int(count * (N + PRE) / LIFE); ps.frame_start, ps.frame_end = -PRE, N   # ~count alive at any time
+            ps.lifetime = LIFE; ps.lifetime_random = 0.3
             ps.emit_from = "VOLUME"; ps.distribution = "RAND"; ps.normal_factor = 0
-            ps.physics_type = "NEWTON"; ps.mass = mass; ps.drag_factor = 0.5; ps.brownian_factor = 0.6
+            ps.physics_type = "NEWTON"; ps.mass = mass; ps.drag_factor = 1.0; ps.brownian_factor = 0.6
             ps.effector_weights.gravity = 0.04
             ps.render_type = "OBJECT"; ps.instance_object = flake; ps.use_rotations = True
             ps.rotation_mode = "NONE"; ps.rotation_factor_random = 1.0; ps.angular_velocity_mode = "RAND"
             ps.angular_velocity_factor = 3.0
             ps.particle_size = size; ps.size_random = rand
-            em.particle_systems[0].point_cache.frame_start = 0; em.particle_systems[0].point_cache.frame_end = N
+            em.particle_systems[0].point_cache.frame_start = -PRE; em.particle_systems[0].point_cache.frame_end = N
         flurry("flurry", 0.3, 7.0, 16, a.snow, 0.035, 0.9, 0.02)          # falling flakes, 1-6 cm
         flurry("spindrift", 0.0, 0.5, 30, a.snow // 2, 0.008, 0.8, 0.005)  # fine snow streaming over the ground
         cam.data.dof.use_dof = True; cam.data.dof.focus_distance = 14; cam.data.dof.aperture_fstop = 2.0
@@ -383,12 +388,24 @@ else:                                   # Antarctica at dusk, rendered
         bpy.ops.object.forcefield_toggle(); wind.field.type = "WIND"
         wind.rotation_euler = (0, math.radians(90), math.radians(-15))  # blowing across the path, a little towards us
         for i in range(N):
-            wind.field.strength = 0.08 + 0.5 * high[i] ** 2
+            wind.field.strength = 0.02 + 0.12 * high[i] ** 2
             wind.field.keyframe_insert("strength", frame=i + 1)
         sc.render.use_motion_blur = True; sc.render.motion_blur_shutter = 0.5
     sc.cycles.max_bounces = 8; sc.cycles.transmission_bounces = 8
     sc.cycles.glossy_bounces = 8 if a.theme in ("chrome", "icechrome") else 4
 
+if a.snow and os.environ.get("SNOW_CHECK"):     # flakes within 20 m in front of the camera, per second, no render
+    for f in range(1, N + 1, int(C["fps"])):
+        sc.frame_set(f); dg = bpy.context.evaluated_depsgraph_get()
+        cp = cam.matrix_world.translation; fw = cam.matrix_world.to_quaternion() @ Vector((0, 0, -1))
+        n_ = {}
+        for ob in bpy.data.objects:
+            if ob.particle_systems:
+                pts = ob.evaluated_get(dg).particle_systems[0].particles
+                n_[ob.name] = sum(1 for q in pts if q.alive_state == "ALIVE" and (q.location - cp).length < 20
+                                  and (q.location - cp).dot(fw) > 0)
+        print("snow check frame", f, n_, flush=True)
+    sys.exit(0)
 os.makedirs(out, exist_ok=True)
 bpy.ops.wm.save_as_mainfile(filepath=f"{out}/scene_{a.mode}.blend")
 sc.render.filepath = f"{out}/{a.mode}/"
