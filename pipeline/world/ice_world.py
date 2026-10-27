@@ -608,7 +608,7 @@ else:                                   # Antarctica at dusk, rendered
                 first = n_ == 0 or h - notes[n_ - 1]["frame"] > 20              # a new phrase starts on the right
                 k_ = 0 if first else k_ + 1
                 c0, fw, rt = cam_at(h)
-                want_side, want_d = (1 if k_ % 2 == 0 else -1), 14 + 5 * k_     # alternate sides, walking away
+                want_side, want_d = (1 if k_ % 2 == 0 else -1), 10 + 4 * k_     # alternate sides, walking away
                 cand = []
                 for s_ in lit:
                     if s_.name in used:
@@ -627,16 +627,16 @@ else:                                   # Antarctica at dusk, rendered
                 if best is None:
                     continue
                 used.add(best.name)
-                key_flash(best, h, 0.35 + 0.65 * nt["strength"], 9, 50)
+                key_flash(best, h, 0.35 + 0.65 * nt["strength"], 14, 60)
                 pl = bpy.data.objects.new(f"chime{n_}", bpy.data.lights.new(f"chime{n_}", "POINT"))
                 sc.collection.objects.link(pl); pl.location = centre[best.name]
                 pl.data.color = (0.2, 0.55, 1.0); pl.data.shadow_soft_size = 0.4
                 pl.visible_glossy = pl.visible_transmission = False     # seen through the ice it was a white disc
-                for i in (h - 1, h + 51):
+                for i in (h - 1, h + 61):
                     if 0 <= i < N:
                         pl.data.energy = 0; pl.data.keyframe_insert("energy", frame=i + 1 + FO)
-                for i in range(h, min(N, h + 51)):                     # it lights the snow and ice around it too
-                    pl.data.energy = a.chime_glow * 60 * (0.35 + 0.65 * nt["strength"]) * math.exp(-(i - h) / 9)
+                for i in range(h, min(N, h + 61)):                     # it lights the snow and ice around it too
+                    pl.data.energy = a.chime_glow * 60 * (0.35 + 0.65 * nt["strength"]) * math.exp(-(i - h) / 14)
                     pl.data.keyframe_insert("energy", frame=i + 1 + FO)
         if "drone" in FX:
             # a 22-degree halo: a ring on a camera-facing quad far off in the sun's direction, travelling with the camera
@@ -655,9 +655,9 @@ else:                                   # Antarctica at dusk, rendered
             tc = nt_.nodes.new("ShaderNodeTexCoord"); ln = nt_.nodes.new("ShaderNodeVectorMath"); ln.operation = "LENGTH"
             nt_.links.new(tc.outputs["Object"], ln.inputs[0])
             rise = nt_.nodes.new("ShaderNodeMapRange")                # sharp inner edge, soft outer fall-off
-            rise.inputs["From Min"].default_value, rise.inputs["From Max"].default_value = 0.955, 1.0
+            rise.inputs["From Min"].default_value, rise.inputs["From Max"].default_value = 0.94, 1.0
             fall = nt_.nodes.new("ShaderNodeMapRange")
-            fall.inputs["From Min"].default_value, fall.inputs["From Max"].default_value = 1.0, 1.22
+            fall.inputs["From Min"].default_value, fall.inputs["From Max"].default_value = 1.0, 1.35
             fall.inputs["To Min"].default_value, fall.inputs["To Max"].default_value = 1.0, 0.0
             fall.interpolation_type = "SMOOTHSTEP"
             for n2 in (rise, fall):
@@ -695,7 +695,7 @@ else:                                   # Antarctica at dusk, rendered
             CH = sum(zs) / N - 1.8 + CLOUD_H
             off = Vector((sd_.x, sd_.y, 0)).normalized() * CLOUD_H / math.tan(math.radians(max(a.sun_el, 5)))
             bpy.ops.mesh.primitive_plane_add(size=1, location=(off.x, L / 2 + off.y, CH))
-            cl = bpy.context.object; cl.name = "clouds"; cl.scale = (500, L + 400, 1)
+            cl = bpy.context.object; cl.name = "clouds"; cl.scale = (2400, L + 2400, 1)            # wide: under a cloud the sky is blocked too
             for vis in ("visible_camera", "visible_diffuse", "visible_glossy", "visible_transmission",
                         "visible_volume_scatter"):
                 setattr(cl, vis, False)
@@ -734,7 +734,7 @@ else:                                   # Antarctica at dusk, rendered
             mp.inputs["Scale"].default_value = (0.15, 0.6, 1.4)                # streaks drawn out along the wind (x)
             nz = nt_.nodes.new("ShaderNodeTexNoise"); nz.inputs["Scale"].default_value = 1.0; nz.inputs["Detail"].default_value = 5
             rg = nt_.nodes.new("ShaderNodeMapRange")
-            rg.inputs["From Min"].default_value, rg.inputs["From Max"].default_value = 0.45, 0.75
+            rg.inputs["From Min"].default_value, rg.inputs["From Max"].default_value = 0.38, 0.62
             tco = nt_.nodes.new("ShaderNodeTexCoord"); sx = nt_.nodes.new("ShaderNodeSeparateXYZ")
             hf = nt_.nodes.new("ShaderNodeMapRange")                     # densest at the ground, gone 2 m up
             hf.inputs["From Min"].default_value, hf.inputs["From Max"].default_value = 0.5, -0.17
@@ -766,7 +766,7 @@ else:                                   # Antarctica at dusk, rendered
                 if h >= N:
                     continue
                 c0, fw, rt = cam_at(h)
-                for j in range(1 + (st > 0.5)):
+                for j in range(2 + (st > 0.5)):
                     p0 = c0 + fw * rnd.uniform(4, 13) + rt * rnd.uniform(-5, 5)
                     ang = rnd.uniform(0, 2 * math.pi); pts = [p0]
                     for _ in range(rnd.randint(6, 10)):                     # a zigzag fracture
@@ -784,7 +784,19 @@ else:                                   # Antarctica at dusk, rendered
                     cu.bevel_depth = 0.014
                     ob = bpy.data.objects.new(f"crack{k}_{j}", cu); sc.collection.objects.link(ob)
                     cu.materials.append(crack_m); ob.cycles.use_motion_blur = False
-                    key_flash(ob, h, 0.3 + 0.7 * st, 2.5, 10)
+                    key_flash(ob, h, 0.3 + 0.7 * st, 5, 14)
+        if not a.sparkles:
+            # a soft bloom round whatever glows (lit crystals, cracks, halo; POC 12: "didn't notice it"): fog glow on the
+            # emission pass above its threshold, added to the image (the snow flakes' faint self-light stays below it)
+            bpy.context.view_layer.use_pass_emit = True
+            sc.use_nodes = True; ct = sc.node_tree; ct.nodes.clear()
+            rl = ct.nodes.new("CompositorNodeRLayers"); gl = ct.nodes.new("CompositorNodeGlare")
+            gl.glare_type = "FOG_GLOW"; gl.threshold = 1.5; gl.size = 8; gl.mix = 1.0; gl.quality = "HIGH"
+            add = ct.nodes.new("CompositorNodeMixRGB"); add.blend_type = "ADD"; add.inputs["Fac"].default_value = 1
+            co = ct.nodes.new("CompositorNodeComposite")
+            ct.links.new(rl.outputs["Emit"], gl.inputs["Image"])
+            ct.links.new(rl.outputs["Image"], add.inputs[1]); ct.links.new(gl.outputs["Image"], add.inputs[2])
+            ct.links.new(add.outputs["Image"], co.inputs["Image"])
     if a.sparkles:                     # tweets -> sparkles in the dusk sky (user, 2026-10-27: tight band-pass)
         # ~600 points of light on a far dome ahead, in 16 patches; each tweet lights one patch, which fades in ~0.2 s
         G = 16; T = C["tweets"]; mats = []
