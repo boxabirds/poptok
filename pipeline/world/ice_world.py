@@ -21,6 +21,11 @@ ap.add_argument("curves")
 ap.add_argument("out")
 ap.add_argument("--mode", default="render", choices=["render", "layout"])
 ap.add_argument("--frames", type=int, default=0)
+ap.add_argument("--sun-el", type=float, default=1.5, help="sun elevation, degrees (higher: bluer sky, more blue light through the ice)")
+ap.add_argument("--sky", default="2.2,0.7,0.22", help="AIR,DUST,STRENGTH of the Nishita sky: 2.2,0.7,0.22 is an orange dusk; "
+                "1.4,1.0,0.35 a pale blue sky whose light, outweighing the low sun, turns the ice blue (POCs 1-4)")
+ap.add_argument("--sun-energy", default="3,4", help="BASE,GAIN: sun lamp energy = BASE + GAIN x high band^2")
+ap.add_argument("--mist-color", default="0.85,0.9,1.0")
 ap.add_argument("--only", default="", help="render just these frames, e.g. 22,110 (quick tests)")
 ap.add_argument("--seed", type=int, default=7)
 ap.add_argument("--res", default="1920x1080")
@@ -266,16 +271,18 @@ else:                                   # Antarctica at dusk, rendered
     w = bpy.data.worlds.new("dusk"); sc.world = w; w.use_nodes = True
     nt = w.node_tree; nt.nodes.clear()
     sky = nt.nodes.new("ShaderNodeTexSky"); sky.sky_type = "NISHITA"
-    sky.sun_elevation = math.radians(1.5); sky.sun_rotation = math.radians(SUN_AZ)  # the sun on the horizon, ahead
-    sky.altitude = 50; sky.air_density = 2.2; sky.dust_density = 0.7; sky.sun_size = math.radians(1.2)
-    bgn = nt.nodes.new("ShaderNodeBackground"); bgn.inputs["Strength"].default_value = 0.22
+    sky.sun_elevation = math.radians(a.sun_el); sky.sun_rotation = math.radians(SUN_AZ)  # the sun on the horizon, ahead
+    AIR, DUST, SKY_K = (float(v) for v in a.sky.split(","))
+    sky.altitude = 50; sky.air_density = AIR; sky.dust_density = DUST; sky.sun_size = math.radians(1.2)
+    bgn = nt.nodes.new("ShaderNodeBackground"); bgn.inputs["Strength"].default_value = SKY_K
     o = nt.nodes.new("ShaderNodeOutputWorld")
     nt.links.new(sky.outputs["Color"], bgn.inputs["Color"]); nt.links.new(bgn.outputs["Background"], o.inputs["Surface"])
     sun = bpy.data.objects.new("sun", bpy.data.lights.new("sun", "SUN")); sc.collection.objects.link(sun)
     sun.data.color = (1.0, 0.55, 0.3); sun.data.angle = math.radians(1.2)
-    sun.rotation_euler = (math.radians(90 - 1.5), 0, math.radians(180 - SUN_AZ))      # low, from far ahead (+y), grazing the ice
+    sun.rotation_euler = (math.radians(90 - a.sun_el), 0, math.radians(180 - SUN_AZ))      # low, from far ahead (+y), grazing the ice
+    SUN_E = [float(v) for v in a.sun_energy.split(",")]
     for i in range(N):                                                  # the highs make the low sun glint
-        sun.data.energy = 3.0 + 4.0 * high[i] ** 2
+        sun.data.energy = SUN_E[0] + SUN_E[1] * high[i] ** 2
         sun.data.keyframe_insert("energy", frame=i + 1)
 
     def ice(name, tint, rough, trans):
@@ -456,7 +463,7 @@ else:                                   # Antarctica at dusk, rendered
         mc.location = (0, (L - 30) / 2, 2.5); mc.scale = (120, L + 120, 5)
         m = bpy.data.materials.new("mist"); m.use_nodes = True; nt_ = m.node_tree; nt_.nodes.clear()
         pv = nt_.nodes.new("ShaderNodeVolumePrincipled")
-        pv.inputs["Color"].default_value = (0.85, 0.9, 1.0, 1); pv.inputs["Anisotropy"].default_value = 0.6
+        pv.inputs["Color"].default_value = (*(float(v) for v in a.mist_color.split(",")), 1); pv.inputs["Anisotropy"].default_value = 0.6
         tc = nt_.nodes.new("ShaderNodeTexCoord"); mp = nt_.nodes.new("ShaderNodeMapping")
         nz = nt_.nodes.new("ShaderNodeTexNoise"); nz.inputs["Scale"].default_value = 0.08; nz.inputs["Detail"].default_value = 3
         ramp = nt_.nodes.new("ShaderNodeMapRange")                   # patchy banks, not a uniform fog
@@ -499,6 +506,10 @@ if a.snow and os.environ.get("SNOW_CHECK"):     # flakes within 20 m in front of
         print("snow check frame", f, n_, flush=True)
     sys.exit(0)
 os.makedirs(out, exist_ok=True)
+# bake the snow first: rendering frame 1 cold (with motion blur sampling its sub-frames) smeared the whole of POC 7's
+# first frame
+if a.snow:
+    bpy.ops.ptcache.bake_all(bake=True)
 bpy.ops.wm.save_as_mainfile(filepath=f"{out}/scene_{a.mode}.blend")
 sc.render.filepath = f"{out}/{a.mode}/"
 if a.only:
