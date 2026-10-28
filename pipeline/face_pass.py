@@ -15,7 +15,9 @@ Any step that shows her (universe stills, the performer keyframes) can call it.
     fix("still.png", "photo.jpg", angles="pieces/artists/r.amber-angles")   # with her_angles.py's set: for a turned
                                                             # head, her reference at the nearest turn replaces the photo
 
-    python3 pipeline/face_pass.py PHOTO IN.png... --out DIR [--tries 3] [--angles DIR]   (writes DIR/<name>, prints the scores)
+    python3 pipeline/face_pass.py PHOTO IN.png... --out DIR [--tries 3] [--angles DIR] [--min-sim 0.5]
+(writes DIR/<name>, prints the scores; with --min-sim, exits 2 if any output scores below it, so a stand-in face
+never goes on to the next step: Shot B's first frame scored 0.42 and the user saw "someone, but it's not Amber")
 """
 from __future__ import annotations
 
@@ -126,12 +128,18 @@ if __name__ == "__main__":
     ap.add_argument("--tries", type=int, default=3)
     ap.add_argument("--angles", help="her_angles.py output dir")
     ap.add_argument("--region", choices=["face", "head"], default="head")
+    ap.add_argument("--min-sim", type=float, help="gate: exit 2 if any output's similarity is below this")
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     fix = load()
+    low = []
     for p in a.inputs:
         before = similarity(cv2.imread(p), rec.feature(rec.alignCrop(cv2.imread(a.photo), face(cv2.imread(a.photo)))))
         im, s = fix(p, a.photo, tries=a.tries, angles=a.angles, region=a.region)
         im.save(os.path.join(a.out, os.path.basename(p)))
         print(f"{os.path.basename(p)}: " + ("no face, unchanged" if s is None else
               f"similarity {before:.2f} -> {s:.2f}"), flush=True)
+        if a.min_sim is not None and (s is None or s < a.min_sim):
+            low.append(os.path.basename(p))
+    if low:
+        print(f"below --min-sim {a.min_sim}: {' '.join(low)}"); sys.exit(2)
