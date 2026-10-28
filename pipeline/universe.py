@@ -108,8 +108,14 @@ def ask(prompt, key, temperature=0.9):
 
 
 def env(piece, key):
-    m = re.search(rf'^{key}="?([^"\n]*)', open(f"{piece}/piece.env").read(), re.M)
-    return m.group(1).strip() if m else ""
+    """KEY's value in piece.env as bash reads it: quotes removed, an inline # comment dropped, the last one wins (the
+    regex this replaced kept a trailing comment in the value: cuckoo's PERFORMER_PHOTO, 2026-10-28)."""
+    import shlex
+    v = ""
+    for line in open(f"{piece}/piece.env"):
+        if line.startswith(f"{key}="):
+            w = shlex.split(line[len(key) + 1:], comments=True); v = w[0] if w else ""
+    return v
 
 
 def paths(piece):
