@@ -106,14 +106,10 @@ def ask(prompt, temperature=0.9):
 
 
 def env(piece, key):
-    """KEY's value in piece.env as bash reads it: quotes removed, an inline # comment dropped, the last one wins (the
-    regex this replaced kept a trailing comment in the value: cuckoo's PERFORMER_PHOTO, 2026-10-28)."""
-    import shlex
-    v = ""
-    for line in open(f"{piece}/piece.env"):
-        if line.startswith(f"{key}="):
-            w = shlex.split(line[len(key) + 1:], comments=True); v = w[0] if w else ""
-    return v
+    """KEY's value in piece.env, read as bash reads it (workshop.read_env: an own regex here kept an inline comment in
+    the value, cuckoo's PERFORMER_PHOTO, 2026-10-28)."""
+    from workshop import read_env
+    return read_env(f"{piece}/piece.env").get(key, "")
 
 
 def propose(a):
