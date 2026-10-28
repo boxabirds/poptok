@@ -6,6 +6,7 @@ over each overlap the frames crossfade from the earlier chunk to the later one, 
 --start S: the chunks hold song frames S..S+N-1 (files named by song frame); OUT_DIR still gets 0001.png .. N.png.
 Chunk k covers frames k*CHUNK+1 .. min(N, (k+1)*CHUNK+OVERLAP); CHUNK_DIR_k/NNNN.png. OUT_DIR gets 0001.png .. N.png
 (hard links where a frame comes from one chunk, blends over the overlaps).
+OVERLAP 0: chunks may differ in size (the farm's smaller tail chunks, D20); each frame comes from the chunk that has it.
 """
 from __future__ import annotations
 
@@ -19,6 +20,10 @@ if dirs[0] == "--start":
 os.makedirs(out, exist_ok=True)
 for f in range(1, N + 1):
     k = min((f - 1) // CH, len(dirs) - 1)
+    if OV == 0:
+        k = next((i for i, d in enumerate(dirs) if os.path.exists(os.path.join(d, f"{f + S0 - 1:04d}.png"))), None)
+        if k is None:
+            sys.exit(f"frame {f + S0 - 1} is in no chunk")
     dst = os.path.join(out, f"{f:04d}.png")
     if os.path.exists(dst):
         os.remove(dst)

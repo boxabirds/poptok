@@ -19,7 +19,6 @@ O=pieces/ice-walk/song; R=${R:-pieces/_bench/review/2026-10-28}; S=$O/snowbake/b
 TAG=${TAG:-song}; W=$O/$TAG; RW=poptok-render/$W        # W: this run's chunks, claims, frames (RW: on a remote box)
 NS=$(python3 -c "import json;print(len(json.load(open('$O/curves.json'))['energy']))")   # the song's frames
 S0=${START:-1}; N=${FRAMES:-$(( NS - S0 + 1 ))}; E=$(( S0 + N - 1 ))      # this run: song frames S0..E
-CH=${CH:-240}; K=$(( (N + CH - 1) / CH ))
 OUTMP4=$R/ice-walk$([ "$TAG" = song ] || echo "-$TAG").mp4
 BOXES=${BOXES:-"gruntus thing1 thing2 quintus"}
 # D16 (2026-10-28): chunk workers per box. Two Blenders on the 4090 gave +30% frames/min together (5.0 -> 6.5,
@@ -28,10 +27,26 @@ BOXES=${BOXES:-"gruntus thing1 thing2 quintus"}
 # D14 mark stops new claims while it waits. quintus: 1 (its GPU use can't be measured without sudo).
 PER=${PER:-"gruntus:2 thing1:2 thing2:2 quintus:1"}
 per() { local w; for w in $PER; do [ ${w%%:*} = $1 ] && { echo ${w#*:}; return; }; done; echo 1; }
+# D20 (2026-10-28): the chunks get smaller at the end. With 240-frame chunks throughout, song3's last three went to the
+# Sparks at 14:51-15:48 and gruntus and quintus sat idle from 16:13 while they finished. Now the body is chunks of CH,
+# then the last TAILR rounds of every worker are chunks of CT (CH/4), so the last workers finish about one small chunk
+# apart. Chunk k is song frames CA[k]..CB[k]; the plan is kept in $W/plan, and a re-launch must find the same plan.
+CH=${CH:-240}; CT=${CT:-$(( CH / 4 ))}; TAILR=${TAILR:-2}
+NW=0; for H in $BOXES; do NW=$(( NW + $(per $H) )); done
+NB=$(( (N - TAILR * NW * CT) / CH )); (( NB < 0 )) && NB=0  # body chunks of CH; the rest of the frames in chunks of CT
+CA=(); CB=(); a=$S0
+while (( a <= E )); do
+  c=$(( ${#CA[@]} < NB ? CH : CT )); b=$(( a + c - 1 )); (( b > E )) && b=$E
+  CA+=($a); CB+=($b); a=$(( b + 1 ))
+done
+K=${#CA[@]}
 # ONE line: a newline here ended the command (eval / the remote shell) and a run rendered without the sun or the layers
 ARGS='--res 1920x1080 --samples 48 --gpu --theme icechrome --snow 15000 --swifts --mist 0.05 --flake-glow 6 --mist-color 0.7,0.82,1.0 --sun-el 16 --sky 1.0,0.15,0.4 --exposure -1.0 --look AgX\ -\ Punchy --sun-color 1.0,0.93,0.85 --sun-energy 3,3 --ice-absorb 1.6 --crack-glow 80 --chime-glow 40 --halo 6 --drift 1.0 --cloud-sweep 100'
 [ -d "$S" ] || { echo "no snow bake at $S"; exit 1; }
 rm -rf "${W:?}/claims"; mkdir -p $W/claims              # claims without a done chunk are stale after a restart
+PLAN=$(for ((k=0; k<K; k++)); do echo "c$k ${CA[k]} ${CB[k]}"; done)
+if [ -f $W/plan ]; then [ "$(cat $W/plan)" = "$PLAN" ] || { echo "$W/plan differs from this launch's chunks (CH, CT, TAILR, PER): finish it with the same settings or use a new TAG"; exit 1; }
+else echo "$PLAN" > $W/plan; fi
 
 count() {                                               # frames in a render dir on box $1 (macOS wc pads with spaces)
   if [ $1 = gruntus ]; then ls $2 2>/dev/null | wc -l | tr -d ' '
@@ -70,7 +85,7 @@ worker() {                                              # claim chunks until non
     C=$W/c$k; [ -f "$C/done" ] && continue
     while side_waiting $H; do sleep 20; done            # D14: a side job on this box goes before the next chunk
     mkdir $W/claims/c$k 2>/dev/null || continue         # another box has it
-    A=$(( S0 + k * CH )); B=$(( S0 + (k + 1) * CH - 1 )); (( B > E )) && B=$E
+    A=${CA[k]}; B=${CB[k]}
     echo "$(date +%H:%M) $H.$I chunk $k ($A-$B) start"; t=$(date +%s)
     render $H $C $A $B
     if [ $H != gruntus ]; then mkdir -p $C/render && rsync -a $H:$RW/c$k/render/ $C/render/; fi
@@ -84,14 +99,14 @@ worker() {                                              # claim chunks until non
       fails=$((fails + 1)); (( fails >= 2 )) && { echo "$(date +%H:%M) $H.$I gives up after 2 failures"; return; }
     fi
   done
-  echo "$(date +%H:%M) $H.$I finished"
+  echo "$(date +%H:%M) $H.$I finished"; date +%s > $W/fin_$H.$I
 }
 
 rate() {                                                # box $1's frames/min since the workers started (all its workers)
   python3 -c "print(f'{sum(map(int, open(\"$W/rate_$1\").read().split())) * 60 / ($(date +%s) - $TW):.2f}')"
 }
 
-echo "$(date +%H:%M) farm $TAG start: song frames $S0-$E ($N), $K chunks of $CH, workers: $PER"
+echo "$(date +%H:%M) farm $TAG start: song frames $S0-$E ($N), $K chunks ($NB of $CH, then $(( K - NB )) of $CT or less), workers: $PER"
 for H in $BOXES; do [ $H = gruntus ] || sync_inputs $H || { echo "$H: input sync FAILED"; exit 1; }; done
 # preflight: every box builds the full scene and renders 2 frames; its report must show the layers, the sun and the
 # range, and exactly 2 frames must come out, or nothing starts
@@ -109,12 +124,18 @@ sys.exit(0 if ok else 1)            # the snow moving at frame 2400 (it froze pa
 EOF
 done
 echo "$(date +%H:%M) preflight ok on: $BOXES"
-rm -f $W/rate_*; TW=$(date +%s)
+rm -f $W/rate_* $W/fin_*; TW=$(date +%s)
 for H in $BOXES; do for ((i=1; i<=$(per $H); i++)); do worker $H $i & sleep 5; done; done
 wait
+python3 - $W/fin_* <<'EOF'                               # D20: how far apart the workers finished
+import os, sys
+t = {os.path.basename(f)[4:]: int(open(f).read()) for f in sys.argv[1:]}
+a, b = min(t, key=t.get), max(t, key=t.get)
+print(f"finish spread: {(t[b] - t[a]) / 60:.0f} min (first {a}, last {b})")
+EOF
 for ((k=0; k<K; k++)); do [ -f $W/c$k/done ] || { echo "chunk $k missing; re-launch to finish it"; exit 1; }; done
 dirs=(); for ((k=0; k<K; k++)); do dirs+=("$W/c$k/render"); done
-python3 pipeline/world/stitch_chunks.py $W/frames $N $CH 0 --start $S0 "${dirs[@]}"     # frames 1..N = song frames S0..E
+python3 pipeline/world/stitch_chunks.py $W/frames $N $CH 0 --start $S0 "${dirs[@]}"     # frames 1..N = song frames S0..E; overlap 0: each frame from the chunk that has it
 ffmpeg -v error -y -framerate 24 -start_number 1 -i $W/frames/%04d.png -ss $(python3 -c "print(($S0 - 1) / 24)") -i "pieces/ice-walk/Ice walk.mp3" \
   -c:v libx264 -pix_fmt yuv420p -crf 16 -c:a aac -b:a 192k -shortest $W/body.mp4
 bash pipeline/world/top_tail.sh pieces/ice-walk/title/title.png $W/body.mp4 $OUTMP4
