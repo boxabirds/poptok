@@ -56,6 +56,8 @@ ap.add_argument("--samples", type=int, default=64)
 ap.add_argument("--gpu", action="store_true")
 ap.add_argument("--breath", default="0.8,6.0", help="BASE,GAIN: speed (m/s) = BASE + GAIN x the low band's breath, "
                 "scaled 0..1 within the clip (POC 5: 0.8,6.0, about 1 to 6.5 m/s on each swell)")
+ap.add_argument("--flake-glow", type=float, default=0.8, help="the flakes' own light: against the bright sky, with the sun "
+                "behind them, unlit flakes read as grey specks (user on the song, 2026-10-28: 'annoying floating grey specs')")
 ap.add_argument("--breath-window", type=float, default=10.0, help="seconds over which --breath-norm window stretches")
 ap.add_argument("--breath-norm", default="window", choices=["window", "song"], help="window: the breath envelope is "
                 "stretched to its own 5-95th percentile in the clip and curved (^1.5), so troughs are slow and swells surge "
@@ -429,7 +431,7 @@ else:                                   # Antarctica at dusk, rendered
         fb = fm.node_tree.nodes["Principled BSDF"]
         fb.inputs["Base Color"].default_value = (1, 1, 1, 1); fb.inputs["Roughness"].default_value = 0.6
         fb.inputs["Subsurface Weight"].default_value = 0.5
-        fb.inputs["Emission Color"].default_value = (0.85, 0.9, 1.0, 1); fb.inputs["Emission Strength"].default_value = 0.8   # far flakes: snow, not grey specks against the sky
+        fb.inputs["Emission Color"].default_value = (0.85, 0.9, 1.0, 1); fb.inputs["Emission Strength"].default_value = a.flake_glow   # far flakes: snow, not grey specks against the sky
         flake.data.materials.append(fm)
 
         # Emitted continuously from upwind, from 3 s before the clip, each flake living ~4 s, so the snow never runs out
