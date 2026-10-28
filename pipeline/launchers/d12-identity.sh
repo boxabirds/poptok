@@ -19,7 +19,7 @@ cp $F/views/000_clay.png $F/views/001_clay.png $F/style.json $V/views/
 echo "[$(date +%H:%M)] restyle with her described from her photo, then face pass (12 tries, gate $MIN on faces >= 80 px)"
 ssh $H "mkdir -p ~/poptok/$V ~/poptok/pieces/artists" && rsync -a pipeline $H:poptok/ && rsync -a $V/ $H:poptok/$V/ \
   && rsync -a pieces/artists/ $H:poptok/pieces/artists/
-ssh $H "cd ~/poptok && flock $LOCK $(keyframe_ctr $H) bash -c 'python3 pipeline/world/style_views.py $V/views $V/views/style.json \
+ssh $H "cd ~/poptok && $SIDE flock $LOCK $(keyframe_ctr $H) bash -c 'python3 pipeline/world/style_views.py $V/views $V/views/style.json \
   --person \"$PERSON\" && python3 pipeline/face_pass.py $PHOTO $V/views/000_styled.png $V/views/001_styled.png --out $G \
   --tries 12 --angles pieces/artists/r.amber-angles --min-sim $MIN --min-face 80'" > $V/prep.log 2>&1
 rc=$?; grep -E "similarity|below|too small|no face|Error" $V/prep.log
@@ -53,7 +53,7 @@ for p in A B; do
   k=$([ $p = A ] && echo 0 || echo 1)
   SHOT=$(python3 -c "import yaml;print(yaml.safe_load(open('$T/config.yaml'))['validation']['samples'][$k]['prompt'])")
   echo "[$(date +%H:%M)] first_her_$p"
-  ssh $H "cd ~/poptok && flock $LOCK $(ltx_ctr $H) python3 -m ltx_pipelines.ic_lora $MODELS $LORA \
+  ssh $H "cd ~/poptok && $SIDE flock $LOCK $(ltx_ctr $H) python3 -m ltx_pipelines.ic_lora $MODELS $LORA \
     --video-conditioning $O/layout_$p.mp4 1.0 --image $O/first_her_$p.png 0 1.0 \
     --stage-2-ic-lora --height 1088 --width 1920 --num-frames 81 --prompt \"$SHOT\" --seed 42 --frame-rate 24 \
     --output-path $O/first_her_$p.mp4" > $O/first_her_$p.log 2>&1 || { echo "  FAILED: $(grep Error $O/first_her_$p.log | tail -1)"; exit 1; }

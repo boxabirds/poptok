@@ -15,6 +15,11 @@ MAC_HOSTS=${MAC_HOSTS:-quintus}          # Apple silicon: native uv venv (.venv-
                                          # ~/expts/poptok, not containers (Metal isn't reachable from one); no flock on
                                          # macOS, so the GPU lock is a directory: ~/.poptok-gpu.lock.d
 LOCK='${TMPDIR:-/tmp}/poptok-gpu.lock'
+# A side job on a box the Ice Walk farm also uses: put "$SIDE" just before its flock (remote: inside the ssh command; local:
+# eval it in a subshell). It marks the job waiting (/tmp/poptok-gpu.waiting/<its shell's pid>) until that shell exits,
+# and the farm's workers claim no new chunk on that box while a marked job's pid is alive, so the job waits at most for
+# the chunk in progress (flock is not first-come-first-served: D12 waited 68 min behind back-to-back chunks, 2026-10-28)
+SIDE='mkdir -p /tmp/poptok-gpu.waiting; touch /tmp/poptok-gpu.waiting/$$; trap "rm -f /tmp/poptok-gpu.waiting/$$" EXIT;'
 BUSY_RE='ltx2|morph-spark|zoommorph|m2v-pre|acestep|chronoedit-rocm|infinitetalk'
 
 is_rocm() { [[ " $ROCM_HOSTS " == *" $1 "* ]]; }

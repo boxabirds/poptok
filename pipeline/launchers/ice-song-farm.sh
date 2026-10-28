@@ -52,10 +52,17 @@ render() {                                              # render clip frames A..
   esac 2>&1 | grep -E "ice ok|ice check|rror|Traceback" | grep -v HIPEW
 }
 
+side_waiting() {                                        # a marked side job ($SIDE, bin/hosts.sh) is waiting on box $1
+  # answers on stdout, not the exit status: ssh to quintus always exits 0 (checked 2026-10-28: ssh quintus 'exit 3' -> 0)
+  local c='for f in /tmp/poptok-gpu.waiting/*; do [ -e "$f" ] && kill -0 "${f##*/}" 2>/dev/null && echo waiting && break; done'
+  if [ $1 = gruntus ]; then bash -c "$c"; else ssh -o BatchMode=yes $1 "bash -c '$c'"; fi | grep -q waiting
+}
+
 worker() {                                              # claim chunks until none are left
   local H=$1 k A B C n fails=0
   for ((k=0; k<K; k++)); do
     C=$W/c$k; [ -f "$C/done" ] && continue
+    while side_waiting $H; do sleep 20; done            # D14: a side job on this box goes before the next chunk
     mkdir $W/claims/c$k 2>/dev/null || continue         # another box has it
     A=$(( S0 + k * CH )); B=$(( S0 + (k + 1) * CH - 1 )); (( B > E )) && B=$E
     echo "$(date +%H:%M) $H chunk $k ($A-$B) start"

@@ -15,15 +15,15 @@ echo "[$(date +%H:%M)] her mesh on $H"
 # memory: the Spark's GPU shares system memory, so the peak of used system memory over the run, sampled every 5 s
 ssh $H "nohup bash -c 'b=\$(free -m | awk \"/Mem:/{print \\\$3}\"); p=0; while [ ! -f /tmp/her-mesh.end ]; do u=\$(free -m | awk \"/Mem:/{print \\\$3}\"); [ \$u -gt \$p ] && p=\$u; sleep 5; done; echo \"base \$b MB peak \$p MB\" > /tmp/her-mesh.mem' >/dev/null 2>&1 & rm -f /tmp/her-mesh.end /tmp/her-mesh.mem"
 t0=$(date +%s)
-ssh $H "cd ~/poptok && while $CTRS | grep -qE '$BUSY_RE'; do sleep 20; done; flock $LOCK docker run --gpus all --rm --user \$(id -u):\$(id -g) --ipc=host \
+ssh $H "cd ~/poptok && while $CTRS | grep -qE '$BUSY_RE'; do sleep 20; done ; $SIDE flock $LOCK docker run --gpus all --rm --user \$(id -u):\$(id -g) --ipc=host \
   -e HOME=/tmp -e HF_HOME=/models/hf -e HF_HUB_OFFLINE=1 -v \$HOME/poptok:/work -v \$HOME/models:/models -w /work trellis2 \
   python3 pipeline/world/her_mesh.py $I $O --seed 1" > $O/her_mesh.log 2>&1
 rc=$?; ssh $H "touch /tmp/her-mesh.end"; sleep 7
 echo "  exit $rc, $(( ($(date +%s) - t0) / 60 )) min, memory: $(ssh $H 'cat /tmp/her-mesh.mem 2>/dev/null')"
 [ $rc -eq 0 ] || { echo "her mesh FAILED: $(grep -E 'Error|error' $O/her_mesh.log | tail -2)"; exit 1; }
 rsync -a $H:poptok/$O/her.glb $O/
-flock /tmp/poptok-gpu.lock docker run --rm --gpus all -e NVIDIA_DRIVER_CAPABILITIES=all --user $(id -u):$(id -g) -v $PWD:/work -w /work \
-  blender52 -b -P pipeline/world/turntable.py -- $O/her.glb $O/turntable 2>&1 | grep -E "mesh bounds|turntable ok|rror"
+( eval "$SIDE"; exec flock /tmp/poptok-gpu.lock docker run --rm --gpus all -e NVIDIA_DRIVER_CAPABILITIES=all --user $(id -u):$(id -g) -v $PWD:/work -w /work \
+  blender52 -b -P pipeline/world/turntable.py -- $O/her.glb $O/turntable) 2>&1 | grep -E "mesh bounds|turntable ok|rror"
 python3 - <<EOF
 from PIL import Image, ImageDraw
 t = [Image.open(f"$O/turntable/view{k}.png").convert("RGB") for k in range(1, 9)]

@@ -27,7 +27,7 @@ wait_free="while $CTRS | grep -qE '$BUSY_RE'; do sleep 20; done"
 run() {                                 # name, frames, extra args, prompt
   [ -s $O/$1.mp4 ] && return 0
   echo "[$(date +%H:%M)] $1"
-  ssh $H "cd ~/poptok && $wait_free; flock $LOCK $(ltx_ctr $H) python3 -m ltx_pipelines.ic_lora $MODELS $LORA $3 \
+  ssh $H "cd ~/poptok && $wait_free ; $SIDE flock $LOCK $(ltx_ctr $H) python3 -m ltx_pipelines.ic_lora $MODELS $LORA $3 \
     --stage-2-ic-lora --height 1088 --width 1920 --num-frames $2 --prompt \"$4\" --seed 42 --frame-rate 24 \
     --output-path $O/$1.mp4" > $O/$1.log 2>&1 || { echo "  $1 FAILED: $(grep -E 'Error' $O/$1.log | tail -1)"; return 1; }
   rsync -a $H:poptok/$O/$1.mp4 $O/

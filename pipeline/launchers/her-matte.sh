@@ -12,7 +12,7 @@ CTR="docker run --gpus all --rm --user \$(id -u):\$(id -g) --ipc=host -e HOME=/t
 echo "[$(date +%H:%M)] BiRefNet weights (public, MIT)"
 ssh $H "$CTR python3 -c \"from huggingface_hub import snapshot_download; print(snapshot_download('ZhengPeng7/BiRefNet'))\"" 2>&1 | tail -1
 echo "[$(date +%H:%M)] matte (waits for the GPU lock)"
-ssh $H "cd ~/poptok && flock $LOCK $CTR python3 pipeline/world/matte.py $D/front_2.png $D/front_2_matte.png" 2>&1 | grep -E "matte ok|Error" | tail -2
+ssh $H "cd ~/poptok && $SIDE flock $LOCK $CTR python3 pipeline/world/matte.py $D/front_2.png $D/front_2_matte.png" 2>&1 | grep -E "matte ok|Error" | tail -2
 rsync -a $H:poptok/$D/front_2_matte.png $D/ || { echo "matte FAILED"; exit 1; }
 python3 - <<EOF || { echo "matte not clean: stop"; exit 1; }
 from PIL import Image; import numpy as np, sys
