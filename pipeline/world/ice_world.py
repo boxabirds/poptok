@@ -941,10 +941,12 @@ else:                                   # Antarctica at dusk, rendered
         mul = nt_.nodes.new("ShaderNodeMath"); mul.operation = "MULTIPLY"
         dens = nt_.nodes.new("ShaderNodeMath"); dens.operation = "MULTIPLY"
         out_ = nt_.nodes.new("ShaderNodeOutputMaterial")
-        nt_.links.new(tc.outputs["Generated"], mp.inputs["Vector"])
-        nt_.links.new(tc.outputs["Object"], hgt.inputs[0])
-        tcw = nt_.nodes.new("ShaderNodeTexCoord")
-        nt_.links.new(tcw.outputs["Object"], mp.inputs["Vector"])
+        # in world metres (user on the song, 2026-10-28: "mist was too subtle too"): in the box's own coordinates (-0.5..0.5)
+        # a 917 m song-long box made the banks one value across the whole view and the height fade never reached
+        # 4.5, so the mist was on everywhere or (most of the time) off everywhere, whatever its density
+        geo = nt_.nodes.new("ShaderNodeNewGeometry")
+        nt_.links.new(geo.outputs["Position"], mp.inputs["Vector"])
+        nt_.links.new(geo.outputs["Position"], hgt.inputs[0])
         nt_.links.new(mp.outputs["Vector"], nz.inputs["Vector"]); nt_.links.new(nz.outputs["Fac"], ramp.inputs["Value"])
         nt_.links.new(hgt.outputs["Z"], hf.inputs["Value"])
         nt_.links.new(ramp.outputs["Result"], mul.inputs[0]); nt_.links.new(hf.outputs["Result"], mul.inputs[1])
@@ -954,7 +956,7 @@ else:                                   # Antarctica at dusk, rendered
         for i in range(N):
             dens.inputs[1].default_value = a.mist * mi[i]
             dens.inputs[1].keyframe_insert("default_value", frame=i + 1 + FO)
-            mp.inputs["Location"].default_value = (0.004 * i, 0.0015 * i, 0)      # banks drifting across
+            mp.inputs["Location"].default_value = (0.02 * i, 0.008 * i, 0)       # banks drifting across, ~0.5 m/s
             mp.inputs["Location"].keyframe_insert("default_value", frame=i + 1 + FO)
         sc.cycles.volume_step_rate = 4; sc.cycles.volume_max_steps = 256
     if bpy.app.version >= (5, 0):       # 4.2's ray-marched volumes (5.x defaults to unbiased null scattering)
