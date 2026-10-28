@@ -5,7 +5,7 @@
 # Out: pieces/_bench/review/2026-10-28/ice-walk-dry4.mp4; pieces/_logs/ice-dry4.log
 #   setsid nohup bash pipeline/launchers/ice-d23-dry.sh >> pieces/_logs/ice-d23-dry.log 2>&1 < /dev/null &
 cd ~/sambashare/expts/poptok
-FARM=pieces/_logs/ice-song-farm.d23.sh; git show e45cb4d:pipeline/launchers/ice-song-farm.sh > $FARM   # the D23 commit
+FARM=pieces/_logs/ice-song-farm.d23.sh; git show aae3426:pipeline/launchers/ice-song-farm.sh > $FARM   # the D23 commit (+ outputs per version)
 while pgrep -f "bash pipeline/launchers/ice-d22-dry\.sh" > /dev/null; do sleep 60; done
 grep -q "ice dry3 done" pieces/_logs/ice-dry3.log || { echo "$(date +%H:%M) dry3 did not finish: no dry4"; exit 1; }
 echo "$(date +%H:%M) dry4 starts"
