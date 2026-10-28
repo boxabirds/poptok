@@ -22,6 +22,12 @@ S0=${START:-1}; N=${FRAMES:-$(( NS - S0 + 1 ))}; E=$(( S0 + N - 1 ))      # this
 CH=${CH:-240}; K=$(( (N + CH - 1) / CH ))
 OUTMP4=$R/ice-walk$([ "$TAG" = song ] || echo "-$TAG").mp4
 BOXES=${BOXES:-"gruntus thing1 thing2 quintus"}
+# D16 (2026-10-28): chunk workers per box. Two Blenders on the 4090 gave +30% frames/min together (5.0 -> 6.5,
+# ice-pipe-test.log): one renders on the GPU while the other is in its CPU stages (scene/snow update, CPU denoise, save).
+# The farm's renders share each box's GPU lock (flock -s), so a side job's exclusive flock still waits for both, and the
+# D14 mark stops new claims while it waits. quintus: 1 (its GPU use can't be measured without sudo).
+PER=${PER:-"gruntus:2 thing1:2 thing2:2 quintus:1"}
+per() { local w; for w in $PER; do [ ${w%%:*} = $1 ] && { echo ${w#*:}; return; }; done; echo 1; }
 # ONE line: a newline here ended the command (eval / the remote shell) and a run rendered without the sun or the layers
 ARGS='--res 1920x1080 --samples 48 --gpu --theme icechrome --snow 15000 --swifts --mist 0.05 --flake-glow 6 --mist-color 0.7,0.82,1.0 --sun-el 16 --sky 1.0,0.15,0.4 --exposure -1.0 --look AgX\ -\ Punchy --sun-color 1.0,0.93,0.85 --sun-energy 3,3 --ice-absorb 1.6 --crack-glow 80 --chime-glow 40 --halo 6 --drift 1.0 --cloud-sweep 100'
 [ -d "$S" ] || { echo "no snow bake at $S"; exit 1; }
@@ -42,9 +48,9 @@ render() {                                              # render clip frames A..
   local H=$1 C=$2 A=$3 B=$4
   local ICE="pipeline/world/ice_world.py -- $O/curves.json $C $ARGS --layers $O/layers.json --snow-cache $S --range $A,$B"
   case $H in
-    gruntus) eval "flock /tmp/poptok-gpu.lock docker run --rm --gpus all -e NVIDIA_DRIVER_CAPABILITIES=all \
+    gruntus) eval "flock -s /tmp/poptok-gpu.lock docker run --rm --gpus all -e NVIDIA_DRIVER_CAPABILITIES=all \
                --user $(id -u):$(id -g) -v $PWD:/work -w /work blender52 -b -P $ICE" ;;      # eval: the look's spaces
-    thing1|thing2) ssh -o BatchMode=yes $H "cd ~/poptok-render && flock /tmp/poptok-gpu.lock docker run --rm --gpus all \
+    thing1|thing2) ssh -o BatchMode=yes $H "cd ~/poptok-render && flock -s /tmp/poptok-gpu.lock docker run --rm --gpus all \
                -v ~/poptok-blender/cmake-make:/opt/b:ro -v ~/poptok-blender/oidn-lib:/opt/oidn:ro \
                -e LD_LIBRARY_PATH=/opt/oidn:/opt/b/libExt:/opt/b/lib --user \$(id -u):\$(id -g) -v \$PWD:/work -w /work \
                blender52 -b -P $ICE" ;;
@@ -58,29 +64,34 @@ side_waiting() {                                        # a marked side job ($SI
   if [ $1 = gruntus ]; then bash -c "$c"; else ssh -o BatchMode=yes $1 "bash -c '$c'"; fi | grep -q waiting
 }
 
-worker() {                                              # claim chunks until none are left
-  local H=$1 k A B C n fails=0
+worker() {                                              # claim chunks until none are left (box, worker number)
+  local H=$1 I=$2 k A B C n t fails=0
   for ((k=0; k<K; k++)); do
     C=$W/c$k; [ -f "$C/done" ] && continue
     while side_waiting $H; do sleep 20; done            # D14: a side job on this box goes before the next chunk
     mkdir $W/claims/c$k 2>/dev/null || continue         # another box has it
     A=$(( S0 + k * CH )); B=$(( S0 + (k + 1) * CH - 1 )); (( B > E )) && B=$E
-    echo "$(date +%H:%M) $H chunk $k ($A-$B) start"
+    echo "$(date +%H:%M) $H.$I chunk $k ($A-$B) start"; t=$(date +%s)
     render $H $C $A $B
     if [ $H != gruntus ]; then mkdir -p $C/render && rsync -a $H:$RW/c$k/render/ $C/render/; fi
     n=$(count gruntus $C/render)
     if [ "$n" -eq $(( B - A + 1 )) ]; then
-      touch $C/done; echo "$(date +%H:%M) $H chunk $k done"
+      touch $C/done; echo $n >> $W/rate_$H
+      echo "$(date +%H:%M) $H.$I chunk $k done ($(( ($(date +%s) - t) / 60 )) min); $H so far: $(rate $H) frames/min"
       [ $H != gruntus ] && ssh -o BatchMode=yes $H "rm -rf ~/$RW/c$k"
     else
-      echo "$(date +%H:%M) $H chunk $k FAILED ($n frames); released"; rmdir $W/claims/c$k
-      fails=$((fails + 1)); (( fails >= 2 )) && { echo "$(date +%H:%M) $H gives up after 2 failures"; return; }
+      echo "$(date +%H:%M) $H.$I chunk $k FAILED ($n frames); released"; rmdir $W/claims/c$k
+      fails=$((fails + 1)); (( fails >= 2 )) && { echo "$(date +%H:%M) $H.$I gives up after 2 failures"; return; }
     fi
   done
-  echo "$(date +%H:%M) $H finished"
+  echo "$(date +%H:%M) $H.$I finished"
 }
 
-echo "$(date +%H:%M) farm $TAG start: song frames $S0-$E ($N), $K chunks of $CH, boxes: $BOXES"
+rate() {                                                # box $1's frames/min since the workers started (all its workers)
+  python3 -c "print(f'{sum(map(int, open(\"$W/rate_$1\").read().split())) * 60 / ($(date +%s) - $TW):.2f}')"
+}
+
+echo "$(date +%H:%M) farm $TAG start: song frames $S0-$E ($N), $K chunks of $CH, workers: $PER"
 for H in $BOXES; do [ $H = gruntus ] || sync_inputs $H || { echo "$H: input sync FAILED"; exit 1; }; done
 # preflight: every box builds the full scene and renders 2 frames; its report must show the layers, the sun and the
 # range, and exactly 2 frames must come out, or nothing starts
@@ -98,7 +109,8 @@ sys.exit(0 if ok else 1)            # the snow moving at frame 2400 (it froze pa
 EOF
 done
 echo "$(date +%H:%M) preflight ok on: $BOXES"
-for H in $BOXES; do worker $H & done
+rm -f $W/rate_*; TW=$(date +%s)
+for H in $BOXES; do for ((i=1; i<=$(per $H); i++)); do worker $H $i & sleep 5; done; done
 wait
 for ((k=0; k<K; k++)); do [ -f $W/c$k/done ] || { echo "chunk $k missing; re-launch to finish it"; exit 1; }; done
 dirs=(); for ((k=0; k<K; k++)); do dirs+=("$W/c$k/render"); done
