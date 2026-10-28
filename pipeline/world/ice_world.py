@@ -108,17 +108,24 @@ env, e = [], (low[0] if a.breath_norm == "window" else 0.0)
 for x in low:
     e += (x - e) * (0.30 if x > e else 0.04)        # breath: quick in, slow out
     env.append(e)
-if a.breath_norm == "window":                       # the swells, not the song's overall loudness, set the range
-    # over a rolling window of --breath-window seconds (a clip no longer than it: the whole clip, as POCs 4-13), so a
-    # whole song surges in its quiet sections as much as in its loud ones (user on the song's dry run, 2026-10-27:
-    # "there's no movement variation in that example": stretched over the whole song the quiet intro barely moved)
-    Wn = int(a.breath_window * C["fps"]); out_ = []
-    for i in range(N):
-        j0 = 0 if N <= Wn else min(max(0, i - Wn // 2), N - Wn)
-        q = sorted(env[j0:j0 + min(N, Wn)]); n_ = len(q)
+
+
+def rolling_norm(v):
+    """v stretched to 0..1 (5th-95th percentile, then ^1.5) over a rolling window of --breath-window seconds; a clip no
+    longer than the window is stretched as a whole, as in POCs 4-13. So a whole song swells in its quiet sections as
+    much as in its loud ones (user on the song's dry run, 2026-10-27: "there's no movement variation in that example";
+    on the song, 2026-10-28: "mist was too subtle too": stretched over the whole song, both barely moved)."""
+    Wn = int(a.breath_window * C["fps"]); n = len(v); out_ = []
+    for i in range(n):
+        j0 = 0 if n <= Wn else min(max(0, i - Wn // 2), n - Wn)
+        q = sorted(v[j0:j0 + min(n, Wn)]); n_ = len(q)
         lo_, hi_ = q[int(0.05 * (n_ - 1))], q[int(0.95 * (n_ - 1))]
-        out_.append(min(1, max(0, (env[i] - lo_) / (hi_ - lo_ + 1e-9))) ** 1.5)
-    env = out_
+        out_.append(min(1, max(0, (v[i] - lo_) / (hi_ - lo_ + 1e-9))) ** 1.5)
+    return out_
+
+
+if a.breath_norm == "window":                       # the swells, not the song's overall loudness, set the range
+    env = rolling_norm(env)
 B0, BG = (float(v) for v in a.breath.split(","))
 speed = smooth([B0 + BG * v for v in env], 0.15)    # metres per second, never below B0: never backwards
 dist = [0.0]
@@ -454,6 +461,11 @@ else:                                   # Antarctica at dusk, rendered
             pc.frame_start, pc.frame_end = 1 + FO - PRE, FO + N
             if a.snow_cache:                       # one bake of the whole song, read by every chunk: continuous snow
                 pc.use_external = True; pc.filepath = os.path.abspath(a.snow_cache)
+                # setting the path rescans the folder and resets the end frame to 999 (Blender 5.2), and past it every
+                # flake froze where it was, the new ones riding along with the camera (user on the song, 2026-10-28:
+                # "the snow stopped moving around 0:53"); so the range again, after the path, and checked
+                pc.frame_start, pc.frame_end = 1 + FO - PRE, FO + N
+                assert (pc.frame_start, pc.frame_end) == (1 + FO - PRE, FO + N), (pc.frame_start, pc.frame_end)
         flurry("flurry", 0.3, 7.0, 16, a.snow, 0.07, 0.9, 0.02)           # falling flakes, 2-13 cm
         flurry("spindrift", 0.0, 0.5, 30, a.snow // 2, 0.016, 0.8, 0.005)  # fine snow streaming over the ground
         cam.data.dof.use_dof = True; cam.data.dof.focus_distance = 14; cam.data.dof.aperture_fstop = 2.0
@@ -473,6 +485,7 @@ else:                                   # Antarctica at dusk, rendered
         T = C["tweets"]; DRAW, LINGER, TAIL = 8, 30, 0.5
         TRAIL_MIN = 16 if a.layers else 5                             # metres above the camera (see the cloud layer)
         BIRD = 1.65                                                   # swift size (x its distance / 80 m)
+        SWIFT_EL = (6.0, 15.0)                                        # degrees above the horizon, from the camera
         # the swift at the head (user, 2026-10-27: "they're birds so should have a head of the contrail with a bird-like
         # shape"): a dark silhouette from below, nose +y, span 2.1 units: sickle wings swept back, a forked tail
         half = [(0.0, 0.55), (0.06, 0.45), (0.08, 0.15), (0.35, 0.12), (0.65, 0.0), (0.9, -0.2), (1.05, -0.45),
@@ -496,7 +509,7 @@ else:                                   # Antarctica at dusk, rendered
             c0 = path(dist[h]); c0.z = zs[h]
             fw = path(dist[h] + 30) - c0; fw.z = 0; fw.normalize()
             rt = Vector((fw.y, -fw.x, 0)); up = Vector((0, 0, 1))
-            D = rnd.uniform(55, 110)                                  # how far ahead it flies
+            D = rnd.uniform(90, 150)                                  # how far ahead it flies
             ctr = c0 + fw * D + rt * rnd.uniform(-0.4, 0.4) * D + up * rnd.uniform(0.12, 0.3) * D
             th, k1, k2 = rnd.uniform(0, 2 * math.pi), rnd.uniform(-2.5, 2.5), rnd.uniform(-2.5, 2.5)
             Lp, M = rnd.uniform(0.7, 1.2) * D, 48                    # a swoop: the heading bends one way, then may whip back
@@ -506,10 +519,17 @@ else:                                   # Antarctica at dusk, rendered
                 u += math.cos(hd) * Lp / M; v += math.sin(hd) * Lp / M; uv.append((u, v))
             mu, mv = sum(p[0] for p in uv) / M, sum(p[1] for p in uv) / M
             P = [ctr + rt * (p[0] - mu) + up * 0.55 * (p[1] - mv) + fw * 0.5 * (p[1] - mv) for p in uv]
-            lift = max(0.0, c0.z + TRAIL_MIN - min(p.z for p in P))   # never low: above the horizon line, the clouds
+            # in frame (user on the song, 2026-10-28: "the swifts largely moved off screen -- too high to see"): the
+            # swoop's height is redrawn as elevation seen from the camera, between SWIFT_EL degrees above the horizon
+            # (the frame's top edge is ~20 deg up), and never below TRAIL_MIN metres above the camera (the clouds)
+            z0_, z1_ = min(p.z for p in P), max(p.z for p in P)
+            for p in P:
+                r_ = max(1.0, (p - c0).to_2d().length)
+                lo_ = max(SWIFT_EL[0], math.degrees(math.atan(TRAIL_MIN / r_)))
+                el_ = lo_ + (max(lo_, SWIFT_EL[1]) - lo_) * (p.z - z0_) / (z1_ - z0_ + 1e-9)
+                p.z = c0.z + r_ * math.tan(math.radians(el_))
             cu = bpy.data.curves.new(f"swift{k}", "CURVE"); cu.dimensions = "3D"
             sp = cu.splines.new("POLY"); sp.points.add(M - 1)
-            P = [p + up * lift for p in P]
             for j, p in enumerate(P):
                 sp.points[j].co = (p.x, p.y, p.z, 1)
             cu.bevel_resolution = 3; cu.use_fill_caps = True
@@ -902,9 +922,7 @@ else:                                   # Antarctica at dusk, rendered
         ct.links.new(rl.outputs["Image"], add.inputs[1]); ct.links.new(gl.outputs["Image"], add.inputs[2])
         ct.links.new(add.outputs["Image"], co.inputs["Image"])
     if a.mist:                         # mids -> a low mist that comes and goes, lit gold by the low sun
-        mi = C["mist"]; mi = [mi[min(i, len(mi) - 1)] for i in range(N)]
-        q = sorted(mi); lo_, hi_ = q[int(0.05 * (N - 1))], q[int(0.95 * (N - 1))]
-        mi = [min(1, max(0, (v - lo_) / (hi_ - lo_ + 1e-9))) ** 1.5 for v in mi]
+        mi = C["mist"]; mi = rolling_norm([mi[min(i, len(mi) - 1)] for i in range(N)])
         bpy.ops.mesh.primitive_cube_add(size=1)
         mc = bpy.context.object; mc.name = "mist"
         mc.location = (0, (L - 30) / 2, 2.5); mc.scale = (120, L + 120, 5)
@@ -973,6 +991,33 @@ sc.frame_start, sc.frame_end = 1, FO + N
 if a.snow and not a.snow_cache:
     bpy.ops.ptcache.bake_all(bake=True)
 bpy.ops.wm.save_as_mainfile(filepath=f"{out}/scene_{a.mode}.blend")
+# measured from the built scene, so a launcher can stop before rendering long (user on the song, 2026-10-28: the snow
+# froze from 0:53 and the swifts flew out of frame, and nothing checked): the flakes' speed near the camera at the
+# range's first and last frames, and how many of the swifts' positions while drawn are in frame
+from bpy_extras.object_utils import world_to_camera_view
+
+
+def snow_speed(k):
+    sc.frame_set(FO + k); dg_ = bpy.context.evaluated_depsgraph_get(); cp_ = cam.matrix_world.translation
+    al = [q for q in bpy.data.objects["flurry"].evaluated_get(dg_).particle_systems[0].particles
+          if q.alive_state == "ALIVE" and (q.location - cp_).length < 30]
+    return sum(q.velocity.length for q in al) / max(1, len(al))
+
+
+snow_rep = "snow m/s %.2f %.2f" % (snow_speed(R0), snow_speed(R1)) if a.snow else "snow off"
+seen_, all_ = 0, 0
+birds = [o for o in bpy.data.objects if o.name.startswith("swift_bird")]
+for k in range(R0, R1 + 1, 2):
+    if birds:
+        sc.frame_set(FO + k)
+    for b_ in birds:
+        if not b_.hide_render:
+            v_ = world_to_camera_view(sc, cam, b_.matrix_world.translation)
+            all_ += 1; seen_ += (0 <= v_.x <= 1 and 0 <= v_.y <= 1 and v_.z > 0)
+swift_rep = "swifts in frame %d/%d" % (seen_, all_)
+print("ice check; range", R0, R1, ";", snow_rep, ";", swift_rep, flush=True)
+if os.environ.get("CHECK_ONLY"):              # the checks alone, no render (a preflight)
+    sys.exit(0)
 sc.render.filepath = f"{out}/{a.mode}/"
 if a.only:
     for f in (int(v) for v in a.only.split(",")):
@@ -986,4 +1031,4 @@ else:
 print("ice ok", out, N, "frames; range", R0, R1, "; layers:",          # so a launcher can check what it built
       " ".join(f"{k}={sum(o.name.startswith(k) for o in bpy.data.objects)}" for k in ("halo", "clouds", "drift", "chime", "crack", "swift_bird")),
       "; sun_el", a.sun_el, "look", a.look,
-      "; speed m/s %.1f-%.1f" % (min(speed[R0 - 1:R1]), max(speed[R0 - 1:R1])))
+      "; speed m/s %.1f-%.1f" % (min(speed[R0 - 1:R1]), max(speed[R0 - 1:R1])), ";", snow_rep, ";", swift_rep)

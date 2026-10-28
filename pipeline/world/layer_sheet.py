@@ -2,8 +2,9 @@
 include a sample that has all 7 layers otherwise I can't evaluate"). Each row shows three frames around one event of that
 layer (before / on / after), labelled with the row number, the layer and the frame.
 
-    python3 pipeline/world/layer_sheet.py RENDER_DIR CURVES.json LAYERS.json OUT.jpg [--tag 12]
-RENDER_DIR holds 0001.png .. NNNN.png (frame f of the clip is file f).
+    python3 pipeline/world/layer_sheet.py RENDER_DIR CURVES.json LAYERS.json OUT.jpg [--tag 12] [--start S]
+RENDER_DIR holds 0001.png .. NNNN.png (frame f of the clip is file f); --start S: file 1 is song frame S (a dry run
+from the middle of the song), the labels stay song frames.
 """
 from __future__ import annotations
 
@@ -15,9 +16,17 @@ ap.add_argument("curves")
 ap.add_argument("layers")
 ap.add_argument("out")
 ap.add_argument("--tag", default="")
+ap.add_argument("--start", type=int, default=1)
 a = ap.parse_args()
 C, LY = json.load(open(a.curves)), json.load(open(a.layers))
 N = len([f for f in os.listdir(a.render) if f.endswith(".png")])
+OF = a.start - 1                        # the events and curves moved to the rendered frames
+C["tweets"]["hits"] = [h - OF for h in C["tweets"]["hits"]]
+C["bands"]["low"]["hits"] = [h - OF for h in C["bands"]["low"]["hits"]]
+LY["pad"]["changes"] = [h - OF for h in LY["pad"]["changes"]]
+LY["chime"] = [dict(n, frame=n["frame"] - OF) for n in LY["chime"]]
+LY["clicks"]["hits"] = [h - OF for h in LY["clicks"]["hits"]]
+LY["subbass"] = LY["subbass"][OF:]; LY["drone"]["energy"] = LY["drone"]["energy"][OF:]
 
 
 def ok(f):                              # event frame f (0-based, as in the JSONs) is file f + 1
@@ -36,12 +45,12 @@ def extremes(v):                        # the quietest and loudest frames
     return i0, i1
 
 
-IN = lambda hs: [h for h in hs if h < N]   # events inside the rendered frames (a dry run renders only the start)
+IN = lambda hs: [h for h in hs if 0 <= h < N]   # events inside the rendered frames (a dry run renders only the start)
 tw = IN(C["tweets"]["hits"]); t0 = max(tw, key=lambda h: sum(1 for x in tw if abs(x - h) < 8)) if tw else 1
 kick = IN(C["bands"]["low"]["hits"]); k0 = mid(kick)
 ch = IN(LY["pad"]["changes"]) or [N // 2]; c0 = mid(ch)
 ph = IN([n["frame"] for n in LY["chime"]]); n0 = mid(ph)
-x0 = max(((s_, h) for s_, h in zip(LY["clicks"]["strength"], LY["clicks"]["hits"]) if h < N), default=(0, 1))[1]
+x0 = max(((s_, h) for s_, h in zip(LY["clicks"]["strength"], LY["clicks"]["hits"]) if 0 <= h < N), default=(0, 1))[1]
 s_lo, s_hi = extremes(LY["subbass"]); d_lo, d_hi = extremes(LY["drone"]["energy"])
 rows = [("1 heartbeat (camera surge; motion, see video)", [k0 - 6, k0, k0 + 8]),
         ("2 swifts (tweet)", [t0, t0 + 3, t0 + 7]),
@@ -55,7 +64,7 @@ for r, (name, fr) in enumerate(rows):
     for c, f in enumerate(fr):
         i = r * 3 + c; f = ok(f)
         ins += ["-i", os.path.join(a.render, f"{f:04d}.png")]
-        txt = (f"{a.tag} " if a.tag else "") + (f"{name}  f{f}" if c == 0 else f"f{f}")
+        txt = (f"{a.tag} " if a.tag else "") + (f"{name}  f{f + OF}" if c == 0 else f"f{f + OF}")
         txt = txt.replace(":", "\\:").replace("'", "")
         fc += (f"[{i}]scale=640:-1,drawtext=text='{txt}':fontsize=22:fontcolor=yellow:box=1:boxcolor=black@0.65:"
                f"x=8:y=8[v{i}];")
