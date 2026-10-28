@@ -7,6 +7,8 @@
 # Out: pieces/_bench/review/2026-10-28/ice-walk-dry3.mp4; pieces/_logs/ice-dry3.log
 #   setsid nohup bash pipeline/launchers/ice-d22-dry.sh >> pieces/_logs/ice-d22-dry.log 2>&1 < /dev/null &
 cd ~/sambashare/expts/poptok
+# the farm as it is now (D22), frozen: D23 edits pipeline/launchers/ice-song-farm.sh while this waits and runs
+FARM=pieces/_logs/ice-song-farm.d22.sh; cp pipeline/launchers/ice-song-farm.sh $FARM
 while pgrep -f "bash (pieces/_logs/(ice-song3-chain|ice-song-farm)|pipeline/launchers/ice-song3-boost)\.sh" > /dev/null; do sleep 60; done
 grep -q "ice song3 done" pieces/_logs/ice-song3-chain.log || { echo "$(date +%H:%M) song3 did not finish: no dry run"; exit 1; }
 for s in ice-song-farm ice-song3-chain d12-identity; do
@@ -14,7 +16,7 @@ for s in ice-song-farm ice-song3-chain d12-identity; do
 done
 F="START=2401 FRAMES=420 CH=60"; W=pieces/ice-walk/song/dry3
 echo "$(date +%H:%M) song3 done; the world built once and checked on every box"
-env TAG=dry3 $F CHECK_FRAMES=2401,4400 bash pipeline/launchers/ice-song-farm.sh || { echo "box check FAILED"; exit 1; }
+env TAG=dry3 $F CHECK_FRAMES=2401,4400 bash $FARM || { echo "box check FAILED"; exit 1; }
 python3 - $W <<'EOF' || { echo "$(date +%H:%M) a box does not match song3: no dry run"; exit 1; }
 import glob, sys, numpy as np
 from PIL import Image
@@ -28,6 +30,6 @@ n = len(glob.glob(f"{W}/check_*/render/*.png"))
 print(f"{n} check frames"); sys.exit(1 if bad or n != 8 else 0)
 EOF
 echo "$(date +%H:%M) dry3 starts"
-env TAG=dry3 $F bash pipeline/launchers/ice-song-farm.sh > pieces/_logs/ice-dry3.log 2>&1
+env TAG=dry3 $F bash $FARM > pieces/_logs/ice-dry3.log 2>&1
 grep -E "world|preflight|finish spread|^setup|ice dry3 done|FAILED|missing" pieces/_logs/ice-dry3.log
 grep -oE "^[0-9:]+ [a-z0-9]+\.[0-9] chunk [0-9]+ done.*" pieces/_logs/ice-dry3.log | tail -4
