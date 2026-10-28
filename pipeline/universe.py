@@ -18,6 +18,15 @@ list), the LLM proposes made worlds that MOSS and Qwen-Edit can draw.
 new composition per universe and a different woman per still (no photo), so neither the worlds nor she could be
 compared (user review 2026-10-26).
 Writes in PIECE/inputs/: universes.json, universes.md, universes/ (stills, sheet.jpg), universe.txt, visual-look.txt.
+
+The artist's look is binding (D36, 2026-10-28). Cuckoo's brief asked for "charcoal ... black and white" and every pick
+came out a black-and-white photograph of charcoal-coloured mud: a universe could only say what the world is MADE of,
+so the drawing medium became a material; a look in the brief counted as "one candidate, unless the brief says the look
+is fixed"; and the directors' proposal ("Charcoal Black and White") was struck out as a mere style. Now a first pass
+reads from the brief its MEDIUM, how every frame is drawn or rendered (charcoal on paper, oil paint, a photograph, its
+palette), or nothing when the brief leaves the look open. A medium is binding: the candidates differ only in what the
+world is made of, within it, and it leads every still's prompt and the look. With no medium the rules are as before
+(ambitious made worlds, no colour grades or photographic styles).
 """
 from __future__ import annotations
 
@@ -38,15 +47,25 @@ The video's story (the treatment):
 {treatment}
 ---
 """
+MEDIUM = """The artist's brief:
+---
+{brief}
+---
+Does the brief say how the video must LOOK as a picture: the medium every frame is drawn or rendered in (charcoal,
+pencil, oil paint, watercolour, woodcut, photograph, film stock ...), its palette (black and white, one colour ...),
+or its texture? Only what the brief asks for, in its own words where it can; not a look it mentions as tried before,
+and not the story. Write it as the opening words of an image prompt, 8-30 words (e.g. "a charcoal drawing on rough
+paper, black and white, smudged strokes"); an empty string if the brief leaves the look open.
+Return ONLY JSON: {{"medium": "..."}}"""
 RULES = """What a UNIVERSE is: the stuff the whole video is made of, true in every frame, so that the places, the sky,
 the weather, the people and the performer herself are all made of it, as in a stop-motion or art film. Invent it from
 this song: no stock list of crafts; the less obvious the material, the better, as long as it can be drawn. It is NOT a
 colour grade, a film stock, a lighting style or a mood ("noir", "desaturated cyan", "high-contrast monochrome",
-"gritty realism" are not universes), and photographic realism is not one.
+"gritty realism" are not universes), and photographic realism is not one.{medium_rule}
 The brief says WHO is in the video and WHAT happens: keep all of that, but render it IN the universe (a soldier's
 uniform of felted wool; rain of glass beads). Words like "real fabric" in the brief are about honesty and weight, not
-about photography. A look the brief mentions as tried before is one candidate, not a rule, unless the brief says the
-look is fixed. Choose universes where the MATERIAL itself carries the song's meaning, so that what happens in the story
+about photography. A look the brief mentions as tried before is one candidate, not a rule; a look the brief asks for
+is binding. Choose universes where the MATERIAL itself carries the song's meaning, so that what happens in the story
 can happen to the material. Every universe must be drawable by an image model and stay the same across 40 shots, and
 the performer must be able to appear in it, her face recognisable."""
 OPEN = CONTEXT + RULES + """
@@ -72,10 +91,10 @@ Candidate universes:
 You are the producer. Choose the 3 best for this video: ambitious and striking, the material carrying the song's
 meaning, drawable and consistent for a whole video, the performer at home in it; three that differ from each other.
 Every pick must be a MADE world by the rules above: a candidate that is a colour grade, a photographic style or a
-lighting idea is not eligible, whoever proposed it (the directors' proposal is often one).
+lighting idea is not eligible, whoever proposed it (the directors' proposal is often one).{medium_pick}
 Rank them, best first. For each, also write its LOOK: the text that styles every shot (what everything is made of,
 light, palette, how the camera moves and how changes happen, taken from the treatment), 60-110 words, never
-describing the performer.
+describing the performer.{medium_look}
 Return ONLY JSON: {{"picks": [{{"name": "...", "made_of": "40-70 words", "why": "one sentence", "look": "..."}}]}}"""
 SHOTS = CONTEXT + """
 Write TWO shot specifications from this story, to be rendered in several different universes (materials) for
@@ -94,12 +113,13 @@ def llm(prompt, temperature=0.9, url="http://127.0.0.1:8091"):
         return json.loads(r.read())["choices"][0]["message"]["content"]
 
 
-def ask(prompt, key, temperature=0.9):
+def ask(prompt, key, temperature=0.9, empty_ok=False):
     for _ in range(3):
         m = re.search(r"\{.*\}", llm(prompt, temperature), re.S)
         try:
-            v = json.loads(m.group(0))[key]
-            if v:
+            j = json.loads(m.group(0))
+            v = j.get(key) or "" if empty_ok else j[key]      # empty_ok: {} or a null means none (the medium pass)
+            if v or empty_ok:
                 return v
         except (AttributeError, json.JSONDecodeError, KeyError, TypeError):
             pass
@@ -128,6 +148,9 @@ def propose(a):
                treatment=open(f"{a.piece}/inputs/story.md").read().split("## Treatment", 1)[-1].strip())
     performer = env(a.piece, "PERFORMER") or "the singer"
     t = time.time()
+    medium = ask(MEDIUM.format(brief=ctx["brief"]), "medium", 0.2, empty_ok=True).strip() if ctx["brief"] else ""
+    print(f"universe: the brief's medium: {medium or '(open)'}", flush=True)
+    ctx.update(medium_rules(medium))
     cands = ask(OPEN.format(**ctx), "universes") + ask(METAPHOR.format(**ctx), "universes")
     if os.path.exists(P["workshop"]):                  # the directors' own universe (workshop.py --stage story)
         w = open(P["workshop"]).read().split("\n", 1)
@@ -136,12 +159,13 @@ def propose(a):
     listing = "\n".join(f"- {u['name']}: {u['made_of']} ({u.get('meaning', '')} {u.get('story', '')})" for u in cands)
     picks = ask(PICK.format(**ctx, cands=listing), "picks", 0.5)[:3]
     shots = ask(SHOTS.format(**ctx, performer=performer), "shots", 0.4)[:2]
-    json.dump({"candidates": cands, "picks": picks, "shots": shots}, open(P["json"], "w"), indent=1, ensure_ascii=False)
+    json.dump({"medium": medium, "candidates": cands, "picks": picks, "shots": shots}, open(P["json"], "w"), indent=1, ensure_ascii=False)
     md = [f"# Universe: {os.path.basename(a.piece.rstrip('/'))}", "",
           "Made by `pipeline/universe.py` (the universe step). The sheet `inputs/universes/sheet.jpg` shows each pick in "
           "the same two shots. Choose with `python3 pipeline/universe.py PIECE choose N`, or edit `inputs/universe.txt` "
           "(line 1 the name, then what everything is made of) and `inputs/visual-look.txt` by hand.", "",
-          "## Picks", ""]
+          f"**The brief's medium** (binding; every pick is drawn in it): {medium}" if medium else
+          "**The brief's medium:** open (the brief doesn't fix the look)", "", "## Picks", ""]
     md += [f"{i + 1}. **{u['name']}**: {u['made_of']} *{u.get('why', '')}*" for i, u in enumerate(picks)]
     md += ["", "## The two shots", ""] + [f"- **{s['name']}**: {s['spec']}" for s in shots]
     md += ["", "## All candidates", ""] + [f"- **{u['name']}**: {u['made_of']} {u.get('meaning', '')}" for u in cands]
@@ -153,15 +177,34 @@ def propose(a):
 
 def choose(a, n=None):
     P = paths(a.piece)
-    u = json.load(open(P["json"]))["picks"][(n or a.n) - 1]
-    open(P["uni"], "w").write(u["name"] + "\n" + u["made_of"] + "\n")
-    open(P["look"], "w").write(f"{u['name']}: {u['made_of']} {u.get('look', '')}".strip() + "\n")
+    d = json.load(open(P["json"])); u = d["picks"][(n or a.n) - 1]
+    med = d.get("medium", "")                         # the brief's medium leads both (D36)
+    lead = f"{med[0].upper()}{med[1:].rstrip('.')}. " if med else ""
+    look = u.get("look", "")
+    look = look if not med or look.lower().startswith(med.lower()[:20]) else lead + look
+    open(P["uni"], "w").write(u["name"] + "\n" + lead + u["made_of"] + "\n")
+    open(P["look"], "w").write(f"{lead}{u['name']}: {u['made_of']} {look}".strip() + "\n")
     print(f"universe: chose {u['name']} -> {P['uni']}, {P['look']}")
 
 
-def prompt_for(u, shot, wardrobe):
+def medium_rules(medium):
+    """The pieces of RULES / PICK that bind the artist's medium (D36); all empty when the brief leaves the look open."""
+    if not medium:
+        return dict(medium_rule="", medium_pick="", medium_look="")
+    return dict(
+        medium_rule=f"""
+THE ARTIST'S MEDIUM IS FIXED: every frame is "{medium}". This is binding, not a candidate: every universe is drawn in
+it, and universes differ only in what the world is made of, within it (in a charcoal video: a forest of charcoal
+smudges, of torn paper, of soot). Never a universe that would need another medium or palette.""",
+        medium_pick="""
+A candidate that only restates the artist's medium (the directors' proposal may) is eligible: it means the world drawn
+plainly in that medium.""",
+        medium_look=f' Begin the look with the artist\'s medium, word for word: "{medium}".')
+
+
+def prompt_for(u, shot, wardrobe, medium=""):
     wear = f"wearing {wardrobe}, rendered in this universe" if wardrobe else "her clothes rendered in this universe"
-    return (f"{u['name']}: {u['made_of']} The whole image is in this universe: everything in it, the place, the objects "
+    return ((f"{medium[0].upper()}{medium[1:].rstrip('.')}. " if medium else "") + f"{u['name']}: {u['made_of']} The whole image is in this universe: everything in it, the place, the objects "
             f"and the woman's clothes, is made of it. The woman from the reference image, the same person: keep her face, "
             f"hair, eyes and age exactly, {wear}, lit by the scene's own light. {shot['spec']} No text or lettering.")
 
@@ -179,7 +222,7 @@ def render(a):
     os.makedirs(P["dir"], exist_ok=True)
     photo = env(a.piece, "PERFORMER_PHOTO")
     photo = os.path.normpath(os.path.join(a.piece, photo)) if photo else ""
-    wardrobe = env(a.piece, "WARDROBE")
+    wardrobe = env(a.piece, "WARDROBE"); medium = d.get("medium", "")
     todo = [(i, u, j, s) for i, u in enumerate(d["picks"]) for j, s in enumerate(d["shots"])
             if not os.path.exists(f"{P['dir']}/pick{i + 1}_{s['name']}.png")]
     import torch
@@ -190,7 +233,7 @@ def render(a):
         if os.path.exists(f):
             continue
         t = time.time()                                         # the same seed per shot in every universe
-        r.render(None, [(prompt_for(u, s, wardrobe).replace("The woman from the reference image, the same person: keep "
+        r.render(None, [(prompt_for(u, s, wardrobe, medium).replace("The woman from the reference image, the same person: keep "
                  "her face, hair, eyes and age exactly", f"The woman, {env(a.piece, 'PERFORMER') or 'the singer'}"), 1.0)],
                  1.0, seed=4200 + j, size=(1024, 576))[0].save(f)
         print(f"{u['name']} {s['name']} world: {time.time() - t:.0f} s", flush=True)
