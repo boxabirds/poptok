@@ -10,7 +10,7 @@
 # D22 (2026-10-28): the world is built once per run, not per chunk (each chunk spent 4.3 min rebuilding the same world,
 # 197 s of it in bpy.ops hummocks): ice_world.py --build-only on gruntus into $O/worldcache/<content hash>/, reused while
 # the script, curves, layers, settings and Blender version are unchanged; every box renders its ranges from that .blend
-# with ice_render.py.
+# with ice_render.py. D23: each worker keeps one Blender up with the world open (ice_serve.py) and sends it its ranges.
 # Dry run first, same script, short clip (user 2026-10-27: "sort out the basic pipeline with a short clip before wasting
 # so much compute time"):
 #   TAG=dry START=2401 FRAMES=240 CH=60 bash pipeline/launchers/ice-song-farm.sh   (START: past frame 999, where the snow
@@ -35,7 +35,7 @@ per() { local w; for w in $PER; do [ ${w%%:*} = $1 ] && { echo ${w#*:}; return; 
 # Sparks at 14:51-15:48 and gruntus and quintus sat idle from 16:13 while they finished. Now the body is chunks of CH,
 # then the last TAILR rounds of every worker are chunks of CT (CH/4), so the last workers finish about one small chunk
 # apart. Chunk k is song frames CA[k]..CB[k]; the plan is kept in $W/plan, and a re-launch must find the same plan.
-CH=${CH:-240}; CT=${CT:-$(( CH / 4 ))}; TAILR=${TAILR:-2}
+CH=${CH:-240}; CT=${CT:-$(( CH / 4 ))}; TAILR=${TAILR:-2}; (( CT < 1 )) && CT=1
 NW=0; for H in $BOXES; do NW=$(( NW + $(per $H) )); done
 NB=$(( (N - TAILR * NW * CT) / CH )); (( NB < 0 )) && NB=0  # body chunks of CH; the rest of the frames in chunks of CT
 CA=(); CB=(); a=$S0
@@ -71,22 +71,55 @@ count() {                                               # frames in a render dir
 
 sync_inputs() {                                         # the script, curves, layers and snow bake to a remote box
   ssh -o BatchMode=yes $1 "mkdir -p ~/$RO/snowbake ~/poptok-render/pipeline/world ~/poptok-render/$WC" &&
-  rsync -a pipeline/world/ice_world.py pipeline/world/ice_range.py pipeline/world/ice_render.py $1:poptok-render/pipeline/world/ &&
+  rsync -a pipeline/world/ice_world.py pipeline/world/ice_range.py pipeline/world/ice_render.py pipeline/world/ice_serve.py $1:poptok-render/pipeline/world/ &&
   rsync -a $O/curves.json $O/layers.json $1:$RO/ && rsync -a --delete $S $1:$RO/snowbake/ && rsync -a $WB $1:poptok-render/$WC/
 }
 
-render() {                                              # render clip frames A..B into dir C on box H
-  local H=$1 C=$2 A=$3 B=$4
-  local ICE="pipeline/world/ice_render.py -- $WB $C --range $A,$B --gpu --snow-cache $S${ONLY:+ --only $ONLY}"   # D22
+box_blender() {                                         # Blender on box $1: -b -P $2...; stdin passes through (docker -i)
+  local H=$1; shift                                     # NAME: the container's name (a server, so a stale one can go)
   case $H in
-    gruntus) eval "flock -s /tmp/poptok-gpu.lock docker run --rm --gpus all -e NVIDIA_DRIVER_CAPABILITIES=all \
-               --user $(id -u):$(id -g) -v $PWD:/work -w /work blender52 -b -P $ICE" ;;      # eval: the look's spaces
-    thing1|thing2) ssh -o BatchMode=yes $H "cd ~/poptok-render && flock -s /tmp/poptok-gpu.lock docker run --rm --gpus all \
-               -v ~/poptok-blender/cmake-make:/opt/b:ro -v ~/poptok-blender/oidn-lib:/opt/oidn:ro \
+    gruntus) eval "flock -s /tmp/poptok-gpu.lock docker run --rm -i ${NAME:+--name $NAME} --gpus all \
+               -e NVIDIA_DRIVER_CAPABILITIES=all --user $(id -u):$(id -g) -v $PWD:/work -w /work blender52 -b -P $*" ;;
+    thing1|thing2) ssh -o BatchMode=yes $H "cd ~/poptok-render && flock -s /tmp/poptok-gpu.lock docker run --rm -i \
+               ${NAME:+--name $NAME} --gpus all -v ~/poptok-blender/cmake-make:/opt/b:ro -v ~/poptok-blender/oidn-lib:/opt/oidn:ro \
                -e LD_LIBRARY_PATH=/opt/oidn:/opt/b/libExt:/opt/b/lib --user \$(id -u):\$(id -g) -v \$PWD:/work -w /work \
-               blender52 -b -P $ICE" ;;
-    quintus) ssh -o BatchMode=yes $H "cd ~/poptok-render && ~/poptok-blender/Blender52.app/Contents/MacOS/Blender -b -P $ICE" ;;
-  esac 2>&1 | grep -E "ice ok|ice check|rror|Traceback" | grep -v HIPEW
+               blender52 -b -P $*" ;;
+    quintus) ssh -o BatchMode=yes $H "cd ~/poptok-render && ~/poptok-blender/Blender52.app/Contents/MacOS/Blender -b -P $*" ;;
+  esac
+}
+
+render() {                                              # render clip frames A..B into dir C on box H (a Blender of its own)
+  local H=$1 C=$2 A=$3 B=$4
+  box_blender $H pipeline/world/ice_render.py -- $WB $C --range $A,$B --gpu --snow-cache $S${ONLY:+ --only $ONLY} < /dev/null 2>&1 \
+    | grep -E "ice ok|ice check|rror|Traceback" | grep -v HIPEW
+}
+
+# D23 (2026-10-28): one Blender per worker that stays up (pipeline/world/ice_serve.py): it opens the world once and
+# renders each range the worker writes to it, so a chunk pays neither Blender's start nor the world's load. It holds the
+# box's GPU lock (shared) while up, so it is stopped for a side job (D14) and restarted after; also every RESTART s.
+RESTART=${RESTART:-10800}
+serve_start() {                                         # box, worker: a server up and its world open, fds RD / WR
+  local H=$1 N=poptok-serve-$1-$2 l
+  case $H in                                            # a server left by a dead worker would hold the GPU lock
+    gruntus) docker rm -f $N > /dev/null 2>&1 ;;
+    thing1|thing2) ssh -o BatchMode=yes $H "docker rm -f $N" > /dev/null 2>&1 ;;
+  esac
+  coproc BL { NAME=$N box_blender $H pipeline/world/ice_serve.py -- $WB --gpu --snow-cache $S 2>&1; }
+  exec {RD}<&${BL[0]} {WR}>&${BL[1]}; BP=$BL_PID; BT=$(date +%s)   # copies: bash drops BL when the server ends
+  while read -r -t 900 -u $RD l; do [[ $l == ready* ]] && return 0; done
+  serve_stop; return 1
+}
+serve_stop() {                                          # quit the server, if any, and wait for it (its GPU lock with it)
+  [ -n "${BP:-}" ] || return 0
+  echo quit >&$WR 2>/dev/null; exec {WR}>&- {RD}<&-; wait $BP 2>/dev/null; BP=
+}
+serve_range() {                                         # clip frames A..B into dir C by the server; 1 if it failed or died
+  local l; echo "$1 $2 $3" >&$WR || return 1
+  while read -r -u $RD l; do
+    case $l in "done $1 $2") return 0 ;; "failed $1 $2"*) echo "  $l"; return 1 ;; esac
+    [[ $l =~ ice\ ok|ice\ check|rror|Traceback ]] && [[ ! $l =~ HIPEW ]] && echo "$l"
+  done
+  return 1                                              # end of output: Blender died
 }
 
 side_waiting() {                                        # a marked side job ($SIDE, bin/hosts.sh) is waiting on box $1
@@ -97,14 +130,22 @@ side_waiting() {                                        # a marked side job ($SI
 
 worker() {                                              # claim chunks until none are left (box, worker number)
   local H=$1 I=$2 k A B C n t fails=0
+  BP=; trap '' PIPE                                     # (a write to a dead server must not kill the worker)
   for ((k=0; k<K; k++)); do
     C=$W/c$k; [ -f "$C/done" ] && continue
-    while side_waiting $H; do sleep 20; done            # D14: a side job on this box goes before the next chunk
+    if side_waiting $H; then                            # D14: a side job on this box goes before the next chunk
+      serve_stop; while side_waiting $H; do sleep 20; done
+    fi
     mkdir $W/claims/c$k 2>/dev/null || continue         # another box has it
     echo "$(date +%s) $H.$I" > $W/claims/c$k/t          # when and who: the setup per chunk at the end
     A=${CA[k]}; B=${CB[k]}
+    if [ -z "$BP" ] || ! kill -0 $BP 2>/dev/null || (( $(date +%s) - BT > RESTART )); then
+      serve_stop
+      serve_start $H $I && echo "$(date +%H:%M) $H.$I Blender up, world open ($(( $(date +%s) - BT )) s)" \
+        || echo "$(date +%H:%M) $H.$I Blender did not start"
+    fi
     echo "$(date +%H:%M) $H.$I chunk $k ($A-$B) start"; t=$(date +%s)
-    render $H $C $A $B
+    [ -n "$BP" ] && serve_range $A $B $C
     if [ $H != gruntus ]; then mkdir -p $C/render && rsync -a $H:$RW/c$k/render/ $C/render/; fi
     n=$(count gruntus $C/render)
     if [ "$n" -eq $(( B - A + 1 )) ]; then
@@ -116,7 +157,7 @@ worker() {                                              # claim chunks until non
       fails=$((fails + 1)); (( fails >= 2 )) && { echo "$(date +%H:%M) $H.$I gives up after 2 failures"; return; }
     fi
   done
-  echo "$(date +%H:%M) $H.$I finished"; date +%s > $W/fin_$H.$I
+  serve_stop; echo "$(date +%H:%M) $H.$I finished"; date +%s > $W/fin_$H.$I
 }
 
 rate() {                                                # box $1's frames/min since the workers started (all its workers)
