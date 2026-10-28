@@ -23,7 +23,12 @@ O=pieces/ice-walk/song; R=${R:-pieces/_bench/review/2026-10-28}; S=$O/snowbake/b
 TAG=${TAG:-song}; W=$O/$TAG; RW=poptok-render/$W        # W: this run's chunks, claims, frames (RW: on a remote box)
 NS=$(python3 -c "import json;print(len(json.load(open('$O/curves.json'))['energy']))")   # the song's frames
 S0=${START:-1}; N=${FRAMES:-$(( NS - S0 + 1 ))}; E=$(( S0 + N - 1 ))      # this run: song frames S0..E
-OUTMP4=$R/ice-walk$([ "$TAG" = song ] || echo "-$TAG").mp4
+# a final run (TAG song*) goes in the piece's own folder, the next free version (user 2026-10-28), fixed for the run in
+# $W/version so a re-launch finishes the same one; dry runs go to the day's review folder
+if [[ $TAG == song* ]]; then
+  mkdir -p $W; [ -f $W/version ] || echo $(( $(ls -d pieces/ice-walk/outputs/v* 2>/dev/null | sed 's/.*\/v//' | sort -n | tail -1) + 1 )) > $W/version
+  OUTMP4=pieces/ice-walk/outputs/v$(cat $W/version)/ice-walk.mp4; mkdir -p ${OUTMP4%/*}
+else OUTMP4=$R/ice-walk-$TAG.mp4; fi
 BOXES=${BOXES:-"gruntus thing1 thing2 quintus"}
 # D16 (2026-10-28): chunk workers per box. Two Blenders on the 4090 gave +30% frames/min together (5.0 -> 6.5,
 # ice-pipe-test.log): one renders on the GPU while the other is in its CPU stages (scene/snow update, CPU denoise, save).
