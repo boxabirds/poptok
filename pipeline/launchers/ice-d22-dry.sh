@@ -17,9 +17,9 @@ done
 F="START=2401 FRAMES=420 CH=60"; W=pieces/ice-walk/song/dry3
 echo "$(date +%H:%M) song3 done; the world built once and checked on every box"
 env TAG=dry3 $F CHECK_FRAMES=800,2401,4400,4900 bash $FARM || { echo "box check FAILED"; exit 1; }
-# each box against song3's frames from a box of its own kind (song3 c3/c20: quintus, c10: gruntus, c18: thing1): NVIDIA
-# and Metal path-trace differently (0.1-0.33/255 between them on the same world), and quintus now renders gruntus's
-# geometry, not its own build's (0.075/255 from its song3 frames; measured 2026-10-28)
+# each box against song3's frames from a box of its own kind (song3 c3/c20: quintus, c10: gruntus, c18: thing1): the
+# 4090, the Sparks and the M5 path-trace differently (0.105/255 4090-Spark, 0.27-0.33 either-M5, on the same world), and
+# quintus now renders gruntus's geometry, not its own build's (0.06-0.075/255 from its song3 frames; 2026-10-28)
 python3 - $W <<'EOF' || { echo "$(date +%H:%M) a box does not match song3: no dry run"; exit 1; }
 import glob, re, sys, numpy as np
 from PIL import Image
@@ -28,7 +28,7 @@ by = {}                                                  # song3 chunk -> the bo
 for log in ("pieces/_logs/ice-song3-chain.log", "pieces/_logs/ice-song3-boost.log"):
     for m in re.finditer(r"^\S+ ([a-z0-9]+)\S* chunk (\d+) done", open(log).read(), re.M):
         by[int(m[2])] = m[1]
-kind = lambda b: "metal" if b == "quintus" else "nvidia"
+kind = {"gruntus": "4090", "thing1": "spark", "thing2": "spark", "quintus": "m5"}.get
 L = lambda p: np.asarray(Image.open(p).convert("RGB"), float)
 for f in (800, 2401, 4400, 4900):
     ref = glob.glob(f"pieces/ice-walk/song/song3/c*/render/{f:04d}.png")[0]; rb = by[int(ref.split("/")[-3][1:])]
