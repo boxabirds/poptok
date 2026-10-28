@@ -16,6 +16,9 @@ import argparse, json, math, os, random, sys
 import bpy
 from mathutils import Matrix, Quaternion, Vector, noise
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import ice_range                                    # the range half: GPU, snow cache, checks, render (D22)
+
 ap = argparse.ArgumentParser()
 ap.add_argument("curves")
 ap.add_argument("out")
@@ -49,6 +52,8 @@ ap.add_argument("--sky-model", default="single", choices=["single", "multiple"],
 ap.add_argument("--bloom-size", type=float, default=0.875, help="Blender 5.x glare size (0..1; 4.2's size 8 ~ 0.875)")
 ap.add_argument("--volume-unbiased", action="store_true", help="Blender 5.x: unbiased null-scattering volumes "
                 "(default: biased ray marching, as 4.2)")
+ap.add_argument("--build-only", action="store_true", help="build the world, save OUT/scene_MODE.blend and stop (D22: the "
+                "farm builds it once per run and every chunk renders from it with ice_render.py)")
 ap.add_argument("--only", default="", help="render just these frames, e.g. 22,110 (quick tests)")
 ap.add_argument("--seed", type=int, default=7)
 ap.add_argument("--res", default="1920x1080")
@@ -219,8 +224,13 @@ def box(name, base, size, rot):  # a slab or a serac: a box, its top edges knock
 
 
 def mound(name, base, r, h):    # an ice hummock the formations grow out of, in the sheet's own ice
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=8, radius=1, location=base)
-    ob = bpy.context.object; ob.name = name
+    # the sphere as a mesh, as spire() and box() are: bpy.ops.mesh.primitive_uv_sphere_add updated the whole scene on each
+    # call, slower the more objects there were (D22, 2026-10-28: 1230 hummocks took 197 s of a chunk's 259 s build)
+    import bmesh
+    me = bpy.data.meshes.new(name); bm = bmesh.new(); bm.loops.layers.uv.new("UVMap")
+    bmesh.ops.create_uvsphere(bm, u_segments=16, v_segments=8, radius=1, calc_uvs=True)
+    bm.to_mesh(me); bm.free()
+    ob = bpy.data.objects.new(name, me); sc.collection.objects.link(ob); ob.location = base
     ob.scale = (r * rnd.uniform(0.8, 1.2), r * rnd.uniform(0.8, 1.2), h)
     ob.location.z -= h * 0.45
     for v in ob.data.vertices:              # lumpy, not a dome
@@ -303,17 +313,7 @@ if a.mode == "layout":                  # grey clay for Layout-To-Render: shape 
 else:                                   # Antarctica at dusk, rendered
     sc.render.engine = "CYCLES"; sc.cycles.samples = a.samples; sc.cycles.use_denoising = True
     if a.gpu:
-        prefs = bpy.context.preferences.addons["cycles"].preferences
-        for t_ in ("OPTIX", "CUDA", "METAL"):          # METAL: the M5 (quintus) renders chunks too
-            try:
-                prefs.compute_device_type = t_; prefs.get_devices()
-                if any(d.type == t_ for d in prefs.devices):
-                    break
-            except TypeError:
-                continue
-        for d in prefs.devices:
-            d.use = d.type != "CPU"
-        sc.cycles.device = "GPU"
+        ice_range.use_gpu(sc)
     sc.view_settings.view_transform = "AgX"; sc.view_settings.look = a.look
     sc.view_settings.exposure = a.exposure
     w = bpy.data.worlds.new("dusk"); sc.world = w; w.use_nodes = True
@@ -994,45 +994,10 @@ if a.bake_snow:                         # bake the whole song's snow to disk onc
 sc.frame_start, sc.frame_end = 1, FO + N
 if a.snow and not a.snow_cache:
     bpy.ops.ptcache.bake_all(bake=True)
+# what the range half needs, in the scene, so a saved world renders a range on its own (ice_render.py)
+sc["ice_N"], sc["ice_FO"], sc["ice_speed"], sc["ice_sun_el"], sc["ice_snow"] = N, FO, speed, a.sun_el, bool(a.snow)
 bpy.ops.wm.save_as_mainfile(filepath=f"{out}/scene_{a.mode}.blend")
-# measured from the built scene, so a launcher can stop before rendering long (user on the song, 2026-10-28: the snow
-# froze from 0:53 and the swifts flew out of frame, and nothing checked): the flakes' speed near the camera at the
-# range's first and last frames, and how many of the swifts' positions while drawn are in frame
-from bpy_extras.object_utils import world_to_camera_view
-
-
-def snow_speed(k):
-    sc.frame_set(FO + k); dg_ = bpy.context.evaluated_depsgraph_get(); cp_ = cam.matrix_world.translation
-    al = [q for q in bpy.data.objects["flurry"].evaluated_get(dg_).particle_systems[0].particles
-          if q.alive_state == "ALIVE" and (q.location - cp_).length < 30]
-    return sum(q.velocity.length for q in al) / max(1, len(al))
-
-
-snow_rep = "snow m/s %.2f %.2f" % (snow_speed(R0), snow_speed(R1)) if a.snow else "snow off"
-seen_, all_ = 0, 0
-birds = [o for o in bpy.data.objects if o.name.startswith("swift_bird")]
-for k in range(R0, R1 + 1, 2):
-    if birds:
-        sc.frame_set(FO + k)
-    for b_ in birds:
-        if not b_.hide_render:
-            v_ = world_to_camera_view(sc, cam, b_.matrix_world.translation)
-            all_ += 1; seen_ += (0 <= v_.x <= 1 and 0 <= v_.y <= 1 and v_.z > 0)
-swift_rep = "swifts in frame %d/%d" % (seen_, all_)
-print("ice check; range", R0, R1, ";", snow_rep, ";", swift_rep, flush=True)
-if os.environ.get("CHECK_ONLY"):              # the checks alone, no render (a preflight)
+if a.build_only:
+    print("ice built", f"{out}/scene_{a.mode}.blend", N, "frames", flush=True)
     sys.exit(0)
-sc.render.filepath = f"{out}/{a.mode}/"
-if a.only:
-    for f in (int(v) for v in a.only.split(",")):
-        sc.frame_set(f + FO); sc.render.filepath = f"{out}/{a.mode}/{f:04d}.png"
-        bpy.ops.render.render(write_still=True)
-else:
-    sc.frame_start, sc.frame_end = FO + R0, FO + R1      # (the end too: it was left at the song's end after the bake)
-    bpy.ops.render.render(animation=True)
-    for k in range(R0, R1 + 1):                # scene frame FO+k -> file k
-        os.replace(f"{out}/{a.mode}/{FO + k:04d}.png", f"{out}/{a.mode}/{k:04d}.png")
-print("ice ok", out, N, "frames; range", R0, R1, "; layers:",          # so a launcher can check what it built
-      " ".join(f"{k}={sum(o.name.startswith(k) for o in bpy.data.objects)}" for k in ("halo", "clouds", "drift", "chime", "crack", "swift_bird")),
-      "; sun_el", a.sun_el, "look", a.look,
-      "; speed m/s %.1f-%.1f" % (min(speed[R0 - 1:R1]), max(speed[R0 - 1:R1])), ";", snow_rep, ";", swift_rep)
+ice_range.check_and_render(sc, out, a.mode, R0, R1, a.only)

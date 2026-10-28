@@ -7,6 +7,10 @@
 # Chunks from a queue: each box's worker claims the next chunk (atomic mkdir on gruntus), renders it on its own box from
 # the one snow bake (--snow-cache, so chunks join seamlessly), copies the frames back and marks it done; a failed chunk
 # is released for another box. A preflight on every box must show the layers, the sun and the range before any chunk.
+# D22 (2026-10-28): the world is built once per run, not per chunk (each chunk spent 4.3 min rebuilding the same world,
+# 197 s of it in bpy.ops hummocks): ice_world.py --build-only on gruntus into $O/worldcache/<content hash>/, reused while
+# the script, curves, layers, settings and Blender version are unchanged; every box renders its ranges from that .blend
+# with ice_render.py.
 # Dry run first, same script, short clip (user 2026-10-27: "sort out the basic pipeline with a short clip before wasting
 # so much compute time"):
 #   TAG=dry START=2401 FRAMES=240 CH=60 bash pipeline/launchers/ice-song-farm.sh   (START: past frame 999, where the snow
@@ -43,6 +47,18 @@ K=${#CA[@]}
 # ONE line: a newline here ended the command (eval / the remote shell) and a run rendered without the sun or the layers
 ARGS='--res 1920x1080 --samples 48 --gpu --theme icechrome --snow 15000 --swifts --mist 0.05 --flake-glow 6 --mist-color 0.7,0.82,1.0 --sun-el 16 --sky 1.0,0.15,0.4 --exposure -1.0 --look AgX\ -\ Punchy --sun-color 1.0,0.93,0.85 --sun-energy 3,3 --ice-absorb 1.6 --crack-glow 80 --chime-glow 40 --halo 6 --drift 1.0 --cloud-sweep 100'
 [ -d "$S" ] || { echo "no snow bake at $S"; exit 1; }
+WORLD="$O/curves.json WC $ARGS --layers $O/layers.json --snow-cache $S"   # ice_world.py's arguments, WC: the output dir
+BV=$(docker run --rm blender52 --version 2>/dev/null | head -1)
+KEY=$( (cat pipeline/world/ice_world.py pipeline/world/ice_range.py $O/curves.json $O/layers.json; echo "$WORLD"; echo "$BV") | sha256sum | cut -c1-16)
+WC=$O/worldcache/$KEY; WB=$WC/scene_render.blend         # the world, built once, every chunk's scene
+if [ -f $WB ]; then echo "$(date +%H:%M) world cached: $WB"
+else
+  t=$(date +%s); rm -rf "${WC:?}.tmp"
+  eval "docker run --rm --user $(id -u):$(id -g) -v $PWD:/work -w /work blender52 -b -P pipeline/world/ice_world.py -- ${WORLD/WC/$WC.tmp} --build-only" 2>&1 \
+    | grep -E "ice built|rror|Traceback" | grep -v HIPEW
+  [ -f $WC.tmp/scene_render.blend ] || { echo "world build FAILED"; exit 1; }
+  mv $WC.tmp $WC; echo "$(date +%H:%M) world built in $(( $(date +%s) - t )) s: $WB ($BV)"
+fi
 rm -rf "${W:?}/claims"; mkdir -p $W/claims              # claims without a done chunk are stale after a restart
 PLAN=$(for ((k=0; k<K; k++)); do echo "c$k ${CA[k]} ${CB[k]}"; done)
 if [ -f $W/plan ]; then [ "$(cat $W/plan)" = "$PLAN" ] || { echo "$W/plan differs from this launch's chunks (CH, CT, TAILR, PER): finish it with the same settings or use a new TAG"; exit 1; }
@@ -54,14 +70,14 @@ count() {                                               # frames in a render dir
 }
 
 sync_inputs() {                                         # the script, curves, layers and snow bake to a remote box
-  ssh -o BatchMode=yes $1 "mkdir -p ~/$RO/snowbake ~/poptok-render/pipeline/world" &&
-  rsync -a pipeline/world/ice_world.py $1:poptok-render/pipeline/world/ &&
-  rsync -a $O/curves.json $O/layers.json $1:$RO/ && rsync -a --delete $S $1:$RO/snowbake/
+  ssh -o BatchMode=yes $1 "mkdir -p ~/$RO/snowbake ~/poptok-render/pipeline/world ~/poptok-render/$WC" &&
+  rsync -a pipeline/world/ice_world.py pipeline/world/ice_range.py pipeline/world/ice_render.py $1:poptok-render/pipeline/world/ &&
+  rsync -a $O/curves.json $O/layers.json $1:$RO/ && rsync -a --delete $S $1:$RO/snowbake/ && rsync -a $WB $1:poptok-render/$WC/
 }
 
 render() {                                              # render clip frames A..B into dir C on box H
   local H=$1 C=$2 A=$3 B=$4
-  local ICE="pipeline/world/ice_world.py -- $O/curves.json $C $ARGS --layers $O/layers.json --snow-cache $S --range $A,$B"
+  local ICE="pipeline/world/ice_render.py -- $WB $C --range $A,$B --gpu --snow-cache $S${ONLY:+ --only $ONLY}"   # D22
   case $H in
     gruntus) eval "flock -s /tmp/poptok-gpu.lock docker run --rm --gpus all -e NVIDIA_DRIVER_CAPABILITIES=all \
                --user $(id -u):$(id -g) -v $PWD:/work -w /work blender52 -b -P $ICE" ;;      # eval: the look's spaces
@@ -85,6 +101,7 @@ worker() {                                              # claim chunks until non
     C=$W/c$k; [ -f "$C/done" ] && continue
     while side_waiting $H; do sleep 20; done            # D14: a side job on this box goes before the next chunk
     mkdir $W/claims/c$k 2>/dev/null || continue         # another box has it
+    echo "$(date +%s) $H.$I" > $W/claims/c$k/t          # when and who: the setup per chunk at the end
     A=${CA[k]}; B=${CB[k]}
     echo "$(date +%H:%M) $H.$I chunk $k ($A-$B) start"; t=$(date +%s)
     render $H $C $A $B
@@ -95,7 +112,7 @@ worker() {                                              # claim chunks until non
       echo "$(date +%H:%M) $H.$I chunk $k done ($(( ($(date +%s) - t) / 60 )) min); $H so far: $(rate $H) frames/min"
       [ $H != gruntus ] && ssh -o BatchMode=yes $H "rm -rf ~/$RW/c$k"
     else
-      echo "$(date +%H:%M) $H.$I chunk $k FAILED ($n frames); released"; rmdir $W/claims/c$k
+      echo "$(date +%H:%M) $H.$I chunk $k FAILED ($n frames); released"; rm -rf "${W:?}/claims/c$k"
       fails=$((fails + 1)); (( fails >= 2 )) && { echo "$(date +%H:%M) $H.$I gives up after 2 failures"; return; }
     fi
   done
@@ -108,6 +125,14 @@ rate() {                                                # box $1's frames/min si
 
 echo "$(date +%H:%M) farm $TAG start: song frames $S0-$E ($N), $K chunks ($NB of $CH, then $(( K - NB )) of $CT or less), workers: $PER"
 for H in $BOXES; do [ $H = gruntus ] || sync_inputs $H || { echo "$H: input sync FAILED"; exit 1; }; done
+[ -n "${BUILD_ONLY:-}" ] && { echo "world: $WB"; exit 0; }   # the world built and on every box, nothing rendered
+if [ -n "${CHECK_FRAMES:-}" ]; then                     # these clip frames on every box from the built world, then stop
+  for H in $BOXES; do
+    ( ONLY=$CHECK_FRAMES render $H $W/check_$H ${CHECK_FRAMES%%,*} ${CHECK_FRAMES%%,*}
+      [ $H = gruntus ] || { mkdir -p $W/check_$H/render && rsync -a $H:$RW/check_$H/render/ $W/check_$H/render/; } ) &
+  done
+  wait; echo "checked: $W/check_*/render (world $WB)"; exit 0
+fi
 # preflight: every box builds the full scene and renders 2 frames; its report must show the layers, the sun and the
 # range, and exactly 2 frames must come out, or nothing starts
 for H in $BOXES; do (render $H $W/pre_$H 2400 2401 > $W/pre_$H.log; echo "frames $(count $H $W/pre_$H/render)" >> $W/pre_$H.log) & done
@@ -132,6 +157,17 @@ import os, sys
 t = {os.path.basename(f)[4:]: int(open(f).read()) for f in sys.argv[1:]}
 a, b = min(t, key=t.get), max(t, key=t.get)
 print(f"finish spread: {(t[b] - t[a]) / 60:.0f} min (first {a}, last {b})")
+EOF
+python3 - $W $K <<'EOF'                                  # D22: claim to first frame, per chunk (the world load + checks)
+import glob, os, statistics as S, sys
+W, K = sys.argv[1], int(sys.argv[2]); by = {}
+for k in range(K):
+    try: t, who = open(f"{W}/claims/c{k}/t").read().split()
+    except (OSError, ValueError): continue
+    fs = [os.path.getmtime(f) for f in glob.glob(f"{W}/c{k}/render/*.png")]
+    if fs: by.setdefault(who.split(".")[0], []).append(min(fs) - int(t))
+for h, v in sorted(by.items()):
+    print(f"setup {h}: median {S.median(v):.0f} s to the first frame over {len(v)} chunks (min {min(v):.0f}, max {max(v):.0f})")
 EOF
 for ((k=0; k<K; k++)); do [ -f $W/c$k/done ] || { echo "chunk $k missing; re-launch to finish it"; exit 1; }; done
 dirs=(); for ((k=0; k<K; k++)); do dirs+=("$W/c$k/render"); done
