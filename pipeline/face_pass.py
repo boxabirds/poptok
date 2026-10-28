@@ -15,9 +15,10 @@ Any step that shows her (universe stills, the performer keyframes) can call it.
     fix("still.png", "photo.jpg", angles="pieces/artists/r.amber-angles")   # with her_angles.py's set: for a turned
                                                             # head, her reference at the nearest turn replaces the photo
 
-    python3 pipeline/face_pass.py PHOTO IN.png... --out DIR [--tries 3] [--angles DIR] [--min-sim 0.5]
+    python3 pipeline/face_pass.py PHOTO IN.png... --out DIR [--tries 3] [--angles DIR] [--min-sim 0.5 [--min-face 80]]
 (writes DIR/<name>, prints the scores; with --min-sim, exits 2 if any output scores below it, so a stand-in face
-never goes on to the next step: Shot B's first frame scored 0.42 and the user saw "someone, but it's not Amber")
+never goes on to the next step: Shot B's first frame scored 0.42 and the user saw "someone, but it's not Amber").
+--min-face: a face narrower than this (pixels) is too small to judge (SFace on shot A's 38 px face): reported, not gated)
 """
 from __future__ import annotations
 
@@ -129,6 +130,7 @@ if __name__ == "__main__":
     ap.add_argument("--angles", help="her_angles.py output dir")
     ap.add_argument("--region", choices=["face", "head"], default="head")
     ap.add_argument("--min-sim", type=float, help="gate: exit 2 if any output's similarity is below this")
+    ap.add_argument("--min-face", type=int, default=0, help="gate only faces at least this wide (pixels)")
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     fix = load()
@@ -139,7 +141,10 @@ if __name__ == "__main__":
         im.save(os.path.join(a.out, os.path.basename(p)))
         print(f"{os.path.basename(p)}: " + ("no face, unchanged" if s is None else
               f"similarity {before:.2f} -> {s:.2f}"), flush=True)
-        if a.min_sim is not None and (s is None or s < a.min_sim):
+        f = face(cv2.imread(p))
+        if f is not None and max(f[2], f[3]) < a.min_face:
+            print(f"  {os.path.basename(p)}: face {int(max(f[2], f[3]))} px, too small to judge (not gated)", flush=True)
+        elif a.min_sim is not None and (s is None or s < a.min_sim):
             low.append(os.path.basename(p))
     if low:
         print(f"below --min-sim {a.min_sim}: {' '.join(low)}"); sys.exit(2)
