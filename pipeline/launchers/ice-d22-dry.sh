@@ -8,7 +8,7 @@
 #   setsid nohup bash pipeline/launchers/ice-d22-dry.sh >> pieces/_logs/ice-d22-dry.log 2>&1 < /dev/null &
 cd ~/sambashare/expts/poptok
 # the farm as it is now (D22), frozen: D23 edits pipeline/launchers/ice-song-farm.sh while this waits and runs
-FARM=pieces/_logs/ice-song-farm.d22.sh; cp pipeline/launchers/ice-song-farm.sh $FARM
+FARM=pieces/_logs/ice-song-farm.d22.sh; git show 93d6416:pipeline/launchers/ice-song-farm.sh > $FARM   # the D22 commit
 while pgrep -f "bash (pieces/_logs/(ice-song3-chain|ice-song-farm)|pipeline/launchers/ice-song3-boost)\.sh" > /dev/null; do sleep 60; done
 grep -q "ice song3 done" pieces/_logs/ice-song3-chain.log || { echo "$(date +%H:%M) song3 did not finish: no dry run"; exit 1; }
 for s in ice-song-farm ice-song3-chain d12-identity; do

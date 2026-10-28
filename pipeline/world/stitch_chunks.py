@@ -29,7 +29,7 @@ for f in range(1, N + 1):
         os.remove(dst)
     cur = os.path.join(dirs[k], f"{f + S0 - 1:04d}.png")
     into = f - (k * CH + 1)                      # frames since this chunk took over
-    if k > 0 and into < OV:
+    if OV and k > 0 and 0 <= into < OV:
         w = (into + 0.5) / OV
         prev = os.path.join(dirs[k - 1], f"{f + S0 - 1:04d}.png")
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", prev, "-i", cur, "-filter_complex",
