@@ -42,7 +42,7 @@ def render(argv):
     clip = lambda f: max(1, min(N, f))                     # event frame f (0-based, as in the JSONs) is clip frame f + 1
 
     def swift_frame():                  # the swift drawn largest on screen: in frame, away from the edges, nearest
-        best, birds = (0, None, ""), obs("swift_bird")
+        best, birds = (0, None, "", None), obs("swift_bird")
         for h in C["tweets"]["hits"]:
             for k in range(clip(h + 2), clip(h + 9), 2):    # while it draws (DRAW 8 frames in ice_world.py)
                 sc.frame_set(FO + k)
@@ -50,32 +50,50 @@ def render(argv):
                     if b_.hide_render:
                         continue
                     v_ = world_to_camera_view(sc, cam, b_.matrix_world.translation)
-                    if 0.15 <= v_.x <= 0.85 and 0.15 <= v_.y <= 0.85 and v_.z > 0 and 1 / v_.z > best[0]:
-                        best = (1 / v_.z, k, f"{b_.name} {v_.z:.0f} m away")
-        return best[1], best[2]
+                    if (0.15 <= v_.x <= 0.85 and 0.15 <= v_.y <= 0.85 and v_.z > 0 and 1 / v_.z > best[0]
+                            and unhidden(b_)):
+                        best = (1 / v_.z, k, f"{b_.name} {v_.z:.0f} m away", b_.name)
+        return best[1], best[2], best[3]
 
-    def peak(v, why):
-        i = max(range(min(N, len(v))), key=lambda i: v[i]); return clip(i + 1), f"{why} {v[i]:.3f}"
+    SEE_THROUGH = ("flurry", "spindrift", "mist", "drift", "clouds", "halo", "contrail")   # volumes and planes
+
+    def unhidden(ob):                   # the first solid thing on the camera's line of sight to OB is OB (in frame is
+        dg = bpy.context.evaluated_depsgraph_get()   # not seen: the first pick, f279, was a swift behind a crystal)
+        p0 = cam.matrix_world.translation.copy(); d_ = ob.matrix_world.translation - p0; left = d_.length; d_.normalize()
+        while left > 0:
+            hit, loc, _, _, o_, _ = sc.ray_cast(dg, p0, d_, distance=left)
+            if not hit or o_ is None:
+                return False                                  # (the bird's own polygon edge-on: missed, not seen)
+            if o_.name == ob.name:
+                return True
+            if not (o_.name.startswith(SEE_THROUGH) or (o_.name.startswith("swift") and not o_.name.startswith("swift_bird"))):
+                return False
+            left -= (loc - p0).length + 1e-3; p0 = loc + d_ * 1e-3
+
+    def peak(v, why, focus=None):
+        i = max(range(min(N, len(v))), key=lambda i: v[i]); return clip(i + 1), f"{why} {v[i]:.3f}", focus
 
     def pick(layer):
         if layer == "swifts":
             return swift_frame()
         if layer == "chime":
-            n_ = max(LY["chime"], key=lambda n: n["strength"]); return clip(n_["frame"] + 2), f"strongest note {n_['strength']}"
+            n_ = max(LY["chime"], key=lambda n: n["strength"]); k = clip(n_["frame"] + 2); sc.frame_set(FO + k)
+            lit = max(obs("chime"), key=lambda o: o.data.energy)          # the crystal this note lights
+            return k, f"strongest note {n_['strength']}", lit.name
         if layer == "clicks":
-            s_, h = max(zip(LY["clicks"]["strength"], LY["clicks"]["hits"])); return clip(h + 1), f"strongest click {s_}"
+            s_, h = max(zip(LY["clicks"]["strength"], LY["clicks"]["hits"])); return clip(h + 1), f"strongest click {s_}", None
         if layer == "pad":              # mid-sweep after the change with the most pad energy
             h = max(LY["pad"]["changes"], key=lambda h: LY["pad"]["energy"][min(h, len(LY["pad"]["energy"]) - 1)])
-            return clip(h + 15), f"change at {h + 1}"
+            return clip(h + 15), f"change at {h + 1}", None
         if layer == "drone":
-            return peak(LY["drone"]["energy"], "loudest drone")
+            return peak(LY["drone"]["energy"], "loudest drone")   # (the halo quad's origin isn't the ring: zoom on the change)
         if layer == "subbass":
             return peak(LY["subbass"], "loudest sub-bass")
         if layer == "mist":
             return peak(C["mist"], "densest mist")
         if layer == "heartbeat":        # the biggest surge: speed rises most over half a second
             i = max(range(N - 12), key=lambda i: speed[i + 12] - speed[i])
-            return clip(i + 1), f"surge {speed[i]:.1f} -> {speed[i + 12]:.1f} m/s"
+            return clip(i + 1), f"surge {speed[i]:.1f} -> {speed[i + 12]:.1f} m/s", None
 
     def off(layer):                     # the layer gone, everything else as it was; returns how to put it back
         glow = []
@@ -90,14 +108,14 @@ def render(argv):
         else:
             hid = obs({"swifts": "swift", "drone": "halo", "pad": "clouds", "subbass": "drift", "clicks": "crack",
                        "mist": "mist"}[layer])
-        was = [(o, o.hide_render) for o in hid]
-        for o in hid:
-            o.hide_render = True
-        print(f"legend {layer} off: {len(hid)} objects hidden, {len(glow)} glows off", flush=True)
-
+        was = [(o, list(o.users_collection)) for o in hid]  # out of the scene, not hide_render: the swifts' visibility is
+        for o, cols in was:                                 # keyframed, and the first legend's "off" still had the bird
+            for c in cols:
+                c.objects.unlink(o)
         def back():
-            for o, h in was:
-                o.hide_render = h
+            for o, cols in was:
+                for c in cols:
+                    c.objects.link(o)
             for n, v in glow:
                 n.inputs[1].default_value = v
         return back
@@ -107,7 +125,10 @@ def render(argv):
 
     picks = json.load(open(f"{out}/picks.json")) if os.path.exists(f"{out}/picks.json") else {}
     for layer in a.only.split(","):
-        k, why = pick(layer)
+        k, why, fo = pick(layer)
+        if fo:                          # where the layer's own object is on screen: the sheet zooms on the change there
+            sc.frame_set(FO + k); v_ = world_to_camera_view(sc, cam, bpy.data.objects[fo].matrix_world.translation)
+            fo = [round(v_.x, 4), round(1 - v_.y, 4)]                   # image x, y (0..1, y down)
         if k is None:
             print(f"legend {layer}: no frame ({why or 'none of the layer on screen'})", flush=True)
             picks[layer] = {"frame": None, "why": why or "none on screen"}; continue
@@ -119,7 +140,7 @@ def render(argv):
                             "speed": [round(speed[clip(k + d) - 1], 1) for d in (0, 6, 12)]}
         else:
             shot(k, f"{out}/{layer}_on.png"); back = off(layer); shot(k, f"{out}/{layer}_off.png"); back()
-            picks[layer] = {"frame": k, "why": why}
+            picks[layer] = {"frame": k, "why": why, "focus": fo}
         json.dump(picks, open(f"{out}/picks.json", "w"), indent=1)
     print("legend ok", out, flush=True)
 
@@ -160,12 +181,20 @@ def sheet(argv):
             d = np.abs(on - of).max(axis=2)
             m = d > 8                                     # changed by more than 8/255 in some channel
             share, mean = m.mean(), d.mean()
-            if m.any():                                   # the box round the changed pixels (2nd-98th percentile)
-                ys, xs = np.nonzero(m)
-                y0, y1 = np.percentile(ys, [2, 98]).astype(int); x0, x1 = np.percentile(xs, [2, 98]).astype(int)
-                cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
-                w = max(x1 - x0 + 40, (y1 - y0 + 40) * 16 / 9, 160); h = w * 9 / 16
+            if m.any():                 # the changed region that matters: near the layer's own object, else the biggest
+                from scipy import ndimage as nd
+                lab_, n = nd.label(nd.binary_dilation(m, iterations=6))
                 ih, iw = d.shape
+                if p.get("focus"):
+                    fx, fy = p["focus"][0] * iw, p["focus"][1] * ih
+                    near = lambda i: min(np.hypot(*np.subtract(np.nonzero(lab_ == i), [[fy], [fx]])))
+                    i = min(range(1, n + 1), key=near)
+                else:
+                    i = 1 + int(np.argmax(nd.sum(d, lab_, range(1, n + 1))))
+                sy, sx_ = nd.find_objects(lab_ == i)[0]
+                y0, y1, x0, x1 = sy.start, sy.stop, sx_.start, sx_.stop
+                cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+                w = max(x1 - x0 + 60, (y1 - y0 + 60) * 16 / 9, 320); h = w * 9 / 16
                 bx0 = int(min(max(cx - w / 2, 0), max(iw - w, 0))); by0 = int(min(max(cy - h / 2, 0), max(ih - h, 0)))
                 box = (bx0, by0, int(min(bx0 + w, iw)), int(min(by0 + h, ih)))
             else:

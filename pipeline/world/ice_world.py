@@ -821,7 +821,9 @@ else:                                   # Antarctica at dusk, rendered
             sb = smooth(LY["subbass"], 0.25)
             for i in range(N):
                 c0, fw, _ = cam_at(i)
-                gd.location = c0 + fw * 40 + Vector((0, 0, -1.8 + 0.5))   # ground - 1 m .. ground + 2 m; gd.keyframe_insert("location", frame=i + 1 + FO)
+                gd.location = c0 + fw * 40 + Vector((0, 0, -1.8 + 0.5))   # ground - 1 m .. ground + 2 m
+                gd.keyframe_insert("location", frame=i + 1 + FO)   # (D32's legend, 2026-10-28: this was inside the comment
+                # above, so the drift stayed where the last frame left it and was never seen; v1 has no drift)
                 dens_.inputs[1].default_value = a.drift * at(sb, i) ** 1.5
                 dens_.inputs[1].keyframe_insert("default_value", frame=i + 1 + FO)
                 mp.inputs["Location"].default_value = (-0.05 * i, 0.01 * i, 0)     # blowing across at ~8 m/s
