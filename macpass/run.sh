@@ -2,6 +2,7 @@
 # poptok/macpass: macvideo's pipeline (plan -> chained keyframes -> one clip per shot -> plain cuts) with Qwen for the
 # pictures and the words, LTX-2.5 on the Sparks for the clips, 1920x1088 at 24 fps.
 #   STEP=keys bash macpass/run.sh pieces/cuckoo       plan + keyframes + the sheet (review before any clip)
+#   STEP=keys LAST=6 bash macpass/run.sh ...           the first 6 keyframes only (a test)
 #   ONLY=1,2,3 bash macpass/run.sh pieces/cuckoo      + those clips only, cut to the review folder (a dry run)
 #   bash macpass/run.sh pieces/cuckoo                 everything -> PIECE/outputs/v<N>/<name>.mp4
 #   (detached: setsid nohup ... >> pieces/_logs/macpass.log 2>&1 < /dev/null &)
@@ -16,7 +17,7 @@ SONG=$P/$(python3 -c "import sys;sys.path.insert(0,'pipeline');from workshop imp
 sync_to() { ssh $1 "mkdir -p ~/poptok/$P ~/poptok/pieces/artists" && rsync -a pipeline macpass $1:poptok/ &&
   rsync -a pieces/artists/ $1:poptok/pieces/artists/ && rsync -a $P/piece.env $1:poptok/$P/ && rsync -a $O/ $1:poptok/$O/; }
 H=$(pick_host thing1 thing2); echo "[$(date +%H:%M)] keyframes on $H"; sync_to $H
-ssh $H "cd ~/poptok && flock $LOCK $(keyframe_ctr $H) python3 macpass/keys.py $P" 2>&1 | grep -E "keyframe|rror|Traceback"
+ssh $H "cd ~/poptok && flock $LOCK $(keyframe_ctr $H) python3 macpass/keys.py $P ${LAST:-}" 2>&1 | grep -E "keyframe|rror|Traceback"
 rsync -a $H:poptok/$O/keyframes/ $O/keyframes/
 python3 macpass/sheet.py $P $R/keyframes.jpg
 [ "${STEP:-}" = keys ] && exit 0
