@@ -28,16 +28,19 @@ def main():
     shots = []
     for j, s in enumerate(sh["shots"]):
         shutil.copy(f"{L}/keyframes/{j + 1:02d}.png", f"{O}/keys/shot_{j:03d}.png")
-        shots.append({"i": j, "start": s["start"], "end": s["end"], "prompt": s["picture"], "amber": s["amber"],
+        # the style first (LTX, like MOSS, follows the start of a prompt: with the style at the end, cuckoo's ink
+        # keyframe became a colour photograph of a forest within 2 s, 2026-10-29); ltx_chain appends the plan's "style"
+        shots.append({"i": j, "start": s["start"], "end": s["end"], "prompt": s["prompt"], "amber": s["amber"],
                       "lyric": " / ".join(segs[n - 1]["text"] for n in s.get("lines", []) if 0 < n <= len(segs))})
-    json.dump({"style": sh["style"], "shots": shots}, open(f"{O}/shots.json", "w"), indent=1, ensure_ascii=False)
+    guard = "The whole video stays a hand-drawn drawing in that style, never a photograph, no colour"
+    json.dump({"style": guard, "shots": shots}, open(f"{O}/shots.json", "w"), indent=1, ensure_ascii=False)
     old = {(x.get("a"), x.get("b")): x["transition_in"] for x in json.load(open(f"{O}/scenes.json"))["scenes"]} \
         if os.path.exists(f"{O}/scenes.json") else {}
     story = f"The story of the video: {sb.get('story', '')}\n\n"
     scenes = []
     for j, s in enumerate(shots):
         x = {"id": f"k{j + 1:02d}", "bars": [j, j], "motion": sh["shots"][j]["beat"], "continuous": False,
-             "a": shots[j - 1]["prompt"] if j else None, "b": s["prompt"], "transition_in": ""}
+             "a": sh["shots"][j - 1]["picture"] if j else None, "b": sh["shots"][j]["picture"], "transition_in": ""}
         if j:
             x["transition_in"] = old.get((x["a"], x["b"])) or llm(TRANSITION.format(
                 story=story, lyric=s["lyric"] or "(instrumental)", a=x["a"], b=x["b"]), a.llm)
