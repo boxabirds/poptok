@@ -4,7 +4,8 @@
     shot's words, style first, her expression named; 3 tries (NN-t.png). No stranger and no face graft: grafting her
     face onto a MOSS stranger passed 2 of 10 facebench cases (stamped hair, lost expressions), native 4 of 10, the
     charcoal ones among them (pieces/_bench/review/2026-10-29/facebench).
-NN.png is the keyframe: the try the user picked (keyframes/picks.json, {"09": 2}), else the one most like her (SFace).
+NN.png is the keyframe: the try the user picked (keyframes/picks.json, {"09": 2}), else the one most like her (SFace);
+a try with more than one face scores none (her photo had been pasted in beside the drawn woman).
 A shot is redrawn only when its prompt (or, with Amber, its expression) changed (prompts.json).
     python3 lean/keyframes.py PIECE                 (reads PIECE/lean/shots.json; writes PIECE/lean/keyframes/)"""
 import json, os, shutil, sys
@@ -19,12 +20,13 @@ from workshop import read_env
 TRIES = 3
 NATIVE = ("Draw the woman in picture 1 as {style}. {picture} The young woman in this picture is the woman in picture "
           "1: keep her face and features exactly. Her expression: {expression}. She wears the clothes described, not "
-          "picture 1's, and the setting is the one described, not picture 1's background. No text.")
+          "picture 1's, and the setting is the one described, not picture 1's background. Picture 1 is only a reference for "
+          "her face: exactly one woman in the picture, never picture 1 itself pasted in. No text.")
 
 P = sys.argv[1].rstrip("/"); e = read_env(f"{P}/piece.env")
 S = json.load(open(f"{P}/lean/shots.json")); out = f"{P}/lean/keyframes"; os.makedirs(out, exist_ok=True)
 J = lambda n, d: json.load(open(f"{out}/{n}.json")) if os.path.exists(f"{out}/{n}.json") else d
-prompts, faces, picks = J("prompts", {}), J("faces", {}), J("picks", {})
+prompts, faces, picks, verdicts = J("prompts", {}), J("faces", {}), J("picks", {}), J("verdicts", {})
 photo = os.path.normpath(f"{P}/{e['PERFORMER_PHOTO']}")
 her = lambda s: s["amber"] != "none"
 key = lambda s: s["prompt"] + (f" | native | {s.get('expression')}" if her(s) else "")   # what a drawing depends on
@@ -61,11 +63,15 @@ if na:
                                              expression=s.get("expression") or "as the picture describes"),
                       seed=1 + 1000 * t, size=(1024, 576)).convert("RGB")
             im.save(f"{out}/{n}-{t + 1}.png")
-            sims.append(face_pass.similarity(cv2.cvtColor(np.array(im), cv2.COLOR_RGB2BGR), feat))
-        faces[n] = sims; picks.pop(n, None)
+            bgr = cv2.cvtColor(np.array(im), cv2.COLOR_RGB2BGR)
+            face_pass.det.setInputSize((bgr.shape[1], bgr.shape[0])); _, fs = face_pass.det.detect(bgr)
+            # two women (her photo pasted in beside the drawn one, cuckoo 9, 2026-10-29): never auto-picked
+            sims.append(None if fs is not None and len(fs) > 1 else face_pass.similarity(bgr, feat))
+        faces[n] = sims; picks.pop(n, None); verdicts.pop(n, None)   # picks and verdicts were of the old tries
         done(n, s)
         print(f"keyframe {i + 1}: native, her face " + ", ".join("-" if x is None else f"{x:.2f}" for x in sims), flush=True)
     json.dump(picks, open(f"{out}/picks.json", "w"), indent=1)
+    json.dump(verdicts, open(f"{out}/verdicts.json", "w"), indent=1)
 for i, s in enumerate(S["shots"]):          # the keyframe: the user's pick, else the try most like her
     n = f"{i + 1:02d}"
     if her(s) and isinstance(faces.get(n), list):
