@@ -25,7 +25,7 @@ for i, s in enumerate(S):
     who = {"none": "", "seen": "Amber seen", "sings": "Amber SINGS"}[s["amber"]]
     if who and n in faces and faces[n] is not None:
         who += f" (face {faces[n]:.2f})"
-    drawn = "Qwen, from her photo" if s["amber"] != "none" else "MOSS"      # lean/keyframes.py: who drew it
+    drawn = "Qwen" if s["amber"] != "none" else "MOSS"      # who drew it (lean/keyframes.py; Qwen: from her photo)
     t = f"{i + 1}  {s['start']:.1f}-{s['end']:.1f}s  {drawn}  {who}"
     d.rectangle((0, 0, d.textlength(t, font=B) + 12, 28), fill=0); d.text((6, 3), t, font=B, fill=(255, 255, 0))
     sheet.paste(im, (x, y))
