@@ -109,8 +109,8 @@ def load(edit=None):
                 o = np.array(edit([Image.fromarray(src), ref2], prompt, seed=seed + 1000 * t, size=size)
                              .convert("RGB").resize((W, H), Image.LANCZOS))
                 g = face(cv2.cvtColor(o, cv2.COLOR_RGB2BGR))
-                ok = g is not None and np.hypot(g[0] + g[2] / 2 - cx, g[1] + g[3] / 2 - cy) <= 0.15 * fw \
-                    and 0.8 < max(g[2], g[3]) / fw < 1.25      # the framing kept: she is where she was, the same size
+                ok = bool(g is not None) and bool(np.hypot(g[0] + g[2] / 2 - cx, g[1] + g[3] / 2 - cy) <= 0.15 * fw) \
+                    and bool(0.8 < max(g[2], g[3]) / fw < 1.25)    # the framing kept: she is where she was, the same size
                 sim = similarity(cv2.cvtColor(o, cv2.COLOR_RGB2BGR), refs[photo]) if ok else None
                 fix.tries.append({"image": Image.fromarray(o), "sim": sim, "ok": ok})
                 if ok and sim is not None and sim > best[1]:
