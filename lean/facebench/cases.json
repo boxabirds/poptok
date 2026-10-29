@@ -1,0 +1,18 @@
+{"woman": "a young woman with long, tousled, wavy dark-blonde hair",
+ "styles": {
+  "charcoal": "vine charcoal drawing on textured paper, smudged strokes, heavy blacks, charcoal dust, white paper showing through, hatching, hand-drawn, black and white",
+  "oil": "thick oil impasto painting, heavy visible brush strokes, palette-knife texture, rich pigment",
+  "glass": "stained glass window, bold black lead lines, glowing jewel-coloured glass panes",
+  "war": "grainy black and white war photograph, harsh contrast, deep shadows, heavy film grain",
+  "photo": "natural colour photograph, soft daylight, 50mm lens"},
+ "cases": [
+  {"id": "c1", "style": "charcoal", "scene": "close-up of {woman} in a dark heavy coat, in a forest, head tilted back looking up at the sky", "expression": "forlorn and sad, eyes looking up, inner brows raised, lips slightly parted"},
+  {"id": "c2", "style": "charcoal", "scene": "medium shot of {woman} in a dark heavy coat standing in a clearing, strong wind blowing her hair across half her face", "expression": "exhausted, eyes closed, brows drawn together, mouth slightly open, breathing hard"},
+  {"id": "o1", "style": "oil", "scene": "medium shot of {woman} in a red wool shawl by a window, three-quarter view, head bowed", "expression": "grieving, eyes looking down, brows knitted, mouth closed tight"},
+  {"id": "o2", "style": "oil", "scene": "wide shot of {woman} in a long blue dress standing small in a wheat field under a big sky, facing the viewer", "expression": "calm, eyes on the viewer, a faint smile"},
+  {"id": "g1", "style": "glass", "scene": "close-up of {woman} in a white hooded robe, in profile facing left, light behind her", "expression": "serene, eyes half closed, mouth relaxed"},
+  {"id": "g2", "style": "glass", "scene": "medium shot of {woman} in a green gown among lilies, hair loose over her shoulders, facing the viewer", "expression": "joyful, eyes bright, a broad smile"},
+  {"id": "w1", "style": "war", "scene": "medium shot of {woman} in a nurse's uniform and cap in a ruined street, looking back over her shoulder", "expression": "frightened, eyes wide, brows raised, mouth open"},
+  {"id": "w2", "style": "war", "scene": "close-up of {woman} in a soldier's helmet and greatcoat, rain on her face", "expression": "weeping, eyes wet and squinting, brows pulled up, mouth turned down"},
+  {"id": "p1", "style": "photo", "scene": "close-up of {woman} in a yellow raincoat on a city street", "expression": "laughing, eyes creased, mouth wide open"},
+  {"id": "p2", "style": "photo", "scene": "full-length shot of {woman} in jeans and a grey jumper walking along a beach, wind in her hair, three-quarter view", "expression": "thoughtful, eyes looking into the distance, mouth closed"}]}
