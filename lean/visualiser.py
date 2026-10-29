@@ -57,7 +57,7 @@ def check(pics, kf, performer, looks):
     for i, (x, k) in enumerate(zip(pics, kf)):
         if m := re.search(BANNED, x, re.I):
             p.append(f"picture {i + 1} says \"{m.group(0)}\" (no medium, colour or camera move)")
-        if (k["amber"] != "none" or re.search(r"\b(woman|girl|she|her)\b", x, re.I)) and performer.lower() not in x.lower():
+        if (k["amber"] != "none" or re.search(r"\b(woman|girl|she|her|person|figure|someone)\b", x, re.I)) and performer.lower() not in x.lower():
             p.append(f"picture {i + 1} has the woman but not her description word for word (\"{performer}\")")
         for name, desc in looks.items():
             if re.search(rf"\b{re.escape(name)}s?\b", x, re.I) and desc.lower() not in x.lower():
