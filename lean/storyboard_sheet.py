@@ -11,6 +11,11 @@ F = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 15)
 S = json.load(open(f"{P}/lean/shots.json"))["shots"]; K = f"{P}/lean/keyframes"
 segs = json.load(open([f"{P}/analysis/{x}" for x in os.listdir(f"{P}/analysis") if x.endswith("-true-segments.json")][0]))["segments"]
 faces = json.load(open(f"{K}/faces.json")) if os.path.exists(f"{K}/faces.json") else {}
+picks = json.load(open(f"{K}/picks.json")) if os.path.exists(f"{K}/picks.json") else {}
+for n, v in list(faces.items()):            # native: a score per try; the keyframe is the pick, else the best
+    if isinstance(v, list):
+        t = picks.get(n) or 1 + max(range(len(v)), key=lambda j: -2 if v[j] is None else v[j])
+        faces[n] = v[t - 1]
 W, H, T, C = 640, 360, 150, 3
 sheet = Image.new("RGB", (W * C, (H + T) * ((len(S) + C - 1) // C)), "white")
 for i, s in enumerate(S):

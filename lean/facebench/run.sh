@@ -21,9 +21,9 @@ flock $LOCK docker run --gpus all --rm --user $(id -u):$(id -g) -e HOME=/tmp -v 
 for H in thing1 thing2; do sync_to $H; done
 echo "[$(date +%H:%M)] face passes on thing1 (c1-o2, g1) and thing2 (g2-p2)"
 ssh thing1 "cd ~/poptok && flock $LOCK $(keyframe_ctr thing1) python3 lean/facebench/run.py $O $P c1 c2 o1 o2 g1" 2>&1 \
-  | grep -E "head|whole|nohair|rror|Traceback" &
+  | grep -E "head|whole|nohair|native|rror|Traceback" &
 ssh thing2 "cd ~/poptok && flock $LOCK $(keyframe_ctr thing2) python3 lean/facebench/run.py $O $P g2 w1 w2 p1 p2" 2>&1 \
-  | grep -E "head|whole|nohair|rror|Traceback" &
+  | grep -E "head|whole|nohair|native|rror|Traceback" &
 wait
 for H in thing1 thing2; do rsync -a $H:poptok/$O/ $O/; done
 python3 lean/facebench/sheet.py $O $R

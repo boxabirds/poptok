@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # poptok/lean: the storyboard as pictures, to review the video's shape before any clip is made. The visualiser (local
-# LLM on gruntus) turns the directors' beats into pictures, MOSS draws them on a free Spark (face pass where Amber is
-# in one), and one sheet shows them all in order.
+# LLM on gruntus) turns the directors' beats into pictures; on a free Spark MOSS draws them, and Qwen-Image-Edit draws
+# the ones with Amber from her photo (3 tries, picks.jpg to choose from); one sheet shows them all in order.
 #   setsid nohup bash lean/storyboard.sh pieces/cuckoo >> pieces/_logs/lean-storyboard.log 2>&1 < /dev/null &
 set -uo pipefail
 cd ~/sambashare/expts/poptok
@@ -19,4 +19,5 @@ ssh $H "mkdir -p ~/poptok/$P ~/poptok/pieces/artists" && rsync -a pipeline lean 
 ssh $H "cd ~/poptok && flock $LOCK $(keyframe_ctr $H) python3 lean/keyframes.py $P" 2>&1 | grep -E "keyframe|rror|Traceback"
 rsync -a $H:poptok/$P/lean/keyframes/ $P/lean/keyframes/
 python3 lean/storyboard_sheet.py $P $R/storyboard.jpg
+python3 lean/pick_sheet.py $P $R/picks.jpg
 echo "[$(date +%H:%M)] storyboard done: $R/storyboard.jpg"
