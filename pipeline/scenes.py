@@ -253,16 +253,17 @@ def apply(a):
     print(f"applied: {n_keys} stills to redraw, {len(drop_frames)} video frames to re-render ({gone} files removed)")
 
 
-ap = argparse.ArgumentParser()
-ap.add_argument("step", choices=["build", "frame", "transitions", "apply"])
-ap.add_argument("out")
-ap.add_argument("frames", nargs="*", type=int)
-ap.add_argument("--cues")
-ap.add_argument("--segments")
-ap.add_argument("--story", help="the workshop's story scenes (story-scenes.json): build tags each scene with its story "
-                "scene; transitions writes a camera move inside a story scene and an event between them")
-ap.add_argument("--llm", default="http://127.0.0.1:8091")
-ap.add_argument("--force", action="store_true", help="transitions: rewrite existing ones too")
-ap.add_argument("--lead", type=float, default=0.9, help="frame: the chain's transition lead (ltx_chain.py --lead)")
-a = ap.parse_args()
-{"build": build, "frame": frame, "transitions": transitions, "apply": apply}[a.step](a)
+if __name__ == "__main__":     # importable: lean/render_prep.py reuses TRANSITION and llm
+    ap = argparse.ArgumentParser()
+    ap.add_argument("step", choices=["build", "frame", "transitions", "apply"])
+    ap.add_argument("out")
+    ap.add_argument("frames", nargs="*", type=int)
+    ap.add_argument("--cues")
+    ap.add_argument("--segments")
+    ap.add_argument("--story", help="the workshop's story scenes (story-scenes.json): build tags each scene with its story "
+                    "scene; transitions writes a camera move inside a story scene and an event between them")
+    ap.add_argument("--llm", default="http://127.0.0.1:8091")
+    ap.add_argument("--force", action="store_true", help="transitions: rewrite existing ones too")
+    ap.add_argument("--lead", type=float, default=0.9, help="frame: the chain's transition lead (ltx_chain.py --lead)")
+    a = ap.parse_args()
+    {"build": build, "frame": frame, "transitions": transitions, "apply": apply}[a.step](a)
