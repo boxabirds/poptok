@@ -128,6 +128,9 @@ def load(edit=None):
         mask = cv2.GaussianBlur(mask, (k, k), 0)
         if region == "nohair" and hair is not None:      # the oval's hair stays the still's: cut out after feathering,
             hm = np.array(Image.open(hair).convert("L")) > 127 if isinstance(hair, str) else np.asarray(hair, bool)
+            inner = np.zeros((H, W), np.uint8)            # the inner face is never hair (SAM's "hair" often is the head)
+            cv2.ellipse(inner, (int(cx), int(cy)), (int(OVAL[0] * fw), int(OVAL[1] * fw)), 0, 0, 360, 1, -1)
+            hm = hm & (inner == 0)
             kh = int(fw * 0.04) | 1                       # with a narrow soft edge (the oval's would leak into the hair)
             mask *= 1 - cv2.GaussianBlur(hm.astype(np.float32), (kh, kh), 0)
         mask = mask[..., None]
