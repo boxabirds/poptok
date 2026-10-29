@@ -10,6 +10,9 @@ B = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 2
 F = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 15)
 S = json.load(open(f"{P}/lean/shots.json"))["shots"]; K = f"{P}/lean/keyframes"
 segs = json.load(open([f"{P}/analysis/{x}" for x in os.listdir(f"{P}/analysis") if x.endswith("-true-segments.json")][0]))["segments"]
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "pipeline"))
+from workshop import read_env
+RQ = read_env(f"{P}/piece.env").get("RENDER") == "qwen"     # lean/keyframes.py: Qwen draws every panel
 faces = json.load(open(f"{K}/faces.json")) if os.path.exists(f"{K}/faces.json") else {}
 picks = json.load(open(f"{K}/picks.json")) if os.path.exists(f"{K}/picks.json") else {}
 for n, v in list(faces.items()):            # native: a score per try; the keyframe is the pick, else the best
@@ -25,7 +28,7 @@ for i, s in enumerate(S):
     who = {"none": "", "seen": "Amber seen", "sings": "Amber SINGS"}[s["amber"]]
     if who and n in faces and faces[n] is not None:
         who += f" (face {faces[n]:.2f})"
-    drawn = "Qwen" if s["amber"] != "none" else "MOSS"      # who drew it (lean/keyframes.py; Qwen: from her photo)
+    drawn = "Qwen" if s["amber"] != "none" or os.path.exists(f"{K}/{i + 1:02d}-qwen.png") and RQ else "MOSS"      # who drew it (lean/keyframes.py; Qwen: from her photo)
     t = f"{i + 1}  {s['start']:.1f}-{s['end']:.1f}s  {drawn}  {who}"
     d.rectangle((0, 0, d.textlength(t, font=B) + 12, 28), fill=0); d.text((6, 3), t, font=B, fill=(255, 255, 0))
     sheet.paste(im, (x, y))
