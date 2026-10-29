@@ -5,7 +5,9 @@ storyboard whose shots link to the previous and next, and each keyframe drawn fr
   - shots: one per lyric line, instrumental gaps their own shots (macvideo's make_shots.build_shots, imported, at 24 fps);
   - Pass A: the world brief; Pass C: the storyboard; Pass B: one image prompt per shot (the prompts are macvideo's,
     copied: gen_keyframes.py cannot be imported without Gemini). poptok adds the artist's brief and the performer, and
-    keeps the medium out of the world (cuckoo's charcoal brief said "white paper background", and lean drew the paper).
+    keeps the medium out of the world (cuckoo's charcoal brief said "white paper background", and lean drew the paper),
+    and the narrator's pose out of the brief (cuckoo's brief gave her "arms extended upward in a fixed, reaching
+    gesture", so every shot had her arms up and LTX moved them like a robot's, 2026-10-29).
 Writes PIECE/macpass/{shots,brief,storyboard,image_prompts}.json; each is kept if it exists (delete it to redo).
     WORKSHOP_PY=macpass/plan.py bin/workshop.sh PIECE        (starts the local LLM)"""
 import json, os, re, sys, urllib.request
@@ -42,7 +44,8 @@ Abstraction level: {abstraction}/100. Apply throughout: {abstraction_descriptor}
 
 Write a short "character & world brief" (5-8 sentences) that every shot of
 this song must honour. Describe:
- - The narrator: appearance, clothing, demeanour (concrete visual cues only)
+ - The narrator: appearance and clothing only (concrete visual cues). No pose,
+   posture or gesture: each shot's beat decides how she stands and moves
  - The central metaphorical subject of this song as a visible entity
  - The primary setting / world (domestic? exterior? atmospheric qualities)
  - How the "{filter_word}" style manifests on all of the above (materials,

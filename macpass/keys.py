@@ -20,8 +20,11 @@ SIZE = (1664, 928)                        # Qwen-Image's own 16:9; LTX renders 1
 PROMPT = ("A {filt}, made in exactly that medium and its colours alone. {face}{chain}Draw this new keyframe of the music "
           "video, filling the whole frame, its own composition, framing and subject exactly as described: {prompt} "
           "No text.")
-FACE = ("Picture 1 is a photograph of the narrator, {performer}: the woman in this shot has her face, drawn in the "
-        "same {filt} (never the photograph itself pasted in, and only one of her). ")
+# with her: lean's "native" wording (lean/keyframes.py NATIVE, D46), the drawing of her first: a face reference alone
+# left her a photograph cut out and stood in the drawing (cuckoo shots 2-6, 2026-10-29)
+FACE = ("Draw the woman in picture 1 as a {filt}: she is drawn in that medium like everything else, never a photograph. "
+        "She is the narrator, {performer}: keep her face and features exactly, but not her clothes, pose or background "
+        "from picture 1; never picture 1 itself pasted in, and exactly one of her. ")
 CHAIN = ("{which} the shots just before this one in the same video: keep their world, their drawing style and their "
          "light, but never copy their composition, framing or subject; this shot shows something new. ")
 HER = re.compile(r"\b(woman|girl|she|her|hers|narrator|figure|face)\b", re.I)
