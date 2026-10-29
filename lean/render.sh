@@ -35,13 +35,17 @@ while read -r J T0 T1; do
   [ -s $O/sing/it_$J.mp4 ] && continue
   case " ${MAX_CLIPS:+x} " in " x ") [ "$J" -ge "$MAX_CLIPS" ] && continue;; esac
   D=$(python3 -c "print(round($T1 - $T0, 3))")
+  # InfiniteTalk needs >= 81 frames (3.24 s) of audio: a shorter line is sung over a window around it, padded equally,
+  # and only its own span is used (cuckoo's "Cuckoo" is 2.5 s; the first try failed on it)
+  PAD=$(python3 -c "print(round(max(0, (3.6 - $D) / 2), 3))"); W0=$(python3 -c "print(max(0, round($T0 - $PAD, 3)))")
+  WD=$(python3 -c "print(round($D + 2 * $PAD, 3))"); echo "$J $W0" > $O/sing/window_$J.txt
   cp $O/keys/shot_$(printf %03d $J).png $O/sing/k$J.png
-  ffmpeg -v error -y -ss $T0 -t $D -i $VOC -ac 1 -ar 16000 $O/sing/v$J.wav
+  ffmpeg -v error -y -ss $W0 -t $WD -i $VOC -ac 1 -ar 16000 $O/sing/v$J.wav
   python3 -c "
 import json; json.dump({'prompt': 'a young woman with long, tousled, wavy dark-blonde hair sings with feeling, lips forming the words, small natural head movements. ' + json.load(open('$O/shots.json'))['style'] + '.',
  'cond_video': '/work/k$J.png', 'cond_audio': {'person1': '/work/v$J.wav'}}, open('$O/sing/it_$J.json', 'w'))"
   echo "[$(date +%H:%M)] keyframe $((J + 1)) sings: InfiniteTalk on gruntus (${D} s)"
-  MAX_FRAMES=$(python3 -c "import math;print(math.ceil($D*25)+25)") bin/infinitetalk_quant.sh $O/sing it_$J.json it_$J \
+  MAX_FRAMES=$(python3 -c "import math;print(math.ceil($WD*25)+25)") bin/infinitetalk_quant.sh $O/sing it_$J.json it_$J \
     > $O/sing/it_$J.log 2>&1 || echo "  keyframe $((J + 1)) lip-sync FAILED (see $O/sing/it_$J.log)"
 done < $O/sing/plan.txt
 # the cut: the chain's frames at 24 fps, each sung clip over its span, the song
@@ -49,9 +53,11 @@ IN=(-framerate 24 -i $O/ltx_chain/%05d.png); FC="[0:v]null[v0]"; k=0
 while read -r J T0 T1; do
   [ -s $O/sing/it_$J.mp4 ] || continue
   IN+=(-i $O/sing/it_$J.mp4); k=$((k + 1))
-  FC="$FC;[$k:v]fps=24,scale=1024:576,setsar=1,setpts=PTS-STARTPTS+$T0/TB[s$k];[v$((k - 1))][s$k]overlay=enable='between(t,$T0,$T1)':eof_action=pass[v$k]"
+  W0=$(cut -d' ' -f2 $O/sing/window_$J.txt 2>/dev/null || echo $T0)      # the clip starts at its window's start
+  FC="$FC;[$k:v]fps=24,scale=1024:576,setsar=1,setpts=PTS-STARTPTS+$W0/TB[s$k];[v$((k - 1))][s$k]overlay=enable='between(t,$T0,$T1)':eof_action=pass[v$k]"
 done < $O/sing/plan.txt
 if [ -n "${MAX_CLIPS:-}" ]; then OUT=pieces/_bench/review/$(date +%F)/lean-$NAME/render-dry-run.mp4
-else N=1; while [ -e $P/outputs/v$N ]; do N=$((N + 1)); done; mkdir -p $P/outputs/v$N; OUT=$P/outputs/v$N/$NAME.mp4; fi
+else N=${OUTV:-}; [ -n "$N" ] || { N=1; while [ -e $P/outputs/v$N ]; do N=$((N + 1)); done; }   # OUTV=2: redo v2
+  mkdir -p $P/outputs/v$N; OUT=$P/outputs/v$N/$NAME.mp4; fi
 ffmpeg -v error -y "${IN[@]}" -i $SONG -filter_complex "$FC" -map "[v$k]" -map $((k + 1)):a -c:v libx264 -crf 18 \
   -pix_fmt yuv420p -c:a aac -b:a 256k -shortest $OUT && echo "[$(date +%H:%M)] render done: $OUT"

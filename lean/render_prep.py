@@ -43,7 +43,10 @@ def main():
     story = f"The story of the video: {sb.get('story', '')}\n\n"
     scenes = []
     for j, s in enumerate(shots):
-        x = {"id": f"k{j + 1:02d}", "bars": [j, j], "motion": sh["shots"][j]["beat"], "continuous": False,
+        # the motion inside the animation too, and the guard last: ltx_chain ends a prompt with the motion, and the
+        # directors' beat ("the camera slowly pushes forward through the canopy") alone made clip 1 a photo (v2)
+        x = {"id": f"k{j + 1:02d}", "bars": [j, j], "continuous": False,
+             "motion": f"The drawing moves: {sh['shots'][j]['beat']} It stays a hand-drawn drawing, never live action.",
              "a": sh["shots"][j - 1]["picture"] if j else None, "b": sh["shots"][j]["picture"], "transition_in": ""}
         if j:
             x["transition_in"] = old.get((x["a"], x["b"])) or llm(TRANSITION.format(
