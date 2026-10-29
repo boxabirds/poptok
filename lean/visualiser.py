@@ -5,7 +5,10 @@ the piece's STYLE is put first in every prompt, word for word. Where Amber is in
 her as PERFORMER does (her photo is matched later by the face pass).
 
     WORKSHOP_PY=lean/visualiser.py bin/workshop.sh PIECE       (starts the local LLM; reads PIECE/lean/storyboard.json)
-Writes PIECE/lean/shots.json: the storyboard's keyframes, each with "picture" and the full "prompt".
+Writes PIECE/lean/shots.json: the storyboard's keyframes, each with "picture" and the full "prompt". A keyframe whose
+picture has her in it (PERFORMER's words) is hers, whatever the directors marked: amber "none" becomes "seen", so the
+face pass makes her Amber (D42: cuckoo's last shot was a stranger). --only 9,11: rewrite just those keyframes' pictures
+and keep the rest as they are in shots.json.
 """
 from __future__ import annotations
 
@@ -26,6 +29,8 @@ Rules:
 - No text or words in the picture.
 - Where the woman is in the keyframe, describe her with these words exactly: "{performer}"; {look_clothes}
 - Not the lyrics as words; the lyrics are context for meaning.
+- Any named animal, plant or thing a picture model may not know well: say what it looks like (shape, size, colouring,
+  markings), not only its name (a picture model drew "a cuckoo" as a crow).
 
 THE BRIEF:
 ---
@@ -61,6 +66,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("piece")
     ap.add_argument("--llm", default="http://127.0.0.1:8091")
+    ap.add_argument("--only", help="keyframe numbers to rewrite, e.g. 9,11 (the rest kept from shots.json)")
     a = ap.parse_args()
     P = a.piece.rstrip("/"); e = read_env(f"{P}/piece.env")
     sb = json.load(open(f"{P}/lean/storyboard.json")); kf = sb["keyframes"]
@@ -83,8 +89,16 @@ def main():
             break
         prompt += ("\n\nYour previous answer:\n" + json.dumps({"pictures": pics}) + "\nIt has these problems; fix them "
                    "and return all the pictures again:\n" + "\n".join(f"- {x}" for x in probs))
+    if a.only:
+        old = json.load(open(f"{P}/lean/shots.json"))["shots"]; keep = {int(n) for n in a.only.split(",")}
+        pics = [p if i + 1 in keep else o["picture"] for i, (p, o) in enumerate(zip(pics, old))]
     S = style[0].upper() + style[1:]
-    shots = [dict(k, picture=p, prompt=f"{S}: {p}") for k, p in zip(kf, pics)]
+    shots = []
+    for k, p in zip(kf, pics):
+        x = dict(k, picture=p, prompt=f"{S}: {p}")
+        if x["amber"] == "none" and performer.lower() in p.lower():
+            x["amber"], x["amber_by"] = "seen", "visualiser: her description is in the picture"
+        shots.append(x)
     json.dump({"style": style, "checks": probs, "shots": shots}, open(f"{P}/lean/shots.json", "w"), indent=1,
               ensure_ascii=False)
     print(f"visualiser: wrote {P}/lean/shots.json")
