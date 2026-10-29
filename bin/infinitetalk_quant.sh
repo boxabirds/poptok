@@ -4,6 +4,7 @@
 # needs the whole card: it runs under the poptok GPU lock. ~62 s of compute per second of video (2.6x a Spark at bf16);
 # user verdict 2026-10-24: better than the Spark render.
 #   bin/infinitetalk_quant.sh WORKDIR JSON OUTSTEM [STEPS] [QUANT_FILE]      (WORKDIR holds the json, png, wav)
+# AUDIO_CFG (env, default 2.0): how hard the audio drives the mouth (D41: cuckoo's sung "I" came out as "ooo" at 2.0)
 # Image: docker build -t infinitetalk-x86 docker/infinitetalk-x86. Weights: ~/models/infinitetalk-quant.
 set -euo pipefail
 W=$(realpath "$1"); J=$2; O=$3; STEPS=${4:-4}; QF=${5:-infinitetalk_single_int8_lora}
@@ -17,5 +18,5 @@ flock /tmp/poptok-gpu.lock docker run --gpus all --rm --user $(id -u):$(id -g) -
   --infinitetalk_dir /weights/unused.safetensors \
   --quant $Q --quant_dir /weights/InfiniteTalk/quant_models/$QF.safetensors \
   --input_json /work/$J --size infinitetalk-480 --sample_steps $STEPS --sample_text_guide_scale 1.0 \
-  --sample_audio_guide_scale 2.0 --sample_shift 2 --mode streaming --motion_frame 9 --offload_model False \
+  --sample_audio_guide_scale ${AUDIO_CFG:-2.0} --sample_shift 2 --mode streaming --motion_frame 9 --offload_model False \
   --save_file /work/$O ${MAX_FRAMES:+--max_frame_num $MAX_FRAMES}
