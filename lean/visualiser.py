@@ -26,6 +26,9 @@ Rules:
 - Keep the beat's who, what, where and camera exactly; you only add visual detail.
 - Never name a medium, art style or colour palette (no "drawing", "charcoal", "photo", "cinematic", "black and white",
   colours): the style is added separately. No motion blur or camera moves: it is a still.
+- Every picture places what it shows in the story's world and names the surroundings (for a close-up, what is just
+  behind); the world stays the same from keyframe to keyframe (D47: "a clearing" alone was drawn as an open field in a
+  story set in an endless forest).
 - No text or words in the picture.
 - Where the woman is in the keyframe, describe her with these words exactly: "{performer}"; {look_clothes}
 - Not the lyrics as words; the lyrics are context for meaning.
@@ -107,9 +110,13 @@ def main():
             break
         prompt += ("\n\nYour previous answer:\n" + json.dumps({"pictures": pics}) + "\nIt has these problems; fix them "
                    "and return all the pictures again:\n" + "\n".join(f"- {x}" for x in probs))
-    if a.only:
+    if a.only:      # rewrite the keyframes named, and any kept one that no longer passes the checks (e.g. looks.txt changed)
         old = json.load(open(f"{P}/lean/shots.json"))["shots"]; keep = {int(n) for n in a.only.split(",")}
-        pics = [p if i + 1 in keep else o["picture"] for i, (p, o) in enumerate(zip(pics, old))]
+        stale = {int(m.group(1)) for x in check([o["picture"] for o in old], kf, performer, looks)
+                 if (m := re.match(r"picture (\d+)", x))}
+        if stale - keep:
+            print(f"visualiser: also rewriting {sorted(stale - keep)}: they fail the checks now", flush=True)
+        pics = [p if i + 1 in keep | stale else o["picture"] for i, (p, o) in enumerate(zip(pics, old))]
     S = style[0].upper() + style[1:]
     shots = []
     for k, p in zip(kf, pics):
