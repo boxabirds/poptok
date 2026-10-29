@@ -76,10 +76,13 @@ def load(edit=None):
         edit = load_edit()
     refs = {}
 
-    def fix(still, photo, seed=0, tries=3, angles=None, region="head", style=None):  # head: user-approved 2026-10-26
-        # style: picture 1's medium (e.g. charcoal), so her face is redrawn in it instead of pasted in as a photograph
+    def fix(still, photo, seed=0, tries=3, angles=None, region="head", style=None, expression=None):
+        # region head: user-approved 2026-10-26. style: picture 1's medium (e.g. charcoal), so her face is redrawn in it
+        # instead of pasted in as a photograph. expression: picture 1's, named (D43: "keep the expression" alone gave
+        # her the photo's calm look over a drawn forlorn one)
         prompt = (HEAD_PROMPT if region == "head" else PROMPT) + \
-            (f" Her face stays drawn the way picture 1 is drawn ({style}), not photographed." if style else "")
+            (f" Her face stays drawn the way picture 1 is drawn ({style}), not photographed." if style else "") + \
+            (f" Her expression stays exactly picture 1's, not picture 2's: {expression}." if expression else "")
         src = np.array(Image.open(still).convert("RGB") if isinstance(still, str) else still.convert("RGB"))
         bgr = cv2.cvtColor(src, cv2.COLOR_RGB2BGR)
         if photo not in refs:

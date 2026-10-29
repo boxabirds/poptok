@@ -46,6 +46,14 @@ THE KEYFRAMES:
 
 Return ONLY JSON: {{"pictures": ["keyframe 1's picture", "keyframe 2's picture", ...]}} (one per keyframe, in order)"""
 
+EXPR = """A music video's keyframes show a young woman. For each one below, write her facial expression as a picture
+editor must keep it: 8-20 words naming the feeling, where her eyes look, her brows and her mouth (D43: a face edit told
+only "keep the expression" gave her a calm look). Fit the beat and the song; the brief: {brief}
+
+{shots}
+
+Return ONLY JSON: {{"expressions": {{"keyframe number": "her expression", ...}}}}"""
+
 BANNED = r"\b(drawing|drawn|charcoal|sketch|photo\w*|cinematic|black and white|monochrome|colou?rs?|blur\w*|bokeh|" \
          r"zoom\w*|pans?|pulls? back|dolly)\b"
 
@@ -109,6 +117,21 @@ def main():
         if x["amber"] == "none" and performer.lower() in p.lower():
             x["amber"], x["amber_by"] = "seen", "visualiser: her description is in the picture"
         shots.append(x)
+    # her expression where she is in a keyframe, kept from shots.json while the picture is unchanged
+    old = {o["picture"]: o.get("expression") for o in json.load(open(f"{P}/lean/shots.json"))["shots"]} \
+        if os.path.exists(f"{P}/lean/shots.json") else {}
+    for x in shots:
+        if x["amber"] != "none" and old.get(x["picture"]):
+            x["expression"] = old[x["picture"]]
+    need = [(i, x) for i, x in enumerate(shots) if x["amber"] != "none" and not x.get("expression")]
+    if need:
+        ex = as_json(llm(EXPR.format(brief=open(f"{P}/inputs/brief.txt").read().strip(), shots="\n".join(
+            f"  {i + 1}. beat: {x['beat']} picture: {x['picture']}" for i, x in need)), a.llm, max_tokens=2000,
+            temperature=0.5)).get("expressions") or {}
+        for i, x in need:
+            if ex.get(str(i + 1)):
+                x["expression"] = ex[str(i + 1)].strip().rstrip(".")
+        print("visualiser: her expressions:" + "".join(f"\n  {i + 1}: {x.get('expression')}" for i, x in need), flush=True)
     json.dump({"style": style, "checks": probs, "shots": shots}, open(f"{P}/lean/shots.json", "w"), indent=1,
               ensure_ascii=False)
     print(f"visualiser: wrote {P}/lean/shots.json")

@@ -1,6 +1,7 @@
 """poptok/lean step 4a: the keyframes (on a Spark, morph-spark container, from ~/poptok). Each shot's prompt drawn by
 MOSS-Image (NN-drawn.png); where Amber is in it (seen / sings), the face pass makes her her, asked to keep the style's
-medium (D39: without it, a photographed face is pasted into the drawing); NN.png is the keyframe. A keyframe is redrawn
+medium (D39: without it, a photographed face is pasted into the drawing) and to keep her expression, named (D43);
+NN.png is the keyframe. A keyframe is redrawn
 only when its prompt changed (prompts.json), and face-passed again only when it was redrawn or newly hers.
     python3 lean/keyframes.py PIECE                 (reads PIECE/lean/shots.json; writes PIECE/lean/keyframes/)"""
 import json, os, shutil, sys
@@ -13,7 +14,7 @@ from workshop import read_env
 P = sys.argv[1].rstrip("/"); e = read_env(f"{P}/piece.env")
 S = json.load(open(f"{P}/lean/shots.json")); out = f"{P}/lean/keyframes"; os.makedirs(out, exist_ok=True)
 J = lambda n, d: json.load(open(f"{out}/{n}.json")) if os.path.exists(f"{out}/{n}.json") else d
-prompts, faces = J("prompts", {}), J("faces", {})
+prompts, faces, passes = J("prompts", {}), J("faces", {}), J("passes", {})   # passes: the expression each face pass kept
 todo = [i for i, s in enumerate(S["shots"]) if prompts.get(f"{i + 1:02d}") != s["prompt"]
         or not os.path.exists(f"{out}/{i + 1:02d}-drawn.png")]
 if todo:
@@ -37,13 +38,14 @@ for i, s in enumerate(S["shots"]):
         if not os.path.exists(f"{out}/{n}.png"):
             shutil.copy(f"{out}/{n}-drawn.png", f"{out}/{n}.png")
         continue
-    if n in faces and os.path.exists(f"{out}/{n}.png"):
+    if n in faces and os.path.exists(f"{out}/{n}.png") and passes.get(n) == s.get("expression"):
         continue
     if fix is None:
         import face_pass
         fix = face_pass.load()
     im, sim = fix(f"{out}/{n}-drawn.png", photo, seed=1, tries=6, angles=os.path.splitext(photo)[0] + "-angles",
-                  style=S["style"])
-    im.save(f"{out}/{n}.png"); faces[n] = sim
+                  style=S["style"], expression=s.get("expression"))
+    im.save(f"{out}/{n}.png"); faces[n] = sim; passes[n] = s.get("expression")
     json.dump(faces, open(f"{out}/faces.json", "w"), indent=1)
+    json.dump(passes, open(f"{out}/passes.json", "w"), indent=1, ensure_ascii=False)
     print(f"keyframe {i + 1}: face pass, her face {sim}", flush=True)
