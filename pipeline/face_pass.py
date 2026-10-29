@@ -76,7 +76,10 @@ def load(edit=None):
         edit = load_edit()
     refs = {}
 
-    def fix(still, photo, seed=0, tries=3, angles=None, region="head"):     # head: user-approved 2026-10-26
+    def fix(still, photo, seed=0, tries=3, angles=None, region="head", style=None):  # head: user-approved 2026-10-26
+        # style: picture 1's medium (e.g. charcoal), so her face is redrawn in it instead of pasted in as a photograph
+        prompt = (HEAD_PROMPT if region == "head" else PROMPT) + \
+            (f" Her face stays drawn the way picture 1 is drawn ({style}), not photographed." if style else "")
         src = np.array(Image.open(still).convert("RGB") if isinstance(still, str) else still.convert("RGB"))
         bgr = cv2.cvtColor(src, cv2.COLOR_RGB2BGR)
         if photo not in refs:
@@ -101,7 +104,7 @@ def load(edit=None):
         ref2 = angle_ref(angles, f) or photo
         fc = (cx - x0, cy - y0)           # the face in crop coordinates, to check the edit kept it in place
         for t in range(tries):
-            out = edit([crop, ref2], HEAD_PROMPT if region == "head" else PROMPT, seed=seed + 1000 * t, size=(1024, 1024))
+            out = edit([crop, ref2], prompt, seed=seed + 1000 * t, size=(1024, 1024))
             o = np.array(out.convert("RGB").resize((side, side), Image.LANCZOS))
             g = face(cv2.cvtColor(o, cv2.COLOR_RGB2BGR))
             if g is None or np.hypot(g[0] + g[2] / 2 - fc[0], g[1] + g[3] / 2 - fc[1]) > 0.15 * fw \

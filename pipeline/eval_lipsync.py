@@ -3,16 +3,20 @@ mouth openness = how dark the region between and below them is. That series is c
 at lags of -320..+320 ms. Singers open the mouth a little before the sound, so the peak should sit at -80..-200 ms,
 well above the shuffled baseline. POC 19: InfiniteTalk scored r = 0.31 at -120..-160 ms (baseline 0.08).
 
-    python3 pipeline/eval_lipsync.py VIDEO.mp4 VOCALS.wav
+    python3 pipeline/eval_lipsync.py VIDEO.mp4 VOCALS.wav [--window S]
+--window: the lags searched, +-S seconds (default 0.32). D38 test 2's peaks all sat at the +320 ms edge; at +-1 s
+they were at +360..+400 ms in every clip, so a clip-wide offset needs the wider window to be seen.
 """
 from __future__ import annotations
 
-import os, subprocess, sys, wave
+import argparse, os, subprocess, wave
 
 import cv2
 import numpy as np
 
-video, vocals = sys.argv[1], sys.argv[2]
+ap = argparse.ArgumentParser()
+ap.add_argument("video"); ap.add_argument("vocals"); ap.add_argument("--window", type=float, default=0.32)
+A = ap.parse_args(); video, vocals = A.video, A.vocals
 M = os.path.expanduser("~/models/face")
 det = cv2.FaceDetectorYN.create(f"{M}/face_detection_yunet_2023mar.onnx", "", (320, 320), 0.7, 0.3, 5000)
 cap = cv2.VideoCapture(video)
@@ -46,7 +50,7 @@ rms = np.array([np.sqrt((a[i * hop:(i + 1) * hop] ** 2).mean()) for i in range(n
 o = o[:n]
 z = lambda x: (x - x.mean()) / (x.std() + 1e-9)
 best = (0, -1.0)
-for lag in range(-int(0.32 * fps), int(0.32 * fps) + 1):
+for lag in range(-int(A.window * fps), int(A.window * fps) + 1):
     c = np.corrcoef(z(o[lag:]), z(rms[:n - lag]))[0, 1] if lag >= 0 else np.corrcoef(z(o[:lag]), z(rms[-lag:]))[0, 1]
     if c > best[1]:
         best = (lag, c)
