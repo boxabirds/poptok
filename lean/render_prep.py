@@ -30,9 +30,13 @@ def main():
         shutil.copy(f"{L}/keyframes/{j + 1:02d}.png", f"{O}/keys/shot_{j:03d}.png")
         # the style first (LTX, like MOSS, follows the start of a prompt: with the style at the end, cuckoo's ink
         # keyframe became a colour photograph of a forest within 2 s, 2026-10-29); ltx_chain appends the plan's "style"
-        shots.append({"i": j, "start": s["start"], "end": s["end"], "prompt": s["prompt"], "amber": s["amber"],
+        # and as a kind of video, not a description: "2D hand-drawn animation ... not live action" kept cuckoo a drawing
+        # for the whole clip, where the style words alone turned photographic by 2.5 s (probe ltx_style.py, 2026-10-29)
+        anim = f"A 2D hand-drawn animation in this style: {sh['style']}; a drawing that moves, drawn frames, not live action."
+        shots.append({"i": j, "start": s["start"], "end": s["end"], "prompt": f"{anim} {s['picture']}", "amber": s["amber"],
                       "lyric": " / ".join(segs[n - 1]["text"] for n in s.get("lines", []) if 0 < n <= len(segs))})
-    guard = "The whole video stays a hand-drawn drawing in that style, never a photograph, no colour"
+    guard = ("The whole video stays a hand-drawn drawing in that style, never a photograph; drawn on paper that stays as "
+             "light as it began, the light even, never darker")
     json.dump({"style": guard, "shots": shots}, open(f"{O}/shots.json", "w"), indent=1, ensure_ascii=False)
     old = {(x.get("a"), x.get("b")): x["transition_in"] for x in json.load(open(f"{O}/scenes.json"))["scenes"]} \
         if os.path.exists(f"{O}/scenes.json") else {}
