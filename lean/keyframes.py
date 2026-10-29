@@ -38,8 +38,9 @@ avoid = lambda: f" Not {NOT}." if NOT else ""
 BLANK = ("Picture 1 is a blank sheet of paper. Draw on it, filling the whole sheet: {prompt}. Only the people the "
          "description names. No text.")
 her = lambda s: s["amber"] != "none"
-key = lambda s: s["prompt"] + (f" | native | {s.get('expression')} | {NOT}" if her(s) else
-                               (f" | qwen | {NOT}" if RENDER == "qwen" else ""))     # what a drawing depends on
+nk = f" | {NOT}" if NOT else ""            # (an empty STYLE_NOT leaves the key as it was before it existed)
+key = lambda s: s["prompt"] + (f" | native | {s.get('expression')}{nk}" if her(s) else
+                               (f" | qwen{nk}" if RENDER == "qwen" else ""))     # what a drawing depends on
 todo = [i for i, s in enumerate(S["shots"]) if prompts.get(f"{i + 1:02d}") != key(s)]
 
 
