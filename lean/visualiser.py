@@ -30,7 +30,7 @@ Rules:
 - Where the woman is in the keyframe, describe her with these words exactly: "{performer}"; {look_clothes}
 - Not the lyrics as words; the lyrics are context for meaning.
 - Any named animal, plant or thing a picture model may not know well: say what it looks like (shape, size, colouring,
-  markings), not only its name (a picture model drew "a cuckoo" as a crow).
+  markings), not only its name (a picture model drew "a cuckoo" as a crow).{looks}
 
 THE BRIEF:
 ---
@@ -46,11 +46,11 @@ THE KEYFRAMES:
 
 Return ONLY JSON: {{"pictures": ["keyframe 1's picture", "keyframe 2's picture", ...]}} (one per keyframe, in order)"""
 
-BANNED = r"\b(drawing|drawn|charcoal|sketch|photo\w*|cinematic|black and white|monochrome|colou?rs?|motion blur|" \
+BANNED = r"\b(drawing|drawn|charcoal|sketch|photo\w*|cinematic|black and white|monochrome|colou?rs?|blur\w*|bokeh|" \
          r"zoom\w*|pans?|pulls? back|dolly)\b"
 
 
-def check(pics, kf, performer):
+def check(pics, kf, performer, looks):
     p = []
     if len(pics) != len(kf):
         return [f"{len(pics)} pictures for {len(kf)} keyframes"]
@@ -59,6 +59,9 @@ def check(pics, kf, performer):
             p.append(f"picture {i + 1} says \"{m.group(0)}\" (no medium, colour or camera move)")
         if (k["amber"] != "none" or re.search(r"\b(woman|girl|she|her)\b", x, re.I)) and performer.lower() not in x.lower():
             p.append(f"picture {i + 1} has the woman but not her description word for word (\"{performer}\")")
+        for name, desc in looks.items():
+            if re.search(rf"\b{re.escape(name)}s?\b", x, re.I) and desc.lower() not in x.lower():
+                p.append(f"picture {i + 1} has the {name} but not its description word for word (\"{desc}\")")
     return p
 
 
@@ -72,17 +75,24 @@ def main():
     sb = json.load(open(f"{P}/lean/storyboard.json")); kf = sb["keyframes"]
     style = open(f"{P}/{e['STYLE']}").read().strip()
     performer = e.get("PERFORMER", "the singer")
+    # inputs/looks.txt: "name: description" lines, what named things look like (D42: the LLM described a cuckoo as a
+    # crow, so the facts come from the piece, not from its memory)
+    lf = f"{P}/inputs/looks.txt"
+    looks = dict(l.split(":", 1) for l in open(lf).read().splitlines() if ":" in l and not l.startswith("#")) \
+        if os.path.exists(lf) else {}
+    looks = {k.strip().lower(): v.strip() for k, v in looks.items()}
     # the directors' look, minus her hair (PERFORMER, from her photo, decides that): her clothes
     clothes = re.sub(r"\band (has|with) [^,.]*hair[^,.]*", "", sb.get("performer_look", "")).strip()
     keyframes = "\n".join(f"  {i + 1}. {k['start']:.1f}-{k['end']:.1f} s, the woman: {k['amber']}. BEAT: {k['beat']}"
                           for i, k in enumerate(kf))
-    prompt = PROMPT.format(performer=performer, look_clothes=clothes, brief=open(f"{P}/inputs/brief.txt").read().strip(),
+    prompt = PROMPT.format(looks="".join(f'\n- Wherever the {k} is in a picture, describe it with these words exactly: "{v}"'
+                                         for k, v in looks.items()), performer=performer, look_clothes=clothes, brief=open(f"{P}/inputs/brief.txt").read().strip(),
                            story=sb.get("story", ""), lyrics=open(f"{P}/{e['LYRICS']}").read().strip(),
                            keyframes=keyframes)
     pics, probs = [], ["no answer"]
     for attempt in range(2):
         pics = as_json(llm(prompt, a.llm, max_tokens=6000, temperature=0.7)).get("pictures") or []
-        probs = check(pics, kf, performer)
+        probs = check(pics, kf, performer, looks)
         print(f"visualiser: attempt {attempt + 1}: {len(pics)} pictures, {len(probs)} problems"
               + "".join(f"\n  - {x}" for x in probs), flush=True)
         if not probs:
