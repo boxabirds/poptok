@@ -123,15 +123,18 @@ def main():
     for x in shots:
         if x["amber"] != "none" and old.get(x["picture"]):
             x["expression"] = old[x["picture"]]
-    need = [(i, x) for i, x in enumerate(shots) if x["amber"] != "none" and not x.get("expression")]
-    if need:
+    for _ in range(2):                    # a second ask for any the LLM left out
+        need = [(i, x) for i, x in enumerate(shots) if x["amber"] != "none" and not x.get("expression")]
+        if not need:
+            break
         ex = as_json(llm(EXPR.format(brief=open(f"{P}/inputs/brief.txt").read().strip(), shots="\n".join(
             f"  {i + 1}. beat: {x['beat']} picture: {x['picture']}" for i, x in need)), a.llm, max_tokens=2000,
             temperature=0.5)).get("expressions") or {}
         for i, x in need:
             if ex.get(str(i + 1)):
                 x["expression"] = ex[str(i + 1)].strip().rstrip(".")
-        print("visualiser: her expressions:" + "".join(f"\n  {i + 1}: {x.get('expression')}" for i, x in need), flush=True)
+    print("visualiser: her expressions:" + "".join(f"\n  {i + 1}: {x.get('expression')}" for i, x in enumerate(shots)
+                                                   if x["amber"] != "none"), flush=True)
     json.dump({"style": style, "checks": probs, "shots": shots}, open(f"{P}/lean/shots.json", "w"), indent=1,
               ensure_ascii=False)
     print(f"visualiser: wrote {P}/lean/shots.json")
