@@ -25,7 +25,7 @@ for i, s in enumerate(S):
     sheet.paste(im, (x, y))
     d = ImageDraw.Draw(sheet)
     lines = " / ".join(segs[k - 1]["text"] for k in s.get("lines", []) if 0 < k <= len(segs)) or "(instrumental)"
-    d.text((x + 8, y + H + 6), textwrap.shorten(f'"{lines}"', 75), font=B, fill=0)
+    d.text((x + 8, y + H + 6), textwrap.shorten(f'"{lines}"', 52, placeholder=" ..."), font=B, fill=0)
     for j, l in enumerate(textwrap.wrap(s["beat"], 78)[:5]):
         d.text((x + 8, y + H + 34 + j * 20), l, font=F, fill=(60, 60, 60))
 sheet.save(OUT, quality=88)
