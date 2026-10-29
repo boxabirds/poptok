@@ -31,11 +31,15 @@ J = lambda n, d: json.load(open(f"{out}/{n}.json")) if os.path.exists(f"{out}/{n
 prompts, faces, picks, verdicts = J("prompts", {}), J("faces", {}), J("picks", {}), J("verdicts", {})
 photo = os.path.normpath(f"{P}/{e['PERFORMER_PHOTO']}")
 RENDER = e.get("RENDER", "moss")
+# STYLE_NOT (piece.env): what Qwen must not do to the style (its habits, not the brief's medium: cuckoo's "vine charcoal"
+# came out as graphic ink with splatter and hard outlines, 2026-10-29). Added to every Qwen prompt.
+NOT = e.get("STYLE_NOT", "")
+avoid = lambda: f" Not {NOT}." if NOT else ""
 BLANK = ("Picture 1 is a blank sheet of paper. Draw on it, filling the whole sheet: {prompt}. Only the people the "
          "description names. No text.")
 her = lambda s: s["amber"] != "none"
-key = lambda s: s["prompt"] + (f" | native | {s.get('expression')}" if her(s) else
-                               (" | qwen" if RENDER == "qwen" else ""))     # what a drawing depends on
+key = lambda s: s["prompt"] + (f" | native | {s.get('expression')} | {NOT}" if her(s) else
+                               (f" | qwen | {NOT}" if RENDER == "qwen" else ""))     # what a drawing depends on
 todo = [i for i, s in enumerate(S["shots"]) if prompts.get(f"{i + 1:02d}") != key(s)]
 
 
@@ -66,7 +70,7 @@ if na or qw:
     blank = Image.new("RGB", (1024, 576), (245, 243, 238))
     for i in qw:
         n = f"{i + 1:02d}"; s = S["shots"][i]
-        edit([blank], BLANK.format(prompt=s["prompt"]), seed=1, size=(1024, 576)).convert("RGB").save(f"{out}/{n}-qwen.png")
+        edit([blank], BLANK.format(prompt=s["prompt"]) + avoid(), seed=1, size=(1024, 576)).convert("RGB").save(f"{out}/{n}-qwen.png")
         shutil.copy(f"{out}/{n}-qwen.png", f"{out}/{n}.png"); faces.pop(n, None); done(n, s)
         print(f"keyframe {i + 1}: drawn (Qwen, blank sheet)", flush=True)
     for i in na:
@@ -74,7 +78,7 @@ if na or qw:
         sims = []
         for t in range(TRIES):
             im = edit([photo], NATIVE.format(style=S["style"], picture=s["picture"],
-                                             expression=s.get("expression") or "as the picture describes"),
+                                             expression=s.get("expression") or "as the picture describes") + avoid(),
                       seed=1 + 1000 * t, size=(1024, 576)).convert("RGB")
             im.save(f"{out}/{n}-{t + 1}.png")
             bgr = cv2.cvtColor(np.array(im), cv2.COLOR_RGB2BGR)
