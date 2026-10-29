@@ -7,7 +7,7 @@ set -uo pipefail
 cd ~/sambashare/expts/poptok
 source bin/hosts.sh
 R=pieces/_bench/review/2026-10-29/lean-poc; O=pieces/_bench/lean/sweep; P=pieces/artists/r.amber.jpeg
-IDS="080 085 090 095 f100 s100 p090 p095"
+IDS=${IDS:-"080 085 090 095 f100 s100 p090 p095"}   # D39 ran IDS="095 f100 s100": the rest were photographs (no clip needed)
 mkdir -p $R
 if [ ! -f $O/levels2.json ]; then
   H=$(pick_host thing1 thing2); echo "[$(date +%H:%M)] D39 keyframes on $H"
@@ -33,5 +33,5 @@ for l in 000 010 025 050 075 100 $IDS; do
   python3 pipeline/eval_lipsync.py $O/it_$l.mp4 $O/vocal.wav --window 1 > $O/sync_$l.txt 2>&1
   [ -f $O/id_$l.json ] || python3 pipeline/eval_identity.py $P $O/it_$l.mp4 --every 10 --json $O/id_$l.json > /dev/null 2>&1
 done
-python3 lean/poc_sweep_sheet.py $O $R 39-sweep 075,080,085,090,095,100=39-cliff 000,100,f100,s100,p090,p095=39-identity
+python3 lean/poc_sweep_sheet.py $O $R 39-sweep 000,075,095,100,f100,s100=39-identity
 echo "[$(date +%H:%M)] D39 done: $R/39-sweep.jpg, 39-cliff.mp4, 39-identity.mp4"
