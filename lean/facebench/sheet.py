@@ -12,10 +12,10 @@ from face_pass import face
 O, R = sys.argv[1], sys.argv[2]
 F = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 16)
 C = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "cases.json")))["cases"]
-REG = ("head", "whole", "nohair")
+REG = ("head", "whole", "nohair", "native")
 for view in ("frames", "heads"):
     tw, th = (320, 180) if view == "frames" else (220, 220)
-    S = Image.new("RGB", (tw * 10, th * len(C)), (90, 90, 90))
+    S = Image.new("RGB", (tw * (1 + 3 * len(REG)), th * len(C)), (90, 90, 90))
     for r, c in enumerate(C):
         src = f"{O}/{c['id']}.png"
         if not os.path.exists(f"{O}/{c['id']}/tries.json"):

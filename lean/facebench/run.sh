@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Face-pass benchmark (D45): 10 fixed cases (5 treatments x 2 positions, cases.json) through the face pass's regions
-# (head = current, whole, nohair), every try kept, one sheet. Draw on a Spark, hair masks on gruntus, then the cases
+# (head = current, whole, nohair) and native generation from her photo, every try kept, one sheet. Draw on a Spark, hair masks on gruntus, then the cases
 # split over both Sparks.
 #   setsid nohup bash lean/facebench/run.sh >> pieces/_logs/facebench.log 2>&1 < /dev/null &
 set -uo pipefail
