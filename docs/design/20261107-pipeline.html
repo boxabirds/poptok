@@ -163,27 +163,33 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
         <div class="fav"><b>Avatar still</b><span>One image of your singer / actor · required</span></div>
       </div></li>
     <li class="farrow"><span>prompt, brief</span></li>
-    <li class="fnode"><div class="fhead"><i>1</i>Song</div>
-      <ul class="fsteps"><li><span class="fdo">Write the lyrics and a music-style description (three simulated songwriters)</span><span class="fby">Qwen3.8-27B in llama-server</span></li><li><span class="fdo">Sing several takes from the lyrics and the style</span><span class="fby">ACE-Step 1.5 xl-sft</span></li><li><span class="fdo">Keep the take whose sung words match the lyrics best</span><span class="fby">Whisper (transcribe each take, compare to the lyrics)</span></li></ul></li>
-    <li class="farrow"><span>lyrics, music style, song.wav</span></li>
-    <li class="fnode"><div class="fhead"><i>2</i>Listen</div>
+    <li class="fnode"><div class="fhead"><i>1</i>Create the song</div>
+      <ul class="fsteps"><li><span class="fdo">Write the lyrics and a music-style description (three simulated songwriters)</span><span class="fby">Qwen3.8-27B in llama-server</span></li></ul></li>
+    <li class="farrow"><span>lyrics, music style</span></li>
+    <li class="fnode"><div class="fhead"><i>2</i>Record (generate) the song</div>
+      <ul class="fsteps"><li><span class="fdo">Sing several takes from the lyrics and the style</span><span class="fby">ACE-Step 1.5 xl-sft</span></li><li><span class="fdo">Keep the take whose sung words match the lyrics best</span><span class="fby">Whisper (transcribe each take, compare to the lyrics)</span></li></ul></li>
+    <li class="farrow"><span>song.wav</span></li>
+    <li class="fnode"><div class="fhead"><i>3</i>Disassemble the song</div>
       <ul class="fsteps"><li><span class="fdo">Split the song into vocals, drums, bass and other</span><span class="fby">Demucs</span></li><li><span class="fdo">Transcribe the vocal with a time for every word</span><span class="fby">whisper-timestamped</span></li><li><span class="fdo">Find when each known lyric word is sung, even in stacked choruses</span><span class="fby">MMS forced aligner (torchaudio, wav2vec2)</span></li><li><span class="fdo">Tempo, beats and downbeats (where cuts land)</span><span class="fby">librosa</span></li><li><span class="fdo">Runs of deep drum hits (for light bursts; told to the directors)</span><span class="fby">numpy spectral flux, 40–250 Hz, on the drum stem</span></li></ul></li>
     <li class="farrow"><span>stems, timed lyrics, beats</span></li>
-    <li class="fnode"><div class="fhead"><i>3</i>Plan</div>
-      <ul class="fsteps"><li><span class="fdo">Story of 4–8 scenes; where the singer appears and sings; a shot per line and per 6–8 s of instrumental (three simulated directors)</span><span class="fby">Qwen3.8-27B</span></li><li><span class="fdo">Propose 14 candidate universes (the medium every frame is made of), pick 3</span><span class="fby">Qwen3.8-27B</span></li><li><span class="fdo">Draw each pick's world on 2 test shots</span><span class="fby">MOSS-Image</span></li><li><span class="fdo">Put the singer into those test shots from the avatar still</span><span class="fby">Qwen-Image-Edit 2511 + Lightning</span></li><li><span class="fdo">Write an image prompt for every shot, with the whole lyric and the previous line as context</span><span class="fby">Qwen3.8-27B</span></li></ul>
-      <div class="ftag av">Avatar still → test shots of the universe</div></li>
+    <li class="fnode"><div class="fhead"><i>4</i>Create the singer / actor</div>
+      <ul class="fsteps"><li><span class="fdo">Propose 14 candidate universes (the medium every frame, and the singer, is made of), pick 3</span><span class="fby">Qwen3.8-27B</span></li><li><span class="fdo">Draw each pick's world on 2 test shots</span><span class="fby">MOSS-Image</span></li><li><span class="fdo">Put the singer into those test shots from the avatar still</span><span class="fby">Qwen-Image-Edit 2511 + Lightning</span></li></ul>
+      <div class="ftag av">Avatar still → the singer drawn in each candidate medium</div></li>
+    <li class="farrow"><span>universe, singer test shots</span></li>
+    <li class="fnode"><div class="fhead"><i>5</i>Design the video scenes</div>
+      <ul class="fsteps"><li><span class="fdo">Story of 4–8 scenes; where the singer appears and sings; a shot per line and per 6–8 s of instrumental (three simulated directors)</span><span class="fby">Qwen3.8-27B</span></li><li><span class="fdo">Write an image prompt for every shot, with the whole lyric and the previous line as context</span><span class="fby">Qwen3.8-27B</span></li></ul></li>
     <li class="farrow"><span>shots.json</span></li>
-    <li class="fnode"><div class="fhead"><i>4</i>Draw</div>
+    <li class="fnode"><div class="fhead"><i>6</i>Create key frames</div>
       <ul class="fsteps"><li><span class="fdo">Draw shots without the singer, from words alone</span><span class="fby">MOSS-Image</span></li><li><span class="fdo">Draw shots with the singer, from the avatar still and the words</span><span class="fby">Qwen-Image-Edit 2511 + Lightning</span></li><li><span class="fdo">Flag blank or flat stills</span><span class="fby">OpenCV (brightness and contrast)</span></li><li><span class="fdo">Flag a stranger's face in the singer's shots</span><span class="fby">YuNet (find faces) + SFace (match to the avatar)</span></li><li><span class="fdo">Flag impossible hands, people, objects</span><span class="fby">Qwen3.8-27B vision, countable questions</span></li><li><span class="fdo">Re-draw flagged stills with a new seed, up to 3 times</span><span class="fby">MOSS-Image / Qwen-Image-Edit</span></li></ul>
-      <div class="ftag av">Avatar still → her face in every shot; the stranger check</div></li>
+      <div class="ftag av">Avatar still → their face in every shot; the stranger check</div></li>
     <li class="farrow"><span>keyframes</span></li>
-    <li class="fnode"><div class="fhead"><i>5</i>Move</div>
-      <ul class="fsteps"><li><span class="fdo">Write how each still becomes the next as a physical event, in action words</span><span class="fby">Qwen3.8-27B</span></li><li><span class="fdo">Render each clip from the previous clip's last frame, guided to the next still</span><span class="fby">LTX-2.5 distilled</span></li><li><span class="fdo">Turn the change of scene into a morph instead of a cross-fade</span><span class="fby">LTX-2.3 Transition LoRA (trigger word)</span></li></ul></li>
-    <li class="farrow"><span>frames</span></li>
-    <li class="fnode"><div class="fhead"><i>6</i>Finish</div>
-      <ul class="fsteps"><li><span class="fdo">Sync each morph to its downbeat by deleting or duplicating frames: find the frame where the clip is halfway from one still to the next, then drop or repeat frames around it until that frame falls on the downbeat (no new frames are made)</span><span class="fby">numpy (grey frame differences, nearest-frame resampling), PIL</span></li><li><span class="fdo">Make the singer sing the sung lines, from the vocal stem and that run's still</span><span class="fby">InfiniteTalk int8 (on Wan 2.1)</span></li><li><span class="fdo">Grade, deflare, light bursts on the drum runs</span><span class="fby">OpenCV + numpy</span></li><li><span class="fdo">Encode the video and mux in the song</span><span class="fby">ffmpeg</span></li></ul>
-      <div class="ftag av">Avatar still → singing starts from her still</div>
-      <div class="ftag stem">Vocal stem (from Listen) → drives the lip-sync</div></li>
+    <li class="fnode"><div class="fhead"><i>7</i>Create the scenes</div>
+      <ul class="fsteps"><li><span class="fdo">Write how each still becomes the next as a physical event, in action words</span><span class="fby">Qwen3.8-27B</span></li><li><span class="fdo">Render each clip from the previous clip's last frame, guided to the next still</span><span class="fby">LTX-2.5 distilled</span></li><li><span class="fdo">Turn the change of scene into a morph instead of a cross-fade</span><span class="fby">LTX-2.3 Transition LoRA (trigger word)</span></li><li><span class="fdo">Make the singer sing the sung lines, from the vocal stem and that run's still</span><span class="fby">InfiniteTalk int8 (on Wan 2.1)</span></li></ul>
+      <div class="ftag av">Avatar still → singing starts from their still</div>
+      <div class="ftag stem">Vocal stem (from Disassemble) → drives the lip-sync</div></li>
+    <li class="farrow"><span>frames, singing clips</span></li>
+    <li class="fnode"><div class="fhead"><i>8</i>Assemble the video</div>
+      <ul class="fsteps"><li><span class="fdo">Sync each morph to its downbeat by deleting or duplicating frames: find the frame where the clip is halfway from one still to the next, then drop or repeat frames around it until that frame falls on the downbeat (no new frames are made)</span><span class="fby">numpy (grey frame differences, nearest-frame resampling), PIL</span></li><li><span class="fdo">Splice the singing clips in on shot boundaries</span><span class="fby">ffmpeg (concat filter)</span></li><li><span class="fdo">Grade, deflare, light bursts on the drum runs</span><span class="fby">OpenCV + numpy</span></li><li><span class="fdo">Encode the video and mux in the song</span><span class="fby">ffmpeg</span></li></ul></li>
     <li class="farrow"><span>&lt;song&gt;.mp4</span></li>
     <li class="fnode fout"><div class="fhead">Music video</div><p>The song, with Amber on screen and singing.</p></li>
   </ol>
@@ -196,9 +202,9 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   <div class="inp"><h3>Piece settings<span class="req">optional</span></h3><p>Style word, hosts, fps, <code>PULSE=0</code>. <code>piece.env</code></p></div>
 </div>
 
-<!-- SONG -->
+<!-- CREATE THE SONG -->
 <div class="phase">
-  <div class="phase-h"><h2>Song</h2><p>From a prompt to a sung track and lyrics</p></div>
+  <div class="phase-h"><h2>Create the song</h2><p>Lyrics and a music style from the prompt</p></div>
   <div class="board">
     <div class="strip a">
       <div class="num">1</div>
@@ -206,6 +212,13 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
       <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Qwen3.8-27B</span><span class="chip">llama-server</span></div><div class="box">gruntus · 4090</div></div>
       <div class="out"><div class="lbl">Hands on</div><ul><li>lyrics.txt</li><li>music-style.txt</li><li>songwriters.md</li></ul></div>
     </div>
+  </div>
+</div>
+
+<!-- RECORD -->
+<div class="phase">
+  <div class="phase-h"><h2>Record (generate) the song</h2><p>Sung takes; the clearest kept</p></div>
+  <div class="board">
     <div class="strip o">
       <div class="num">2</div>
       <div class="what"><h3>Sing the song</h3><p>Several takes from the lyrics and the music style. Whisper transcribes each take; the one whose sung words it understands best is kept. Length set by the song, not a fixed 150 s.</p><span class="src">pipeline/ace_gen.py · ace_score.py · bin/make_song.sh</span></div>
@@ -215,9 +228,9 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   </div>
 </div>
 
-<!-- LISTEN -->
+<!-- DISASSEMBLE -->
 <div class="phase">
-  <div class="phase-h"><h2>Listen</h2><p>Put every word and beat on the song's clock</p></div>
+  <div class="phase-h"><h2>Disassemble the song</h2><p>Stems, and every word and beat on the song's clock</p></div>
   <div class="board">
     <div class="strip s">
       <div class="num">3</div>
@@ -234,25 +247,29 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   </div>
 </div>
 
-<!-- PLAN -->
+<!-- SINGER -->
 <div class="phase">
-  <div class="phase-h"><h2>Plan</h2><p>The directors decide the story, the world and the shots</p></div>
+  <div class="phase-h"><h2>Create the singer / actor</h2><p>The singer drawn from the avatar still, in the medium the whole video is made of</p></div>
   <div class="board">
     <div class="strip a">
       <div class="num">5</div>
-      <div class="what"><h3>Directors' workshop</h3><p>Three fictional directors (handmade, observational, graphic) read the timed lyrics, the brief, the avatar's description and what the machine can draw. They agree a story of 4–8 scenes, where Amber appears and where she sings, and a shot for every line plus one every 6–8 s of instrumental. A plausibility pass removes shots no camera could see.</p><span class="src">pipeline/workshop.py</span></div>
-      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Qwen3.8-27B</span><span class="chip">llama-server</span></div><div class="box">gruntus · GPU lock</div></div>
-      <div class="out"><div class="lbl">Hands on</div><ul><li>story.md · workshop.md</li><li>lyrics-cued.txt (none / pov / part / scene / sing)</li><li>universe proposal</li></ul></div>
-    </div>
-    <div class="strip a">
-      <div class="num">6</div>
-      <div class="what"><h3>Universe step</h3><p>The medium every frame is made of, chosen from a sheet: 14 candidates (open ideas, the song's central image, the directors' own), 3 picks drawn on 2 test shots with Amber in them, from the avatar still.</p><span class="src">pipeline/universe.py</span></div>
+      <div class="what"><h3>Universe step</h3><p>The medium every frame is made of, chosen from a sheet before the directors meet, so they plan for a known medium: 14 candidates (open ideas and the song's central image), 3 picks drawn on 2 test shots with Amber in them, from the avatar still. This is where the singer's look is settled.</p><span class="src">pipeline/universe.py</span></div>
       <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Qwen3.8-27B</span><span class="chip">MOSS-Image</span><span class="chip">Qwen-Image-Edit</span></div><div class="box">gruntus → Sparks</div></div>
       <div class="out"><div class="lbl">Hands on</div><ul><li>universe.txt (STYLE_WORD + brief)</li><li>visual-look.txt</li></ul></div>
     </div>
   </div>
-  <div class="gate"><b>Review</b>The universe sheet and the story are the cheapest place to change course. The directors propose; the artist can override.</div>
-  <div class="board" style="margin-top:6px">
+</div>
+
+<!-- DESIGN -->
+<div class="phase">
+  <div class="phase-h"><h2>Design the video scenes</h2><p>The directors decide the story and the shots</p></div>
+  <div class="board">
+    <div class="strip a">
+      <div class="num">6</div>
+      <div class="what"><h3>Directors' workshop</h3><p>Three fictional directors (handmade, observational, graphic) read the timed lyrics, the brief, the avatar's description, the chosen universe and what the machine can draw. They agree a story of 4–8 scenes, where Amber appears and where she sings, and a shot for every line plus one every 6–8 s of instrumental. A plausibility pass removes shots no camera could see.</p><span class="src">pipeline/workshop.py</span></div>
+      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Qwen3.8-27B</span><span class="chip">llama-server</span></div><div class="box">gruntus · GPU lock</div></div>
+      <div class="out"><div class="lbl">Hands on</div><ul><li>story.md · workshop.md</li><li>lyrics-cued.txt (none / pov / part / scene / sing)</li></ul></div>
+    </div>
     <div class="strip o">
       <div class="num">7</div>
       <div class="what"><h3>One prompt per line</h3><p>An image prompt for every line and instrumental slot, written with the whole lyric and the previous line as context, the universe style leading every prompt. This is the Offline C6 method (from music2vid), which kept consecutive shots in one world.</p><span class="src">pipeline/prompts_per_line.py · treatment.py</span></div>
@@ -260,11 +277,12 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
       <div class="out"><div class="lbl">Hands on</div><ul><li>shots.json (prompt, time, cue)</li></ul></div>
     </div>
   </div>
+  <div class="gate"><b>Review</b>The universe sheet and the story are the cheapest place to change course. The directors propose; the artist can override.</div>
 </div>
 
-<!-- DRAW -->
+<!-- KEY FRAMES -->
 <div class="phase">
-  <div class="phase-h"><h2>Draw</h2><p>One still per shot, checked before any video</p></div>
+  <div class="phase-h"><h2>Create key frames</h2><p>One still per shot, checked before any video</p></div>
   <div class="board">
     <div class="strip s">
       <div class="num">8</div>
@@ -282,9 +300,9 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   <div class="gate"><b>Review</b>The storyboard sheet, before the hours of video (<code>HOLD_BEFORE_VIDEO=1</code>).</div>
 </div>
 
-<!-- MOVE -->
+<!-- SCENES -->
 <div class="phase">
-  <div class="phase-h"><h2>Move</h2><p>The stills become one continuous take</p></div>
+  <div class="phase-h"><h2>Create the scenes</h2><p>The stills become one continuous take; the singing clips are made</p></div>
   <div class="board">
     <div class="strip o">
       <div class="num">10</div>
@@ -294,28 +312,28 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
     </div>
     <div class="strip o">
       <div class="num">11</div>
-      <div class="what"><h3>Video chain</h3><p>Each clip starts from the previous clip's last frame and is guided to the next still, so the film is one take. Each change is asked to happen on a downbeat; LTX gets close, and the finish step corrects the rest.</p><span class="src">pipeline/ltx_chain.py</span></div>
+      <div class="what"><h3>Video chain</h3><p>Each clip starts from the previous clip's last frame and is guided to the next still, so the film is one take. Each change is asked to happen on a downbeat; LTX gets close, and the assembly step corrects the rest.</p><span class="src">pipeline/ltx_chain.py</span></div>
       <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">LTX-2.5 distilled</span><span class="chip">LTX-2.3 Transition LoRA</span></div><div class="box">thing1 / thing2 · quintus</div></div>
       <div class="out"><div class="lbl">Hands on</div><ul><li>ltx_chain/%05d.png</li></ul></div>
+    </div>
+    <div class="strip a">
+      <div class="num">12</div>
+      <div class="what"><h3>Lip-sync inserts</h3><p>Each run of shots cued "sing" becomes one clip of Amber singing, driven by the vocal stem for exactly that stretch and starting from that run's keyframe (drawn from the avatar). The clips are spliced in when the video is assembled.</p><span class="src">sing_inserts.py · bin/infinitetalk_quant.sh</span></div>
+      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">InfiniteTalk int8</span><span class="chip">Wan 2.1 base</span></div><div class="box">thing1 · thing2 · gruntus</div></div>
+      <div class="out"><div class="lbl">Hands on</div><ul><li>sing/*.mp4</li></ul></div>
     </div>
   </div>
 </div>
 
-<!-- FINISH -->
+<!-- ASSEMBLE -->
 <div class="phase">
-  <div class="phase-h"><h2>Finish</h2><p>Sync, sing, grade, mux</p></div>
+  <div class="phase-h"><h2>Assemble the video</h2><p>Sync, splice, grade, mux</p></div>
   <div class="board">
     <div class="strip s">
-      <div class="num">12</div>
-      <div class="what"><h3>Retime and finish</h3><p>Sync to the beat by deleting or duplicating frames: each transition's halfway frame is found, and frames around it are dropped or repeated until it falls on its downbeat. No frames are interpolated, so a big correction can show as a small stutter or jump. Grade (the Offline black-and-white look, or the universe's), deflare, light bursts on the drum runs, song muxed in. No beat pulse for R.Amber.</p><span class="src">retime_to_beats.py · finish.py</span></div>
+      <div class="num">13</div>
+      <div class="what"><h3>Retime, splice and finish</h3><p>Sync to the beat by deleting or duplicating frames: each transition's halfway frame is found, and frames around it are dropped or repeated until it falls on its downbeat. No frames are interpolated, so a big correction can show as a small stutter or jump. The singing clips are cut in on shot boundaries. Grade (the Offline black-and-white look, or the universe's), deflare, light bursts on the drum runs, song muxed in. No beat pulse for R.Amber.</p><span class="src">retime_to_beats.py · sing_inserts.py splice · finish.py</span></div>
       <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">ffmpeg</span><span class="chip">numpy / OpenCV</span></div><div class="box">gruntus</div></div>
       <div class="out"><div class="lbl">Hands on</div><ul><li>NAME-nosync.mp4</li></ul></div>
-    </div>
-    <div class="strip a">
-      <div class="num">13</div>
-      <div class="what"><h3>Lip-sync inserts</h3><p>Each run of shots cued "sing" becomes one clip of Amber singing, driven by the vocal stem for exactly that stretch and starting from that run's keyframe (drawn from the avatar), then spliced in on shot boundaries.</p><span class="src">sing_inserts.py · bin/infinitetalk_quant.sh</span></div>
-      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">InfiniteTalk int8</span><span class="chip">Wan 2.1 base</span></div><div class="box">thing1 · thing2 · gruntus</div></div>
-      <div class="out"><div class="lbl">Hands on</div><ul><li>sing/*.mp4</li></ul></div>
     </div>
   </div>
 </div>
