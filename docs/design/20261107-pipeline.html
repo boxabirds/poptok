@@ -1,3 +1,5 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Prompt to Music Video</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -44,6 +46,28 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   padding: 12px 14px; border-radius: 4px; max-width: 80ch; font-size: 14px; }
 .status b { color: var(--hypo); font-family: var(--mono); font-weight: 500; letter-spacing: .06em; text-transform: uppercase; font-size: 12px; white-space: nowrap; padding-top: 2px; }
 
+
+.overview { margin: 26px 0 8px; background: var(--paper); border: 1px solid var(--rule); border-radius: 4px; padding: 16px 18px; }
+.overview h2 { margin: 0; font: 700 22px/1 var(--display); letter-spacing: .04em; text-transform: uppercase; }
+.ov-sub { margin: 6px 0 10px; color: var(--muted); font-size: 13.5px; max-width: 80ch; }
+.ov-scroll { overflow-x: auto; }
+.ov-scroll svg { display: block; min-width: 1100px; width: 100%; height: auto; }
+.ov-box rect, .ov-in rect { fill: var(--bg); stroke: var(--rule); stroke-width: 1.5; }
+.ov-out rect { fill: var(--ink); }
+.ov-out text { fill: var(--paper) !important; }
+.ov-av rect { fill: var(--amber-soft); stroke: var(--amber); stroke-width: 2; }
+.ov-t { font: 700 15px var(--display); letter-spacing: .06em; fill: var(--ink); }
+.ov-s { font: 13px var(--body); fill: var(--ink); }
+.ov-m { font: 12px var(--mono); fill: var(--muted); }
+.ov-rule { stroke: var(--rule); }
+.ov-flow line { stroke: var(--ink); stroke-width: 2; }
+.ov-arrowhead { fill: var(--ink); }
+.ov-lab text { font: 12px var(--mono); fill: var(--shared); }
+.ov-avline path, .ov-avline line { stroke: var(--amber); stroke-width: 2; fill: none; }
+.ov-avlab text { font: 12px var(--mono); fill: var(--amber); }
+.ov-side path { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 4 4; fill: none; }
+.ov-side text { font: 11.5px var(--mono); fill: var(--muted); }
+
 .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; color: var(--muted); }
 .legend span { display: inline-flex; align-items: center; gap: 8px; }
 .sw { width: 26px; height: 12px; border-radius: 2px; }
@@ -54,6 +78,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 .inp h3 { margin: 0 0 4px; font: 600 15px/1.2 var(--display); letter-spacing: .02em; text-transform: uppercase; }
 .inp p { margin: 0; font-size: 13.5px; color: var(--muted); }
 .inp code { font: 12.5px var(--mono); color: var(--ink); }
+.inp.avatar { border: 1.5px solid var(--amber); }
 .req { font: 500 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-left: 6px; }
 
 .phase { margin-top: 30px; }
@@ -121,10 +146,95 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   </div>
 </header>
 
+
+<section class="overview" aria-labelledby="ov-h">
+  <h2 id="ov-h">Overview</h2>
+  <p class="ov-sub">Inputs on the left, the video on the right. Each box is a phase; its technologies are listed under the line. The avatar still feeds three phases directly.</p>
+  <div class="ov-scroll">
+  <svg viewBox="0 0 1620 470" role="img" aria-label="Flow chart: prompt and brief go to Song, Listen, Plan, Draw, Move and Finish, giving the music video; the avatar still feeds Plan, Draw and Finish.">
+    <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ov-arrowhead"/></marker></defs>
+    <!-- main row: boxes at x = 20 + 200i, y 70, 170 x 240 -->
+    <g class="ov-in"><rect x="20" y="70" width="170" height="150" rx="4"/>
+      <text x="34" y="96" class="ov-t">INPUTS</text>
+      <text x="34" y="124" class="ov-s">Text prompt</text><text x="34" y="141" class="ov-m">"A song about…"</text>
+      <text x="34" y="170" class="ov-s">Artist brief</text><text x="34" y="187" class="ov-m">optional</text></g>
+    <g class="ov-box"><rect x="220" y="70" width="170" height="240" rx="4"/>
+      <text x="234" y="96" class="ov-t">1 SONG</text>
+      <text x="234" y="120" class="ov-s">Songwriters' workshop</text><text x="234" y="138" class="ov-s">Takes; best one kept</text>
+      <line x1="234" x2="376" y1="156" y2="156" class="ov-rule"/>
+      <text x="234" y="176" class="ov-m">Qwen3.8-27B</text><text x="234" y="194" class="ov-m">ACE-Step 1.5</text><text x="234" y="212" class="ov-m">Whisper</text></g>
+    <g class="ov-box"><rect x="420" y="70" width="170" height="240" rx="4"/>
+      <text x="434" y="96" class="ov-t">2 LISTEN</text>
+      <text x="434" y="120" class="ov-s">Stems</text><text x="434" y="138" class="ov-s">Lyrics on the clock</text><text x="434" y="156" class="ov-s">Beats, drum runs</text>
+      <line x1="434" x2="576" y1="174" y2="174" class="ov-rule"/>
+      <text x="434" y="194" class="ov-m">Demucs</text><text x="434" y="212" class="ov-m">whisper-timestamped</text><text x="434" y="230" class="ov-m">MMS aligner</text><text x="434" y="248" class="ov-m">librosa</text></g>
+    <g class="ov-box"><rect x="620" y="70" width="170" height="240" rx="4"/>
+      <text x="634" y="96" class="ov-t">3 PLAN</text>
+      <text x="634" y="120" class="ov-s">Directors' workshop</text><text x="634" y="138" class="ov-s">Universe (medium)</text><text x="634" y="156" class="ov-s">A prompt per line</text>
+      <line x1="634" x2="776" y1="174" y2="174" class="ov-rule"/>
+      <text x="634" y="194" class="ov-m">Qwen3.8-27B</text><text x="634" y="212" class="ov-m">MOSS-Image</text><text x="634" y="230" class="ov-m">Qwen-Image-Edit</text></g>
+    <g class="ov-box"><rect x="820" y="70" width="170" height="240" rx="4"/>
+      <text x="834" y="96" class="ov-t">4 DRAW</text>
+      <text x="834" y="120" class="ov-s">A still per shot</text><text x="834" y="138" class="ov-s">Check and re-roll</text>
+      <line x1="834" x2="976" y1="156" y2="156" class="ov-rule"/>
+      <text x="834" y="176" class="ov-m">MOSS-Image</text><text x="834" y="194" class="ov-m">Qwen-Image-Edit 2511</text><text x="834" y="212" class="ov-m">YuNet + SFace</text><text x="834" y="230" class="ov-m">Qwen3.8 vision</text></g>
+    <g class="ov-box"><rect x="1020" y="70" width="170" height="240" rx="4"/>
+      <text x="1034" y="96" class="ov-t">5 MOVE</text>
+      <text x="1034" y="120" class="ov-s">Event transitions</text><text x="1034" y="138" class="ov-s">One continuous take</text>
+      <line x1="1034" x2="1176" y1="156" y2="156" class="ov-rule"/>
+      <text x="1034" y="176" class="ov-m">Qwen3.8-27B</text><text x="1034" y="194" class="ov-m">LTX-2.5 distilled</text><text x="1034" y="212" class="ov-m">LTX-2.3 Transition</text><text x="1034" y="230" class="ov-m">  LoRA</text></g>
+    <g class="ov-box"><rect x="1220" y="70" width="170" height="240" rx="4"/>
+      <text x="1234" y="96" class="ov-t">6 FINISH</text>
+      <text x="1234" y="120" class="ov-s">Cuts on downbeats</text><text x="1234" y="138" class="ov-s">Lip-sync inserts</text><text x="1234" y="156" class="ov-s">Grade, song muxed</text>
+      <line x1="1234" x2="1376" y1="174" y2="174" class="ov-rule"/>
+      <text x="1234" y="194" class="ov-m">InfiniteTalk int8</text><text x="1234" y="212" class="ov-m">ffmpeg</text></g>
+    <g class="ov-out"><rect x="1420" y="70" width="180" height="150" rx="4"/>
+      <text x="1434" y="96" class="ov-t">MUSIC VIDEO</text>
+      <text x="1434" y="124" class="ov-s">The song, with Amber</text><text x="1434" y="142" class="ov-s">on screen and singing</text>
+      <text x="1434" y="176" class="ov-m">&lt;song&gt;.mp4</text></g>
+    <!-- main arrows at y 110, artefact labels above -->
+    <g class="ov-flow">
+      <line x1="190" y1="110" x2="218" y2="110" marker-end="url(#ar)"/>
+      <line x1="390" y1="110" x2="418" y2="110" marker-end="url(#ar)"/>
+      <line x1="590" y1="110" x2="618" y2="110" marker-end="url(#ar)"/>
+      <line x1="790" y1="110" x2="818" y2="110" marker-end="url(#ar)"/>
+      <line x1="990" y1="110" x2="1018" y2="110" marker-end="url(#ar)"/>
+      <line x1="1190" y1="110" x2="1218" y2="110" marker-end="url(#ar)"/>
+      <line x1="1390" y1="110" x2="1418" y2="110" marker-end="url(#ar)"/>
+    </g>
+    <g class="ov-lab">
+      <text x="305" y="58" text-anchor="middle">lyrics, music style</text>
+      <text x="505" y="58" text-anchor="middle">song.wav</text>
+      <text x="705" y="40" text-anchor="middle">stems, timed lyrics,</text><text x="705" y="58" text-anchor="middle">beats</text>
+      <text x="905" y="58" text-anchor="middle">shots.json</text>
+      <text x="1105" y="58" text-anchor="middle">keyframes</text>
+      <text x="1305" y="58" text-anchor="middle">frames</text>
+    </g>
+    <!-- avatar lane -->
+    <g class="ov-av"><rect x="20" y="370" width="170" height="80" rx="4"/>
+      <text x="34" y="396" class="ov-t">AVATAR STILL</text>
+      <text x="34" y="418" class="ov-s">One image of Amber</text><text x="34" y="436" class="ov-m">required</text></g>
+    <g class="ov-avline">
+      <path d="M190,410 H1305"/>
+      <line x1="705" y1="410" x2="705" y2="312" marker-end="url(#ar)"/>
+      <line x1="905" y1="410" x2="905" y2="312" marker-end="url(#ar)"/>
+      <line x1="1305" y1="410" x2="1305" y2="312" marker-end="url(#ar)"/>
+    </g>
+    <g class="ov-avlab">
+      <text x="713" y="348">test shots</text>
+      <text x="913" y="348">her face in</text><text x="913" y="364">every shot; check</text>
+      <text x="1313" y="348">singing starts</text><text x="1313" y="364">from her still</text>
+    </g>
+    <!-- stems feed lip-sync -->
+    <g class="ov-side"><path d="M505,310 V330 H1270 V312" marker-end="url(#ar)"/><text x="900" y="326" text-anchor="middle">vocal stem drives the lip-sync</text></g>
+  </svg>
+  </div>
+</section>
+
 <div class="inputs">
   <div class="inp"><h3>Prompt<span class="req">required</span></h3><p><code>SONG_PROMPT="A song about…"</code></p></div>
   <div class="inp"><h3>Artist brief<span class="req">optional</span></h3><p>Mood, look, must-keep shots. <code>inputs/brief.txt</code></p></div>
-  <div class="inp"><h3>Performer photo<span class="req">optional</span></h3><p>Amber's face and hair. <code>PERFORMER_PHOTO</code> + <code>PERFORMER</code> description</p></div>
+  <div class="inp avatar"><h3>Avatar still<span class="req">required</span></h3><p>One still image of the performer (Amber): the only source of her face and hair in every shot she is in. <code>PERFORMER_PHOTO</code> + a one-line <code>PERFORMER</code> description</p></div>
   <div class="inp"><h3>Piece settings<span class="req">optional</span></h3><p>Style word, hosts, fps, <code>PULSE=0</code>. <code>piece.env</code></p></div>
 </div>
 
@@ -172,13 +282,13 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   <div class="board">
     <div class="strip a">
       <div class="num">5</div>
-      <div class="what"><h3>Directors' workshop</h3><p>Three fictional directors (handmade, observational, graphic) read the timed lyrics, the brief and what the machine can draw. They agree a story of 4–8 scenes, where Amber appears and where she sings, and a shot for every line plus one every 6–8 s of instrumental. A plausibility pass removes shots no camera could see.</p><span class="src">pipeline/workshop.py</span></div>
+      <div class="what"><h3>Directors' workshop</h3><p>Three fictional directors (handmade, observational, graphic) read the timed lyrics, the brief, the avatar's description and what the machine can draw. They agree a story of 4–8 scenes, where Amber appears and where she sings, and a shot for every line plus one every 6–8 s of instrumental. A plausibility pass removes shots no camera could see.</p><span class="src">pipeline/workshop.py</span></div>
       <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Qwen3.8-27B</span><span class="chip">llama-server</span></div><div class="box">gruntus · GPU lock</div></div>
       <div class="out"><div class="lbl">Hands on</div><ul><li>story.md · workshop.md</li><li>lyrics-cued.txt (none / pov / part / scene / sing)</li><li>universe proposal</li></ul></div>
     </div>
     <div class="strip a">
       <div class="num">6</div>
-      <div class="what"><h3>Universe step</h3><p>The medium every frame is made of, chosen from a sheet: 14 candidates (open ideas, the song's central image, the directors' own), 3 picks drawn on 2 test shots with Amber in them.</p><span class="src">pipeline/universe.py</span></div>
+      <div class="what"><h3>Universe step</h3><p>The medium every frame is made of, chosen from a sheet: 14 candidates (open ideas, the song's central image, the directors' own), 3 picks drawn on 2 test shots with Amber in them, from the avatar still.</p><span class="src">pipeline/universe.py</span></div>
       <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Qwen3.8-27B</span><span class="chip">MOSS-Image</span><span class="chip">Qwen-Image-Edit</span></div><div class="box">gruntus → Sparks</div></div>
       <div class="out"><div class="lbl">Hands on</div><ul><li>universe.txt (STYLE_WORD + brief)</li><li>visual-look.txt</li></ul></div>
     </div>
@@ -200,13 +310,13 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   <div class="board">
     <div class="strip s">
       <div class="num">8</div>
-      <div class="what"><h3>Keyframes</h3><p>Shots without Amber are drawn from words alone. Shots with her are drawn from her photo and the shot's words, in the universe's medium, with her expression named.</p><span class="src">pipeline/keyframes.py · amber_keys.py</span></div>
+      <div class="what"><h3>Keyframes</h3><p>Shots without Amber are drawn from words alone. Shots with her are drawn from the avatar still and the shot's words, in the universe's medium, with her expression named.</p><span class="src">pipeline/keyframes.py · amber_keys.py</span></div>
       <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">MOSS-Image</span><span class="chip">Qwen-Image-Edit-2511</span><span class="chip">Lightning 8-step</span></div><div class="box">thing1 · thing2 · tritus</div></div>
       <div class="out"><div class="lbl">Hands on</div><ul><li>keys/shot_NNN.png</li></ul></div>
     </div>
     <div class="strip a">
       <div class="num">9</div>
-      <div class="what"><h3>Still check</h3><p>Flags blank stills, a stranger in Amber's shots (face recognition), and impossible anatomy or objects (a vision LLM asked countable questions). Flagged stills are re-rolled up to 3 times; near-duplicate scenes are merged.</p><span class="src">check_keys.py · critic.py · merge_similar.py</span></div>
+      <div class="what"><h3>Still check</h3><p>Flags blank stills, a stranger in Amber's shots (face recognition against the avatar still), and impossible anatomy or objects (a vision LLM asked countable questions). Flagged stills are re-rolled up to 3 times; near-duplicate scenes are merged.</p><span class="src">check_keys.py · critic.py · merge_similar.py</span></div>
       <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">YuNet + SFace</span><span class="chip">Qwen3.8 vision</span></div><div class="box">gruntus</div></div>
       <div class="out"><div class="lbl">Hands on</div><ul><li>reroll.json</li><li>storyboard sheet</li></ul></div>
     </div>
@@ -245,7 +355,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
     </div>
     <div class="strip a">
       <div class="num">13</div>
-      <div class="what"><h3>Lip-sync inserts</h3><p>Each run of shots cued "sing" becomes one clip of Amber singing, driven by the vocal stem for exactly that stretch and starting from that run's still, then spliced in on shot boundaries.</p><span class="src">sing_inserts.py · bin/infinitetalk_quant.sh</span></div>
+      <div class="what"><h3>Lip-sync inserts</h3><p>Each run of shots cued "sing" becomes one clip of Amber singing, driven by the vocal stem for exactly that stretch and starting from that run's keyframe (drawn from the avatar), then spliced in on shot boundaries.</p><span class="src">sing_inserts.py · bin/infinitetalk_quant.sh</span></div>
       <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">InfiniteTalk int8</span><span class="chip">Wan 2.1 base</span></div><div class="box">thing1 · thing2 · gruntus</div></div>
       <div class="out"><div class="lbl">Hands on</div><ul><li>sing/*.mp4</li></ul></div>
     </div>
@@ -259,7 +369,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
     <h2>What each workflow brings</h2>
     <table>
       <tr><th>Workflow</th><th>Proven contribution</th></tr>
-      <tr><td>Amber + directors</td><td>A story and a chosen universe; Amber drawn from her photo; where she appears and sings; lip-synced singing; still checks for strangers and impossible frames.</td></tr>
+      <tr><td>Amber + directors</td><td>A story and a chosen universe; Amber drawn from one avatar still; where she appears and sings; lip-synced singing; still checks for strangers and impossible frames.</td></tr>
       <tr><td>Offline</td><td>A generated song (ACE-Step); one prompt per line with the whole lyric as context; uniform monochrome stills; staged event morphs between stills; a strong grade.</td></tr>
       <tr><td>Both</td><td>Demucs stems, aligned lyrics, the beat grid, keyframes, retiming to downbeats, the finish.</td></tr>
     </table>
