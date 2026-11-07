@@ -178,6 +178,9 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 .comfy-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; margin-top: 16px; }
 .comfy ul { margin: 0; padding-left: 18px; font-size: 13.5px; } .comfy li + li { margin-top: 6px; }
 .comfy-grid p { margin: 0 0 8px; font-size: 13.5px; }
+.st-needs { margin-top: 12px; padding: 10px 12px; border: 1px dashed var(--muted); border-radius: 3px; background: var(--paper); }
+.st-needs p { margin: 0; font-size: 13px; line-height: 1.5; }
+.hw td:first-child { font-weight: 500; }
 .comfy-caveat { color: var(--muted); font-style: italic; }
 @media (max-width: 600px) { .comfy td:nth-child(2) { white-space: normal; } }
 .notes { margin-top: 36px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
@@ -238,6 +241,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   <ul class="fsteps"><li><span class="fdo">Write the lyrics and a music-style description (three simulated songwriters)</span><span class="fby"><a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a> in <a href="https://github.com/ggml-org/llama.cpp" target="_blank" rel="noopener">llama-server</a></span></li></ul>
   <div class="st-arrow" aria-hidden="true"></div>
   <div class="st-io st-out"><div class="lbl">Out</div><ul><li class=""><b>lyrics.txt</b><span>to 2, 3, 4</span></li><li class=""><b>music-style.txt</b><span>to 2</span></li></ul></div>
+  <div class="st-needs"><div class="lbl">Hardware</div><p>GPU memory ~20 GB: Qwen3.8-27B at 4-bit is an 18 GB file, plus a 16k-token context. Runs on a 24 GB RTX 4090 (measured).</p></div>
 </article>
 <article class="stage" id="stage-2">
   <header class="st-h"><i>2</i><div><h3>Record (generate) the song</h3><p>Sung takes; the clearest kept</p></div></header>
@@ -247,6 +251,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   <ul class="fsteps"><li><span class="fdo">Sing several takes from the lyrics and the style</span><span class="fby"><a href="https://huggingface.co/ACE-Step/acestep-v15-xl-sft" target="_blank" rel="noopener">ACE-Step 1.5 xl-sft</a></span></li><li><span class="fdo">Keep the take whose sung words match the lyrics best</span><span class="fby"><a href="https://github.com/openai/whisper" target="_blank" rel="noopener">Whisper</a> (transcribe each take, compare to the lyrics)</span></li></ul>
   <div class="st-arrow" aria-hidden="true"></div>
   <div class="st-io st-out"><div class="lbl">Out</div><ul><li class=""><b>song.wav</b><span>to 3, 8</span></li></ul></div>
+  <div class="st-needs"><div class="lbl">Hardware</div><p>ACE-Step XL (19 GB) plus its 4B planner (8 GB) needs more than 24 GB: it doesn't fit an RTX 4090 (measured). On a 24 GB card, drop the planner: 23 s per song on a 4090 (measured).</p></div>
 </article>
 <article class="stage" id="stage-3">
   <header class="st-h"><i>3</i><div><h3>Disassemble the song</h3><p>Stems, and every word and beat on the song's clock</p></div></header>
@@ -256,6 +261,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   <ul class="fsteps"><li><span class="fdo">Split the song into vocals, drums, bass and other</span><span class="fby"><a href="https://github.com/facebookresearch/demucs" target="_blank" rel="noopener">Demucs</a></span></li><li><span class="fdo">Transcribe the vocal with a time for every word</span><span class="fby"><a href="https://github.com/linto-ai/whisper-timestamped" target="_blank" rel="noopener">whisper-timestamped</a></span></li><li><span class="fdo">Find when each known lyric word is sung, even in stacked choruses</span><span class="fby"><a href="https://docs.pytorch.org/audio/stable/tutorials/ctc_forced_alignment_api_tutorial.html" target="_blank" rel="noopener">MMS forced aligner</a> (<a href="https://docs.pytorch.org/audio/stable/" target="_blank" rel="noopener">torchaudio</a>, wav2vec2)</span></li><li><span class="fdo">Tempo, beats and downbeats (where cuts land)</span><span class="fby"><a href="https://librosa.org/doc/latest/index.html" target="_blank" rel="noopener">librosa</a></span></li><li><span class="fdo">Runs of deep drum hits (for light bursts; told to the directors)</span><span class="fby"><a href="https://numpy.org" target="_blank" rel="noopener">numpy</a> spectral flux, 40–250 Hz, on the drum stem</span></li></ul>
   <div class="st-arrow" aria-hidden="true"></div>
   <div class="st-io st-out"><div class="lbl">Out</div><ul><li class="stem"><b>Vocal stem</b><span>to 7 (lip-sync)</span></li><li class=""><b>Timed lyrics · *-true-segments.json</b><span>to 5</span></li><li class=""><b>Beats and downbeats · beats.json</b><span>to 5, 7, 8</span></li><li class=""><b>Drum runs · drum_hits.json</b><span>to 5, 8</span></li></ul></div>
+  <div class="st-needs"><div class="lbl">Hardware</div><p>Small models: a few GB (not measured). About 5 min for a 4-minute song on an RTX 4090 (measured).</p></div>
 </article>
 <article class="stage" id="stage-4">
   <header class="st-h"><i>4</i><div><h3>Create the singer / actor</h3><p>The singer drawn from the avatar still, in the medium the whole video is made of</p></div></header>
@@ -265,6 +271,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   <ul class="fsteps"><li><span class="fdo">Propose 14 candidate universes (the medium every frame, and the singer, is made of), pick 3</span><span class="fby"><a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a></span></li><li><span class="fdo">Draw each pick's world on 2 test shots</span><span class="fby"><a href="https://huggingface.co/OpenMOSS-Team/MOSS-Image-SFT" target="_blank" rel="noopener">MOSS-Image</a></span></li><li><span class="fdo">Put the singer into those test shots from the avatar still</span><span class="fby"><a href="https://huggingface.co/Qwen/Qwen-Image-Edit-2511" target="_blank" rel="noopener">Qwen-Image-Edit 2511</a> + <a href="https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning" target="_blank" rel="noopener">Lightning</a></span></li></ul>
   <div class="st-arrow" aria-hidden="true"></div>
   <div class="st-io st-out"><div class="lbl">Out</div><ul><li class=""><b>universe.txt · the chosen medium</b><span>to 5, 6</span></li><li class="av"><b>Universe sheet · the singer in 3 media</b><span>to the artist's review</span></li></ul></div>
+  <div class="st-needs"><div class="lbl">Hardware</div><p>The image models are the heavy part. MOSS-Image is 33 GB of weights; Qwen-Image-Edit peaked at 67 GB (measured on an M5 Max). Needs a 128 GB unified-memory machine; neither fits 24 GB without offload. Per still: DGX Spark ~45 s (MOSS) or ~24 s (Qwen-Edit); Strix Halo ~78 s (MOSS); M5 Max ~33 s (Qwen-Edit).</p></div>
 </article>
 <article class="stage" id="stage-5">
   <header class="st-h"><i>5</i><div><h3>Design the video scenes</h3><p>The directors decide the story and the shots</p></div></header>
@@ -274,6 +281,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   <ul class="fsteps"><li><span class="fdo">Story of 4–8 scenes; where the singer appears and sings; a shot per line and per 6–8 s of instrumental (three simulated directors)</span><span class="fby"><a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a></span></li><li><span class="fdo">Write an image prompt for every shot, with the whole lyric and the previous line as context</span><span class="fby"><a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a></span></li></ul>
   <div class="st-arrow" aria-hidden="true"></div>
   <div class="st-io st-out"><div class="lbl">Out</div><ul><li class=""><b>story.md · the story, reviewed with the universe sheet</b><span>to the artist's review</span></li><li class=""><b>shots.json · per shot: time, image prompt, cue (none / scene / sing)</b><span>to 6, 7, 8</span></li></ul></div>
+  <div class="st-needs"><div class="lbl">Hardware</div><p>Same LLM as stage 1: about 20 GB of GPU memory; runs on a 24 GB RTX 4090 (measured).</p></div>
 </article>
 <article class="stage" id="stage-6">
   <header class="st-h"><i>6</i><div><h3>Create key frames</h3><p>One still per shot, checked before any video</p></div></header>
@@ -283,6 +291,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   <ul class="fsteps"><li><span class="fdo">Draw shots without the singer, from words alone</span><span class="fby"><a href="https://huggingface.co/OpenMOSS-Team/MOSS-Image-SFT" target="_blank" rel="noopener">MOSS-Image</a></span></li><li><span class="fdo">Draw shots with the singer, from the avatar still and the words</span><span class="fby"><a href="https://huggingface.co/Qwen/Qwen-Image-Edit-2511" target="_blank" rel="noopener">Qwen-Image-Edit 2511</a> + <a href="https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning" target="_blank" rel="noopener">Lightning</a></span></li><li><span class="fdo">Flag blank or flat stills</span><span class="fby"><a href="https://opencv.org" target="_blank" rel="noopener">OpenCV</a> (brightness and contrast)</span></li><li><span class="fdo">Flag a stranger's face in the singer's shots</span><span class="fby"><a href="https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet" target="_blank" rel="noopener">YuNet</a> (find faces) + <a href="https://github.com/opencv/opencv_zoo/tree/main/models/face_recognition_sface" target="_blank" rel="noopener">SFace</a> (match to the avatar)</span></li><li><span class="fdo">Flag impossible hands, people, objects</span><span class="fby"><a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a> vision, countable questions</span></li><li><span class="fdo">Re-draw flagged stills with a new seed, up to 3 times</span><span class="fby"><a href="https://huggingface.co/OpenMOSS-Team/MOSS-Image-SFT" target="_blank" rel="noopener">MOSS-Image</a> / <a href="https://huggingface.co/Qwen/Qwen-Image-Edit-2511" target="_blank" rel="noopener">Qwen-Image-Edit</a></span></li></ul>
   <div class="st-arrow" aria-hidden="true"></div>
   <div class="st-io st-out"><div class="lbl">Out</div><ul><li class=""><b>keys/shot_NNN.png · one still per shot</b><span>to 7</span></li><li class=""><b>Storyboard sheet</b><span>to the artist's review</span></li></ul></div>
+  <div class="st-needs"><div class="lbl">Hardware</div><p>Same image models as stage 4, so a 128 GB unified-memory machine; one still per shot (a song has 20–60). The face check is tiny (0.5 GB, CPU). The anatomy check uses the stage 1 LLM with its vision add-on (~20 GB).</p></div>
 </article>
 <article class="stage" id="stage-7">
   <header class="st-h"><i>7</i><div><h3>Create the scenes</h3><p>The stills become one continuous take; the singing clips are made</p></div></header>
@@ -292,6 +301,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   <ul class="fsteps"><li><span class="fdo">Write how each still becomes the next as a physical event, in action words</span><span class="fby"><a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a></span></li><li><span class="fdo">Render each clip from the previous clip's last frame, guided to the next still</span><span class="fby"><a href="https://huggingface.co/Lightricks/LTX-2.5" target="_blank" rel="noopener">LTX-2.5 distilled</a></span></li><li><span class="fdo">Turn the change of scene into a morph instead of a cross-fade</span><span class="fby"><a href="https://huggingface.co/valiantcat/LTX-2.3-Transition-LORA" target="_blank" rel="noopener">LTX-2.3 Transition LoRA</a> (trigger word)</span></li><li><span class="fdo">Make the singer sing the sung lines, from the vocal stem and that run's still</span><span class="fby"><a href="https://github.com/MeiGen-AI/InfiniteTalk" target="_blank" rel="noopener">InfiniteTalk int8</a> (on <a href="https://huggingface.co/Wan-AI/Wan2.1-I2V-14B-480P" target="_blank" rel="noopener">Wan 2.1</a>)</span></li></ul>
   <div class="st-arrow" aria-hidden="true"></div>
   <div class="st-io st-out"><div class="lbl">Out</div><ul><li class=""><b>ltx_chain/%05d.png · every frame of the take</b><span>to 8</span></li><li class=""><b>ltx_chain/clips.json · where each change of still happens</b><span>to 8</span></li><li class=""><b>sing/*.mp4 · the singing clips</b><span>to 8</span></li></ul></div>
+  <div class="st-needs"><div class="lbl">Hardware</div><p>LTX-2.5 is 68 GB of weights (42 GB video model + 26 GB text encoder), so a 128 GB unified-memory machine. Per frame: DGX Spark 1.0–1.3 s, M5 Max 1.25–1.6 s, Strix Halo ~2 s (measured), so a 4-minute song (~5,800 frames) takes about 2 h on a Spark. Lip-sync: InfiniteTalk int8 fits a 24 GB RTX 4090 (peak 24.1 GB) at ~62 s per second of video; bf16 on a Spark ~2.4 min per second; doesn't run on a Mac yet (CUDA-only dependencies).</p></div>
 </article>
 <article class="stage" id="stage-8">
   <header class="st-h"><i>8</i><div><h3>Assemble the video</h3><p>Sync, splice, grade, mux</p></div></header>
@@ -301,6 +311,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   <ul class="fsteps"><li><span class="fdo">Sync each morph to its downbeat by deleting or duplicating frames: find the frame where the clip is halfway from one still to the next, then drop or repeat frames around it until that frame falls on the downbeat (no new frames are made)</span><span class="fby"><a href="https://numpy.org" target="_blank" rel="noopener">numpy</a> (grey frame differences, nearest-frame resampling), <a href="https://python-pillow.org" target="_blank" rel="noopener">PIL</a></span></li><li><span class="fdo">Splice the singing clips in on shot boundaries</span><span class="fby"><a href="https://ffmpeg.org" target="_blank" rel="noopener">ffmpeg</a> (concat filter)</span></li><li><span class="fdo">Grade, deflare, light bursts on the drum runs</span><span class="fby"><a href="https://opencv.org" target="_blank" rel="noopener">OpenCV</a> + <a href="https://numpy.org" target="_blank" rel="noopener">numpy</a></span></li><li><span class="fdo">Encode the video and mux in the song</span><span class="fby"><a href="https://ffmpeg.org" target="_blank" rel="noopener">ffmpeg</a></span></li></ul>
   <div class="st-arrow" aria-hidden="true"></div>
   <div class="st-io st-out"><div class="lbl">Out</div><ul><li class=""><b>pieces/&lt;song&gt;/outputs/v&lt;N&gt;/&lt;song&gt;.mp4 · the music video</b><span>done</span></li></ul></div>
+  <div class="st-needs"><div class="lbl">Hardware</div><p>CPU only (ffmpeg + numpy): about 6 min for a 4-minute song (measured). No GPU needed.</p></div>
 </article>
 </section>
 
@@ -442,6 +453,23 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 </div>
 
 <div class="final"><h2>Video</h2><code>pieces/&lt;song&gt;/outputs/v&lt;N&gt;/&lt;song&gt;.mp4</code></div>
+
+<section class="comfy hw" id="hardware" aria-labelledby="hw-h">
+  <h2 id="hw-h">Can I run this on my machine?</h2>
+  <p class="comfy-lede">The video model (stage 7) and the image models (stages 4 and 6) decide it. Each needs 33–68 GB of weights in GPU memory at once, so in practice a <b>128 GB unified-memory machine</b>. Everything else fits a 24 GB graphics card. Figures are measured on the machines below unless marked; the full table is in <a href="https://github.com/boxabirds/poptok/blob/main/docs/hardware-performance.md" target="_blank" rel="noopener">docs/hardware-performance.md</a>.</p>
+  <div class="comfy-scroll"><table>
+    <thead><tr><th>Machine</th><th>Whole pipeline?</th><th>What to expect</th></tr></thead>
+    <tbody>
+      <tr><td>DGX Spark, 128 GB</td><td><span class="fit good">Yes</span></td><td>Everything at full precision. The reference speed: about 2 h of video rendering for a 4-minute song, plus stills. Two Sparks can split the stills and video between them.</td></tr>
+      <tr><td>Strix Halo (Ryzen AI Max+ 395), 128 GB</td><td><span class="fit mixed">Yes, slower</span></td><td>All models fit. MOSS stills ~1.7× a Spark, video ~2×, lip-sync 5.8 min per second of video. Two settings matter a lot: CPU offload off and AOTriton attention on (5× faster stills). The song and LLM stages weren't tried there.</td></tr>
+      <tr><td>MacBook Pro M5 Max, 128 GB</td><td><span class="fit mixed">Mostly</span></td><td>Video ~1.25× a Spark; Qwen-Image-Edit stills 33 s. MOSS-Image is blocked by one line in its own code (float64 on Apple GPUs); lip-sync is blocked by CUDA-only libraries. Those two steps need another machine.</td></tr>
+      <tr><td>RTX 4090 (24 GB)</td><td><span class="fit poor">No</span></td><td>Runs stages 1, 2 (without the planner), 3, 5 and 8, and lip-sync at int8. Can't hold the image or video models without CPU offload, which this project doesn't use; offload would make them fit but slower (not measured).</td></tr>
+      <tr><td>64 GB unified memory</td><td><span class="fit poor">Not tested</span></td><td>Unlikely without smaller (quantised) weights: LTX's weights alone are 68 GB, and Qwen-Image-Edit peaked at 67 GB.</td></tr>
+      <tr><td>Graphics card under 24 GB</td><td><span class="fit poor">Not tested</span></td><td>Stages 3 and 8 are small; the LLM would need a smaller model.</td></tr>
+    </tbody>
+  </table></div>
+  <p class="comfy-caveat">Disk: about 250 GB of model weights (measured on disk). Each stage card above has its own Hardware note.</p>
+</section>
 
 <section class="comfy" id="comfyui" aria-labelledby="comfy-h">
   <h2 id="comfy-h">Could this run in ComfyUI?</h2>
