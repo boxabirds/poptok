@@ -50,13 +50,15 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 .overview { margin: 26px 0 8px; background: var(--paper); border: 1px solid var(--rule); border-radius: 4px; padding: 16px 18px; }
 .overview h2 { margin: 0; font: 700 22px/1 var(--display); letter-spacing: .04em; text-transform: uppercase; }
 .ov-sub { margin: 6px 0 14px; color: var(--muted); font-size: 13.5px; max-width: 80ch; }
-.flow { list-style: none; margin: 0 auto; padding: 0; max-width: 520px; display: grid; }
+.flow { list-style: none; margin: 0 auto; padding: 0; max-width: 760px; display: grid; }
 .fnode { background: var(--bg); border: 1.5px solid var(--rule); border-radius: 4px; padding: 12px 14px; min-width: 0; }
 .fhead { display: flex; align-items: center; gap: 10px; font: 700 18px/1 var(--display); letter-spacing: .05em; text-transform: uppercase; }
 .fhead i { font-style: normal; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: var(--paper); font-size: 14px; }
-.fsteps { margin: 10px 0 0; padding-left: 18px; font-size: 14px; }
-.ftech { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--rule); }
-.ftech span { font: 12px/1.3 var(--mono); padding: 3px 7px; border: 1px solid var(--rule); border-radius: 3px; background: var(--paper); }
+.fsteps { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; }
+.fsteps li { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 4px 12px; padding: 8px 10px; background: var(--paper); }
+.fdo { font-size: 13.5px; line-height: 1.4; }
+.fby { font: 12px/1.4 var(--mono); color: var(--shared); align-self: start; }
+@media (max-width: 520px) { .fsteps li { grid-template-columns: minmax(0, 1fr); } .fby::before { content: "→ "; color: var(--muted); } }
 .ftag { margin-top: 8px; font: 12.5px/1.4 var(--mono); padding: 5px 8px; border-radius: 3px; }
 .ftag.av { background: var(--amber-soft); border-left: 3px solid var(--amber); }
 .ftag.stem { border-left: 3px dashed var(--muted); color: var(--muted); }
@@ -152,7 +154,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 
 <section class="overview" aria-labelledby="ov-h">
   <h2 id="ov-h">Overview</h2>
-  <p class="ov-sub">Inputs at the top, the video at the bottom. Each box is a phase, with its technologies under the line. Between boxes: what passes on. Amber tags mark where the avatar still feeds in directly.</p>
+  <p class="ov-sub">Inputs at the top, the video at the bottom. Each box is a phase: every step in it, and the technology that does that step. Between boxes: what passes on. Amber tags mark where the avatar still feeds in directly.</p>
   <ol class="flow">
     <li class="fnode fin"><div class="fhead">Inputs</div>
       <div class="fins">
@@ -162,32 +164,26 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
       </div></li>
     <li class="farrow"><span>prompt, brief</span></li>
     <li class="fnode"><div class="fhead"><i>1</i>Song</div>
-      <ul class="fsteps"><li>Songwriters' workshop</li><li>Takes; best one kept</li></ul>
-      <div class="ftech"><span>Qwen3.8-27B</span><span>ACE-Step 1.5</span><span>Whisper</span></div></li>
+      <ul class="fsteps"><li><span class="fdo">Write the lyrics and a music-style description (three simulated songwriters)</span><span class="fby">Qwen3.8-27B in llama-server</span></li><li><span class="fdo">Sing several takes from the lyrics and the style</span><span class="fby">ACE-Step 1.5 xl-sft</span></li><li><span class="fdo">Keep the take whose sung words match the lyrics best</span><span class="fby">Whisper (transcribe each take, compare to the lyrics)</span></li></ul></li>
     <li class="farrow"><span>lyrics, music style, song.wav</span></li>
     <li class="fnode"><div class="fhead"><i>2</i>Listen</div>
-      <ul class="fsteps"><li>Stems</li><li>Lyrics on the clock</li><li>Beats, drum runs</li></ul>
-      <div class="ftech"><span>Demucs</span><span>whisper-timestamped</span><span>MMS aligner</span><span>librosa</span></div></li>
+      <ul class="fsteps"><li><span class="fdo">Split the song into vocals, drums, bass and other</span><span class="fby">Demucs</span></li><li><span class="fdo">Transcribe the vocal with a time for every word</span><span class="fby">whisper-timestamped</span></li><li><span class="fdo">Find when each known lyric word is sung, even in stacked choruses</span><span class="fby">MMS forced aligner (torchaudio, wav2vec2)</span></li><li><span class="fdo">Tempo, beats and downbeats (where cuts land)</span><span class="fby">librosa</span></li><li><span class="fdo">Runs of deep drum hits (for light bursts; told to the directors)</span><span class="fby">numpy spectral flux, 40–250 Hz, on the drum stem</span></li></ul></li>
     <li class="farrow"><span>stems, timed lyrics, beats</span></li>
     <li class="fnode"><div class="fhead"><i>3</i>Plan</div>
-      <ul class="fsteps"><li>Directors' workshop</li><li>Universe (medium)</li><li>A prompt per line</li></ul>
-      <div class="ftag av">Avatar still → test shots of the universe</div>
-      <div class="ftech"><span>Qwen3.8-27B</span><span>MOSS-Image</span><span>Qwen-Image-Edit</span></div></li>
+      <ul class="fsteps"><li><span class="fdo">Story of 4–8 scenes; where the singer appears and sings; a shot per line and per 6–8 s of instrumental (three simulated directors)</span><span class="fby">Qwen3.8-27B</span></li><li><span class="fdo">Propose 14 candidate universes (the medium every frame is made of), pick 3</span><span class="fby">Qwen3.8-27B</span></li><li><span class="fdo">Draw each pick's world on 2 test shots</span><span class="fby">MOSS-Image</span></li><li><span class="fdo">Put the singer into those test shots from the avatar still</span><span class="fby">Qwen-Image-Edit 2511 + Lightning</span></li><li><span class="fdo">Write an image prompt for every shot, with the whole lyric and the previous line as context</span><span class="fby">Qwen3.8-27B</span></li></ul>
+      <div class="ftag av">Avatar still → test shots of the universe</div></li>
     <li class="farrow"><span>shots.json</span></li>
     <li class="fnode"><div class="fhead"><i>4</i>Draw</div>
-      <ul class="fsteps"><li>A still per shot</li><li>Check and re-roll</li></ul>
-      <div class="ftag av">Avatar still → her face in every shot; the stranger check</div>
-      <div class="ftech"><span>MOSS-Image</span><span>Qwen-Image-Edit 2511</span><span>YuNet + SFace</span><span>Qwen3.8 vision</span></div></li>
+      <ul class="fsteps"><li><span class="fdo">Draw shots without the singer, from words alone</span><span class="fby">MOSS-Image</span></li><li><span class="fdo">Draw shots with the singer, from the avatar still and the words</span><span class="fby">Qwen-Image-Edit 2511 + Lightning</span></li><li><span class="fdo">Flag blank or flat stills</span><span class="fby">OpenCV (brightness and contrast)</span></li><li><span class="fdo">Flag a stranger's face in the singer's shots</span><span class="fby">YuNet (find faces) + SFace (match to the avatar)</span></li><li><span class="fdo">Flag impossible hands, people, objects</span><span class="fby">Qwen3.8-27B vision, countable questions</span></li><li><span class="fdo">Re-draw flagged stills with a new seed, up to 3 times</span><span class="fby">MOSS-Image / Qwen-Image-Edit</span></li></ul>
+      <div class="ftag av">Avatar still → her face in every shot; the stranger check</div></li>
     <li class="farrow"><span>keyframes</span></li>
     <li class="fnode"><div class="fhead"><i>5</i>Move</div>
-      <ul class="fsteps"><li>Event transitions</li><li>One continuous take</li></ul>
-      <div class="ftech"><span>Qwen3.8-27B</span><span>LTX-2.5 distilled</span><span>LTX-2.3 Transition LoRA</span></div></li>
+      <ul class="fsteps"><li><span class="fdo">Write how each still becomes the next as a physical event, in action words</span><span class="fby">Qwen3.8-27B</span></li><li><span class="fdo">Render each clip from the previous clip's last frame, guided to the next still</span><span class="fby">LTX-2.5 distilled</span></li><li><span class="fdo">Turn the change of scene into a morph instead of a cross-fade</span><span class="fby">LTX-2.3 Transition LoRA (trigger word)</span></li></ul></li>
     <li class="farrow"><span>frames</span></li>
     <li class="fnode"><div class="fhead"><i>6</i>Finish</div>
-      <ul class="fsteps"><li>Cuts on downbeats</li><li>Lip-sync inserts</li><li>Grade, song muxed</li></ul>
+      <ul class="fsteps"><li><span class="fdo">Move each scene change onto its downbeat</span><span class="fby">numpy (frame differences), PIL</span></li><li><span class="fdo">Make the singer sing the sung lines, from the vocal stem and that run's still</span><span class="fby">InfiniteTalk int8 (on Wan 2.1)</span></li><li><span class="fdo">Grade, deflare, light bursts on the drum runs</span><span class="fby">OpenCV + numpy</span></li><li><span class="fdo">Encode the video and mux in the song</span><span class="fby">ffmpeg</span></li></ul>
       <div class="ftag av">Avatar still → singing starts from her still</div>
-      <div class="ftag stem">Vocal stem (from Listen) → drives the lip-sync</div>
-      <div class="ftech"><span>InfiniteTalk int8</span><span>ffmpeg</span></div></li>
+      <div class="ftag stem">Vocal stem (from Listen) → drives the lip-sync</div></li>
     <li class="farrow"><span>&lt;song&gt;.mp4</span></li>
     <li class="fnode fout"><div class="fhead">Music video</div><p>The song, with Amber on screen and singing.</p></li>
   </ol>
