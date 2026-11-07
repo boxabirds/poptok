@@ -66,11 +66,20 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 .ftag.stem { border-left: 3px dashed var(--muted); color: var(--muted); }
 .fby a, .chip a, .src a { color: inherit; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; text-decoration-color: var(--rule); }
 .fby a:hover, .chip a:hover, .src a:hover { text-decoration-color: currentColor; }
-.stagemap { list-style: none; margin: 0 0 18px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
-.stagemap a { display: inline-flex; align-items: center; gap: 6px; font: 12.5px/1 var(--mono); color: var(--ink); text-decoration: none;
-  border: 1px solid var(--rule); border-radius: 3px; padding: 6px 8px; background: var(--bg); }
-.stagemap a:hover { border-color: var(--ink); }
-.stagemap i { font-style: normal; color: var(--muted); }
+.stagemap { list-style: none; margin: 4px auto 34px; padding: 0; max-width: 340px; display: grid; }
+.stagemap li { display: grid; justify-items: center; }
+.stagemap li + li::before { content: ""; width: 2px; height: 14px; background: var(--ink); }
+.stagemap li + li::after { content: ""; order: -1; }
+.stagemap a, .stagemap span { position: relative; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; box-sizing: border-box;
+  padding: 12px 14px; border: 1.5px solid var(--ink); border-radius: 4px; background: var(--paper); color: var(--ink); text-decoration: none;
+  font: 700 17px/1.1 var(--display); letter-spacing: .04em; text-transform: uppercase; text-align: center; }
+.stagemap li + li a, .stagemap li + li span { margin-top: 0; }
+.stagemap li + li > :is(a, span)::before { content: ""; position: absolute; top: -1px; left: 50%; transform: translate(-50%, 0);
+  border: 6px solid transparent; border-top: 8px solid var(--ink); border-bottom: 0; }
+.stagemap a:hover { background: var(--bg); }
+.stagemap i { font-style: normal; font-size: 13px; display: grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--ink); color: var(--paper); }
+.stagemap .sm-end span { background: var(--ink); color: var(--paper); }
+.stagemap .sm-end span::before { border-top-color: var(--paper) !important; }
 .stage { max-width: 720px; margin: 0 auto 22px; background: var(--bg); border: 1.5px solid var(--rule); border-radius: 6px; padding: 16px; scroll-margin-top: 12px; }
 .st-h { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 14px; }
 .st-h i { font: normal 700 18px/1 var(--display); display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 50%; background: var(--ink); color: var(--paper); }
@@ -187,8 +196,8 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 
 <section class="overview" aria-labelledby="ov-h">
   <h2 id="ov-h">Overview</h2>
-  <p class="ov-sub">One card per stage, each complete on its own: what comes in and from where, every step with the technology that does it, and what goes out and to which stage. Each card is sized to screenshot by itself. Amber marks the avatar still; teal dashed marks the vocal stem.</p>
-  <ol class="stagemap"><li><a href="#stage-0"><i>0</i>Inputs</a></li><li><a href="#stage-1"><i>1</i>Create the song</a></li><li><a href="#stage-2"><i>2</i>Record (generate) the song</a></li><li><a href="#stage-3"><i>3</i>Disassemble the song</a></li><li><a href="#stage-4"><i>4</i>Create the singer / actor</a></li><li><a href="#stage-5"><i>5</i>Design the video scenes</a></li><li><a href="#stage-6"><i>6</i>Create key frames</a></li><li><a href="#stage-7"><i>7</i>Create the scenes</a></li><li><a href="#stage-8"><i>8</i>Assemble the video</a></li></ol>
+  <p class="ov-sub">One card per stage, each complete on its own: what comes in and from where, every step with the technology that does it, and what goes out and to which stage. Each card below is sized to screenshot by itself; tap a stage to jump to its card. Amber marks the avatar still; teal dashed marks the vocal stem.</p>
+  <ol class="stagemap" aria-label="Pipeline overview"><li><a href="#stage-0"><i>0</i>Inputs</a></li><li><a href="#stage-1"><i>1</i>Create the song</a></li><li><a href="#stage-2"><i>2</i>Record (generate) the song</a></li><li><a href="#stage-3"><i>3</i>Disassemble the song</a></li><li><a href="#stage-4"><i>4</i>Create the singer / actor</a></li><li><a href="#stage-5"><i>5</i>Design the video scenes</a></li><li><a href="#stage-6"><i>6</i>Create key frames</a></li><li><a href="#stage-7"><i>7</i>Create the scenes</a></li><li><a href="#stage-8"><i>8</i>Assemble the video</a></li><li class="sm-end"><span>Music video</span></li></ol>
 
 <article class="stage st-inputs" id="stage-0">
   <header class="st-h"><i>0</i><div><h3>Inputs</h3><p>What the person supplies</p></div></header>
