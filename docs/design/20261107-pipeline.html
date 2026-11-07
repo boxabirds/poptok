@@ -181,7 +181,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
       <ul class="fsteps"><li><span class="fdo">Write how each still becomes the next as a physical event, in action words</span><span class="fby">Qwen3.8-27B</span></li><li><span class="fdo">Render each clip from the previous clip's last frame, guided to the next still</span><span class="fby">LTX-2.5 distilled</span></li><li><span class="fdo">Turn the change of scene into a morph instead of a cross-fade</span><span class="fby">LTX-2.3 Transition LoRA (trigger word)</span></li></ul></li>
     <li class="farrow"><span>frames</span></li>
     <li class="fnode"><div class="fhead"><i>6</i>Finish</div>
-      <ul class="fsteps"><li><span class="fdo">Move each scene change onto its downbeat</span><span class="fby">numpy (frame differences), PIL</span></li><li><span class="fdo">Make the singer sing the sung lines, from the vocal stem and that run's still</span><span class="fby">InfiniteTalk int8 (on Wan 2.1)</span></li><li><span class="fdo">Grade, deflare, light bursts on the drum runs</span><span class="fby">OpenCV + numpy</span></li><li><span class="fdo">Encode the video and mux in the song</span><span class="fby">ffmpeg</span></li></ul>
+      <ul class="fsteps"><li><span class="fdo">Sync each morph to its downbeat by deleting or duplicating frames: find the frame where the clip is halfway from one still to the next, then drop or repeat frames around it until that frame falls on the downbeat (no new frames are made)</span><span class="fby">numpy (grey frame differences, nearest-frame resampling), PIL</span></li><li><span class="fdo">Make the singer sing the sung lines, from the vocal stem and that run's still</span><span class="fby">InfiniteTalk int8 (on Wan 2.1)</span></li><li><span class="fdo">Grade, deflare, light bursts on the drum runs</span><span class="fby">OpenCV + numpy</span></li><li><span class="fdo">Encode the video and mux in the song</span><span class="fby">ffmpeg</span></li></ul>
       <div class="ftag av">Avatar still → singing starts from her still</div>
       <div class="ftag stem">Vocal stem (from Listen) → drives the lip-sync</div></li>
     <li class="farrow"><span>&lt;song&gt;.mp4</span></li>
@@ -294,7 +294,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
     </div>
     <div class="strip o">
       <div class="num">11</div>
-      <div class="what"><h3>Video chain</h3><p>Each clip starts from the previous clip's last frame and is guided to the next still, so the film is one take. Every change lands on a downbeat.</p><span class="src">pipeline/ltx_chain.py</span></div>
+      <div class="what"><h3>Video chain</h3><p>Each clip starts from the previous clip's last frame and is guided to the next still, so the film is one take. Each change is asked to happen on a downbeat; LTX gets close, and the finish step corrects the rest.</p><span class="src">pipeline/ltx_chain.py</span></div>
       <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">LTX-2.5 distilled</span><span class="chip">LTX-2.3 Transition LoRA</span></div><div class="box">thing1 / thing2 · quintus</div></div>
       <div class="out"><div class="lbl">Hands on</div><ul><li>ltx_chain/%05d.png</li></ul></div>
     </div>
@@ -307,7 +307,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   <div class="board">
     <div class="strip s">
       <div class="num">12</div>
-      <div class="what"><h3>Retime and finish</h3><p>Each transition's midpoint moved onto its downbeat. Grade (the Offline black-and-white look, or the universe's), deflare, light bursts on the drum runs, song muxed in. No beat pulse for R.Amber.</p><span class="src">retime_to_beats.py · finish.py</span></div>
+      <div class="what"><h3>Retime and finish</h3><p>Sync to the beat by deleting or duplicating frames: each transition's halfway frame is found, and frames around it are dropped or repeated until it falls on its downbeat. No frames are interpolated, so a big correction can show as a small stutter or jump. Grade (the Offline black-and-white look, or the universe's), deflare, light bursts on the drum runs, song muxed in. No beat pulse for R.Amber.</p><span class="src">retime_to_beats.py · finish.py</span></div>
       <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">ffmpeg</span><span class="chip">numpy / OpenCV</span></div><div class="box">gruntus</div></div>
       <div class="out"><div class="lbl">Hands on</div><ul><li>NAME-nosync.mp4</li></ul></div>
     </div>
@@ -329,7 +329,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
       <tr><th>Workflow</th><th>Proven contribution</th></tr>
       <tr><td>Amber + directors</td><td>A story and a chosen universe; Amber drawn from one avatar still; where she appears and sings; lip-synced singing; still checks for strangers and impossible frames.</td></tr>
       <tr><td>Offline</td><td>A generated song (ACE-Step); one prompt per line with the whole lyric as context; uniform monochrome stills; staged event morphs between stills; a strong grade.</td></tr>
-      <tr><td>Both</td><td>Demucs stems, aligned lyrics, the beat grid, keyframes, retiming to downbeats, the finish.</td></tr>
+      <tr><td>Both</td><td>Demucs stems, aligned lyrics, the beat grid, keyframes, beat sync by deleting or duplicating frames, the finish.</td></tr>
     </table>
   </section>
   <section>
