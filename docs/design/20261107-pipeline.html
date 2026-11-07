@@ -97,6 +97,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 .st-inputs .st-io.st-in li > span { text-align: left; }
 .st-io code { font: 12px var(--mono); color: var(--ink); }
 .st-io q { display: block; margin: 6px 0 2px; padding: 8px 10px; border-left: 3px solid var(--rule); font-style: italic; font-size: 13.5px; color: var(--ink); quotes: "\201C" "\201D"; }
+.st-io .what { grid-column: 1 / -1; font-family: var(--body); text-align: left; font-size: 13.5px; color: var(--ink); margin-top: 3px; }
 .st-io .eg { font: 11.5px var(--mono); color: var(--muted); }
 .st-arrow { display: flex; flex-direction: column; align-items: center; padding: 6px 0; }
 .st-arrow::before { content: ""; width: 2px; height: 12px; background: var(--ink); }
@@ -221,21 +222,24 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   <ol class="stagemap" aria-label="Pipeline overview"><li><a href="#stage-0"><i>0</i>Inputs</a></li><li><a href="#stage-1"><i>1</i>Create the song</a></li><li><a href="#stage-2"><i>2</i>Record (generate) the song</a></li><li><a href="#stage-3"><i>3</i>Disassemble the song</a></li><li><a href="#stage-4"><i>4</i>Create the singer / actor</a></li><li><a href="#stage-5"><i>5</i>Design the video scenes</a></li><li><a href="#stage-6"><i>6</i>Create key frames</a></li><li><a href="#stage-7"><i>7</i>Create the scenes</a></li><li><a href="#stage-8"><i>8</i>Assemble the video</a></li><li class="sm-end"><span>Music video</span></li></ol>
 
 <article class="stage st-inputs" id="stage-0">
-  <header class="st-h"><i>0</i><div><h3>Inputs</h3><p>What the person supplies</p></div></header>
-  <div class="st-io st-in"><div class="lbl">Supplied</div><ul>
-    <li><b>Text prompt</b><span>required · <code>SONG_PROMPT="A song about…"</code></span></li>
-    <li><b>Artist brief</b><span>optional · mood, look, must-keep shots · <code>inputs/brief.txt</code></span>
-      <q>Photo of Slender Blonde Long haired 23 yo caucasian woman 1/4 korean blue eyed top half body photo shot singer posing for album no text no mic</q><span class="eg">Example: the one used for Amber</span></li>
-    <li class="av"><b>Avatar still</b><span>required · one image of your singer / actor · <code>PERFORMER_PHOTO</code></span></li>
-    <li class="av"><b>Singer description</b><span>required · one line describing the avatar · <code>PERFORMER</code></span></li>
-    <li><b>Piece settings</b><span>optional · hosts, fps, <code>PULSE=0</code> · <code>piece.env</code></span></li>
+  <header class="st-h"><i>0</i><div><h3>Inputs</h3><p>What you supply, and which stage reads each</p></div></header>
+  <div class="st-io st-in"><ul>
+    <li><b>Song prompt</b><span>required · read by stage 1 · <code>SONG_PROMPT</code></span>
+      <span class="what">What the song is about, in a line or a paragraph. Only the songwriters read it.</span></li>
+    <li><b>Video brief</b><span>optional · read by stages 4 and 5 · <code>inputs/brief.txt</code></span>
+      <span class="what">What the video must say and show: theme, meaning, shots it has to keep. Only the directors and the universe step read it; the song never sees it.</span>
+      <q>Charcoal, motion blur. Black and white. It's about death and lost opportunity. The cuckoo represents freedom. The forest and the dirty boots represent fatal obstacles. The last shot: zooming out from amongst the trees, looking down at her, immobilised, reaching towards the sky with a forlorn look.</q><span class="eg">Example: Cuckoo's brief (shortened)</span></li>
+    <li class="av"><b>Avatar still</b><span>required for the singer to appear · read by stages 4 and 6 · <code>PERFORMER_PHOTO</code></span>
+      <span class="what">One image of your singer / actor: the only source of their face in every shot. Make it however you like.</span>
+      <q>Photo of Slender Blonde Long haired 23 yo caucasian woman 1/4 korean blue eyed top half body photo shot singer posing for album no text no mic</q><span class="eg">Example: the image prompt Amber's still was generated from (outside the pipeline)</span></li>
+    <li class="av"><b>Singer description</b><span>optional · read by stages 4, 5 and 7 · <code>PERFORMER</code></span>
+      <span class="what">The same singer in words. The directors, the prompt writer and the lip-sync prompt are text-only and can't see the still, so this is how they name the singer. Defaults to &ldquo;the singer&rdquo;. Must match the still: Cuckoo's first one didn't, and the hair came out wrong.</span>
+      <q>a young woman with long, tousled, wavy dark-blonde hair</q><span class="eg">Example: Cuckoo</span></li>
   </ul></div>
-  <div class="st-arrow" aria-hidden="true"></div>
-  <div class="st-io st-out"><div class="lbl">Out</div><ul><li class=""><b>Text prompt</b><span>to 1</span></li><li class=""><b>Artist brief</b><span>to 1, 4, 5</span></li><li class="av"><b>Avatar still</b><span>to 4, 6</span></li><li class="av"><b>Singer description</b><span>to 4, 5, 6</span></li></ul></div>
 </article>
 <article class="stage" id="stage-1">
   <header class="st-h"><i>1</i><div><h3>Create the song</h3><p>Lyrics and a music style from the prompt</p></div></header>
-  <div class="st-io st-in"><div class="lbl">In</div><ul><li class=""><b>Text prompt</b><span>from 0</span></li><li class=""><b>Artist brief (optional)</b><span>from 0</span></li></ul></div>
+  <div class="st-io st-in"><div class="lbl">In</div><ul><li class=""><b>Song prompt</b><span>from 0</span></li></ul></div>
   <div class="st-arrow" aria-hidden="true"></div>
   <div class="lbl">Steps · technology</div>
   <ul class="fsteps"><li><span class="fdo">Write the lyrics and a music-style description (three simulated songwriters)</span><span class="fby"><a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a> in <a href="https://github.com/ggml-org/llama.cpp" target="_blank" rel="noopener">llama-server</a></span></li></ul>
@@ -265,7 +269,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 </article>
 <article class="stage" id="stage-4">
   <header class="st-h"><i>4</i><div><h3>Create the singer / actor</h3><p>The singer drawn from the avatar still, in the medium the whole video is made of</p></div></header>
-  <div class="st-io st-in"><div class="lbl">In</div><ul><li class="av"><b>Avatar still</b><span>from 0</span></li><li class="av"><b>Singer description</b><span>from 0</span></li><li class=""><b>lyrics.txt</b><span>from 1</span></li><li class=""><b>Artist brief (optional)</b><span>from 0</span></li></ul></div>
+  <div class="st-io st-in"><div class="lbl">In</div><ul><li class="av"><b>Avatar still</b><span>from 0</span></li><li class="av"><b>Singer description (optional)</b><span>from 0</span></li><li class=""><b>lyrics.txt</b><span>from 1</span></li><li class=""><b>Video brief (optional)</b><span>from 0</span></li></ul></div>
   <div class="st-arrow" aria-hidden="true"></div>
   <div class="lbl">Steps · technology</div>
   <ul class="fsteps"><li><span class="fdo">Propose 14 candidate universes (the medium every frame, and the singer, is made of), pick 3</span><span class="fby"><a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a></span></li><li><span class="fdo">Draw each pick's world on 2 test shots</span><span class="fby"><a href="https://huggingface.co/OpenMOSS-Team/MOSS-Image-SFT" target="_blank" rel="noopener">MOSS-Image</a></span></li><li><span class="fdo">Put the singer into those test shots from the avatar still</span><span class="fby"><a href="https://huggingface.co/Qwen/Qwen-Image-Edit-2511" target="_blank" rel="noopener">Qwen-Image-Edit 2511</a> + <a href="https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning" target="_blank" rel="noopener">Lightning</a></span></li></ul>
@@ -275,7 +279,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 </article>
 <article class="stage" id="stage-5">
   <header class="st-h"><i>5</i><div><h3>Design the video scenes</h3><p>The directors decide the story and the shots</p></div></header>
-  <div class="st-io st-in"><div class="lbl">In</div><ul><li class=""><b>Timed lyrics, beats, drum runs</b><span>from 3</span></li><li class=""><b>universe.txt</b><span>from 4</span></li><li class="av"><b>Singer description</b><span>from 0</span></li><li class=""><b>Artist brief (optional)</b><span>from 0</span></li></ul></div>
+  <div class="st-io st-in"><div class="lbl">In</div><ul><li class=""><b>Timed lyrics, beats, drum runs</b><span>from 3</span></li><li class=""><b>universe.txt</b><span>from 4</span></li><li class="av"><b>Singer description (optional)</b><span>from 0</span></li><li class=""><b>Video brief (optional)</b><span>from 0</span></li></ul></div>
   <div class="st-arrow" aria-hidden="true"></div>
   <div class="lbl">Steps · technology</div>
   <ul class="fsteps"><li><span class="fdo">Story of 4–8 scenes; where the singer appears and sings; a shot per line and per 6–8 s of instrumental (three simulated directors)</span><span class="fby"><a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a></span></li><li><span class="fdo">Write an image prompt for every shot, with the whole lyric and the previous line as context</span><span class="fby"><a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a></span></li></ul>
@@ -285,7 +289,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 </article>
 <article class="stage" id="stage-6">
   <header class="st-h"><i>6</i><div><h3>Create key frames</h3><p>One still per shot, checked before any video</p></div></header>
-  <div class="st-io st-in"><div class="lbl">In</div><ul><li class=""><b>shots.json</b><span>from 5</span></li><li class=""><b>universe.txt</b><span>from 4</span></li><li class="av"><b>Avatar still</b><span>from 0</span></li><li class="av"><b>Singer description</b><span>from 0</span></li></ul></div>
+  <div class="st-io st-in"><div class="lbl">In</div><ul><li class=""><b>shots.json</b><span>from 5</span></li><li class=""><b>universe.txt</b><span>from 4</span></li><li class="av"><b>Avatar still</b><span>from 0</span></li></ul></div>
   <div class="st-arrow" aria-hidden="true"></div>
   <div class="lbl">Steps · technology</div>
   <ul class="fsteps"><li><span class="fdo">Draw shots without the singer, from words alone</span><span class="fby"><a href="https://huggingface.co/OpenMOSS-Team/MOSS-Image-SFT" target="_blank" rel="noopener">MOSS-Image</a></span></li><li><span class="fdo">Draw shots with the singer, from the avatar still and the words</span><span class="fby"><a href="https://huggingface.co/Qwen/Qwen-Image-Edit-2511" target="_blank" rel="noopener">Qwen-Image-Edit 2511</a> + <a href="https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning" target="_blank" rel="noopener">Lightning</a></span></li><li><span class="fdo">Flag blank or flat stills</span><span class="fby"><a href="https://opencv.org" target="_blank" rel="noopener">OpenCV</a> (brightness and contrast)</span></li><li><span class="fdo">Flag a stranger's face in the singer's shots</span><span class="fby"><a href="https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet" target="_blank" rel="noopener">YuNet</a> (find faces) + <a href="https://github.com/opencv/opencv_zoo/tree/main/models/face_recognition_sface" target="_blank" rel="noopener">SFace</a> (match to the avatar)</span></li><li><span class="fdo">Flag impossible hands, people, objects</span><span class="fby"><a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a> vision, countable questions</span></li><li><span class="fdo">Re-draw flagged stills with a new seed, up to 3 times</span><span class="fby"><a href="https://huggingface.co/OpenMOSS-Team/MOSS-Image-SFT" target="_blank" rel="noopener">MOSS-Image</a> / <a href="https://huggingface.co/Qwen/Qwen-Image-Edit-2511" target="_blank" rel="noopener">Qwen-Image-Edit</a></span></li></ul>
@@ -295,7 +299,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 </article>
 <article class="stage" id="stage-7">
   <header class="st-h"><i>7</i><div><h3>Create the scenes</h3><p>The stills become one continuous take; the singing clips are made</p></div></header>
-  <div class="st-io st-in"><div class="lbl">In</div><ul><li class=""><b>keys/shot_NNN.png</b><span>from 6</span></li><li class=""><b>shots.json</b><span>from 5</span></li><li class=""><b>Beats and downbeats</b><span>from 3</span></li><li class="stem"><b>Vocal stem</b><span>from 3</span></li></ul></div>
+  <div class="st-io st-in"><div class="lbl">In</div><ul><li class=""><b>keys/shot_NNN.png</b><span>from 6</span></li><li class=""><b>shots.json</b><span>from 5</span></li><li class=""><b>Beats and downbeats</b><span>from 3</span></li><li class="stem"><b>Vocal stem</b><span>from 3</span></li><li class="av"><b>Singer description (optional)</b><span>from 0</span></li></ul></div>
   <div class="st-arrow" aria-hidden="true"></div>
   <div class="lbl">Steps · technology</div>
   <ul class="fsteps"><li><span class="fdo">Write how each still becomes the next as a physical event, in action words</span><span class="fby"><a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a></span></li><li><span class="fdo">Render each clip from the previous clip's last frame, guided to the next still</span><span class="fby"><a href="https://huggingface.co/Lightricks/LTX-2.5" target="_blank" rel="noopener">LTX-2.5 distilled</a></span></li><li><span class="fdo">Turn the change of scene into a morph instead of a cross-fade</span><span class="fby"><a href="https://huggingface.co/valiantcat/LTX-2.3-Transition-LORA" target="_blank" rel="noopener">LTX-2.3 Transition LoRA</a> (trigger word)</span></li><li><span class="fdo">Make the singer sing the sung lines, from the vocal stem and that run's still</span><span class="fby"><a href="https://github.com/MeiGen-AI/InfiniteTalk" target="_blank" rel="noopener">InfiniteTalk int8</a> (on <a href="https://huggingface.co/Wan-AI/Wan2.1-I2V-14B-480P" target="_blank" rel="noopener">Wan 2.1</a>)</span></li></ul>
