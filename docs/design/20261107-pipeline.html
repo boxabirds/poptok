@@ -1,0 +1,287 @@
+<title>Prompt to Music Video</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a production stripboard. One strip per step in running order, coloured by which workflow it comes from;
+   phases group the strips; each strip says what the step does, with what, on which box, and what it hands on. */
+:root {
+  --bg: #eef0f2;
+  --paper: #fbfcfc;
+  --ink: #1b2026;
+  --muted: #5b6570;
+  --rule: #cfd5db;
+  --amber: #d98a1c;
+  --amber-soft: #f6e3c4;
+  --offline: #6c7680;
+  --offline-soft: #dfe3e7;
+  --shared: #2f7f86;
+  --shared-soft: #d3e9ea;
+  --hypo: #a33b3b;
+  --display: "Archivo Narrow", "Arial Narrow", "Helvetica Neue", sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12161a; --paper: #1a1f25; --ink: #e6e9ec; --muted: #9aa4ae; --rule: #2e353d;
+  --amber: #e8a043; --amber-soft: #3a2c17; --offline: #9aa4ae; --offline-soft: #2a3038;
+  --shared: #5fb3ba; --shared-soft: #173538; --hypo: #e07a7a; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #12161a; --paper: #1a1f25; --ink: #e6e9ec; --muted: #9aa4ae; --rule: #2e353d;
+  --amber: #e8a043; --amber-soft: #3a2c17; --offline: #9aa4ae; --offline-soft: #2a3038;
+  --shared: #5fb3ba; --shared-soft: #173538; --hypo: #e07a7a; color-scheme: dark }
+
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--body); }
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 40px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+header { display: grid; gap: 14px; margin-bottom: 28px; }
+.eyebrow { font: 500 12px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lede { max-width: 68ch; margin: 0; color: var(--muted); font-size: 16px; }
+.lede strong { color: var(--ink); font-weight: 600; }
+
+.status { display: flex; gap: 10px; align-items: flex-start; border: 1.5px dashed var(--hypo); color: var(--ink);
+  padding: 12px 14px; border-radius: 4px; max-width: 80ch; font-size: 14px; }
+.status b { color: var(--hypo); font-family: var(--mono); font-weight: 500; letter-spacing: .06em; text-transform: uppercase; font-size: 12px; white-space: nowrap; padding-top: 2px; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+.sw { width: 26px; height: 12px; border-radius: 2px; }
+.sw.a { background: var(--amber); } .sw.o { background: var(--offline); } .sw.s { background: var(--shared); }
+
+.inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 26px 0 8px; }
+.inp { background: var(--paper); border: 1px solid var(--rule); border-radius: 4px; padding: 12px 14px; min-width: 0; }
+.inp h3 { margin: 0 0 4px; font: 600 15px/1.2 var(--display); letter-spacing: .02em; text-transform: uppercase; }
+.inp p { margin: 0; font-size: 13.5px; color: var(--muted); }
+.inp code { font: 12.5px var(--mono); color: var(--ink); }
+.req { font: 500 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-left: 6px; }
+
+.phase { margin-top: 30px; }
+.phase-h { display: flex; align-items: baseline; gap: 12px; border-bottom: 2px solid var(--ink); padding-bottom: 6px; margin-bottom: 8px; }
+.phase-h h2 { margin: 0; font: 700 22px/1 var(--display); letter-spacing: .04em; text-transform: uppercase; }
+.phase-h p { margin: 0; color: var(--muted); font-size: 13.5px; }
+
+.board { display: grid; gap: 6px; }
+.strip { display: grid; grid-template-columns: 56px minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, .9fr); background: var(--paper);
+  border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; }
+.strip > div { padding: 12px 14px; min-width: 0; }
+.num { display: grid; place-items: center; font: 700 22px/1 var(--display); color: var(--paper); }
+.strip.a .num { background: var(--amber); } .strip.o .num { background: var(--offline); } .strip.s .num { background: var(--shared); }
+.strip.a .what { background: linear-gradient(90deg, var(--amber-soft), transparent 70%); }
+.strip.o .what { background: linear-gradient(90deg, var(--offline-soft), transparent 70%); }
+.strip.s .what { background: linear-gradient(90deg, var(--shared-soft), transparent 70%); }
+.what h3 { margin: 0 0 4px; font: 600 18px/1.15 var(--display); letter-spacing: .01em; }
+.what p { margin: 0; font-size: 14px; }
+.what .src { display: block; margin-top: 6px; font: 12px var(--mono); color: var(--muted); }
+.lbl { font: 500 10.5px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip { font: 12px/1.3 var(--mono); padding: 3px 7px; border: 1px solid var(--rule); border-radius: 3px; background: var(--bg); white-space: nowrap; }
+.box { font: 12px var(--mono); color: var(--muted); margin-top: 8px; }
+.out { font: 12.5px/1.5 var(--mono); }
+.out ul { margin: 0; padding: 0; list-style: none; }
+.out li { overflow-wrap: anywhere; }
+.out li::before { content: "→ "; color: var(--muted); }
+
+.gate { margin: 8px 0 0 56px; padding: 8px 14px; border-left: 3px solid var(--ink); font-size: 13.5px; background: var(--paper); }
+.gate b { font: 600 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; margin-right: 6px; }
+
+.final { margin-top: 30px; background: var(--ink); color: var(--paper); border-radius: 4px; padding: 18px 20px;
+  display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: baseline; }
+.final h2 { margin: 0; font: 700 22px/1 var(--display); text-transform: uppercase; letter-spacing: .04em; }
+.final code { font: 14px var(--mono); }
+
+.notes { margin-top: 36px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.notes section { background: var(--paper); border: 1px solid var(--rule); border-radius: 4px; padding: 16px 18px; min-width: 0; }
+.notes h2 { margin: 0 0 8px; font: 700 18px/1.1 var(--display); text-transform: uppercase; letter-spacing: .04em; }
+.notes table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.notes td, .notes th { text-align: left; padding: 6px 8px 6px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.notes th { font: 500 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.notes td:first-child { font-family: var(--mono); font-size: 12.5px; white-space: nowrap; }
+.notes ul { margin: 0; padding-left: 18px; font-size: 13.5px; }
+.notes li + li { margin-top: 5px; }
+
+@media (max-width: 820px) {
+  .strip { grid-template-columns: 44px minmax(0, 1fr); }
+  .strip > .tech, .strip > .out { grid-column: 2; padding-top: 0; }
+  .num { grid-row: span 3; font-size: 18px; }
+  .gate { margin-left: 0; }
+}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">poptok · pipeline draft 1 · 7 Nov 2026</div>
+  <h1>Prompt to music video</h1>
+  <p class="lede">One line of text in, a finished music video out, with <strong>Amber</strong> appearing and singing on camera. The plan blends the two AI workflows that have each worked on their own: the <strong>Amber + creative-director panel</strong> workflow, and the more conventional <strong>Offline</strong> workflow (one prompt per lyric line, event morphs, a strong black-and-white look).</p>
+  <div class="status"><b>Hypothetical</b><span>Every step below has been run on its own. No piece has yet gone from a prompt to a finished video with Amber in one pass. Offline-local went from lyrics to video with a generated song; the Amber pieces (Chronophobia, Slippery Road, Noble Hunt, Cuckoo) all started from a real song.</span></div>
+  <div class="legend">
+    <span><i class="sw a"></i>From the Amber + directors workflow</span>
+    <span><i class="sw o"></i>From the Offline workflow</span>
+    <span><i class="sw s"></i>Shared by both</span>
+  </div>
+</header>
+
+<div class="inputs">
+  <div class="inp"><h3>Prompt<span class="req">required</span></h3><p><code>SONG_PROMPT="A song about…"</code></p></div>
+  <div class="inp"><h3>Artist brief<span class="req">optional</span></h3><p>Mood, look, must-keep shots. <code>inputs/brief.txt</code></p></div>
+  <div class="inp"><h3>Performer photo<span class="req">optional</span></h3><p>Amber's face and hair. <code>PERFORMER_PHOTO</code> + <code>PERFORMER</code> description</p></div>
+  <div class="inp"><h3>Piece settings<span class="req">optional</span></h3><p>Style word, hosts, fps, <code>PULSE=0</code>. <code>piece.env</code></p></div>
+</div>
+
+<!-- SONG -->
+<div class="phase">
+  <div class="phase-h"><h2>Song</h2><p>From a prompt to a sung track and lyrics</p></div>
+  <div class="board">
+    <div class="strip a">
+      <div class="num">1</div>
+      <div class="what"><h3>Songwriters' workshop</h3><p>Three fictional songwriters (Nashville craft, pop melody, singer-songwriter) agree an angle, title, hook and music, draft chorus and verses, and cut each other's clichés. Checked against the song form and retried if it doesn't fit.</p><span class="src">pipeline/songwriters.py</span></div>
+      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Qwen3.8-27B</span><span class="chip">llama-server</span></div><div class="box">gruntus · 4090</div></div>
+      <div class="out"><div class="lbl">Hands on</div><ul><li>lyrics.txt</li><li>music-style.txt</li><li>songwriters.md</li></ul></div>
+    </div>
+    <div class="strip o">
+      <div class="num">2</div>
+      <div class="what"><h3>Sing the song</h3><p>Several takes from the lyrics and the music style. Whisper transcribes each take; the one whose sung words it understands best is kept. Length set by the song, not a fixed 150 s.</p><span class="src">pipeline/ace_gen.py · ace_score.py · bin/make_song.sh</span></div>
+      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">ACE-Step 1.5 xl-sft</span><span class="chip">Whisper</span></div><div class="box">gruntus · acestep image</div></div>
+      <div class="out"><div class="lbl">Hands on</div><ul><li>outputs/song.wav</li></ul></div>
+    </div>
+  </div>
+</div>
+
+<!-- LISTEN -->
+<div class="phase">
+  <div class="phase-h"><h2>Listen</h2><p>Put every word and beat on the song's clock</p></div>
+  <div class="board">
+    <div class="strip s">
+      <div class="num">3</div>
+      <div class="what"><h3>Stems, tempo and transcript</h3><p>Split the song into vocals, drums, bass and other. Tempo from the drum stem. A word-timed transcript of the vocal.</p><span class="src">pipeline/analyse.py</span></div>
+      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Demucs</span><span class="chip">librosa</span><span class="chip">whisper-timestamped</span></div><div class="box">gruntus · analysis image</div></div>
+      <div class="out"><div class="lbl">Hands on</div><ul><li>*-vocals / drums / bass / other.mp3</li><li>*-medium.json (words)</li><li>metadata.json (tempo)</li></ul></div>
+    </div>
+    <div class="strip s">
+      <div class="num">4</div>
+      <div class="what"><h3>Lyrics aligned, beats, drum runs</h3><p>The known lyrics force-aligned to the vocal stem, so stacked choruses still get times. Beats and downbeats for cuts. Runs of deep drum hits for light bursts, and so the directors know where they are.</p><span class="src">force_align.py · beat_grid.py · drum_hits.py</span></div>
+      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">MMS aligner (wav2vec2)</span><span class="chip">torchaudio</span><span class="chip">librosa</span></div><div class="box">gruntus · m2v-pre image</div></div>
+      <div class="out"><div class="lbl">Hands on</div><ul><li>*-true-segments.json</li><li>beats.json</li><li>drum_hits.json</li></ul></div>
+    </div>
+  </div>
+</div>
+
+<!-- PLAN -->
+<div class="phase">
+  <div class="phase-h"><h2>Plan</h2><p>The directors decide the story, the world and the shots</p></div>
+  <div class="board">
+    <div class="strip a">
+      <div class="num">5</div>
+      <div class="what"><h3>Directors' workshop</h3><p>Three fictional directors (handmade, observational, graphic) read the timed lyrics, the brief and what the machine can draw. They agree a story of 4–8 scenes, where Amber appears and where she sings, and a shot for every line plus one every 6–8 s of instrumental. A plausibility pass removes shots no camera could see.</p><span class="src">pipeline/workshop.py</span></div>
+      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Qwen3.8-27B</span><span class="chip">llama-server</span></div><div class="box">gruntus · GPU lock</div></div>
+      <div class="out"><div class="lbl">Hands on</div><ul><li>story.md · workshop.md</li><li>lyrics-cued.txt (none / pov / part / scene / sing)</li><li>universe proposal</li></ul></div>
+    </div>
+    <div class="strip a">
+      <div class="num">6</div>
+      <div class="what"><h3>Universe step</h3><p>The medium every frame is made of, chosen from a sheet: 14 candidates (open ideas, the song's central image, the directors' own), 3 picks drawn on 2 test shots with Amber in them.</p><span class="src">pipeline/universe.py</span></div>
+      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Qwen3.8-27B</span><span class="chip">MOSS-Image</span><span class="chip">Qwen-Image-Edit</span></div><div class="box">gruntus → Sparks</div></div>
+      <div class="out"><div class="lbl">Hands on</div><ul><li>universe.txt (STYLE_WORD + brief)</li><li>visual-look.txt</li></ul></div>
+    </div>
+  </div>
+  <div class="gate"><b>Review</b>The universe sheet and the story are the cheapest place to change course. The directors propose; the artist can override.</div>
+  <div class="board" style="margin-top:6px">
+    <div class="strip o">
+      <div class="num">7</div>
+      <div class="what"><h3>One prompt per line</h3><p>An image prompt for every line and instrumental slot, written with the whole lyric and the previous line as context, the universe style leading every prompt. This is the Offline C6 method (from music2vid), which kept consecutive shots in one world.</p><span class="src">pipeline/prompts_per_line.py · treatment.py</span></div>
+      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Qwen3.8-27B</span></div><div class="box">gruntus</div></div>
+      <div class="out"><div class="lbl">Hands on</div><ul><li>shots.json (prompt, time, cue)</li></ul></div>
+    </div>
+  </div>
+</div>
+
+<!-- DRAW -->
+<div class="phase">
+  <div class="phase-h"><h2>Draw</h2><p>One still per shot, checked before any video</p></div>
+  <div class="board">
+    <div class="strip s">
+      <div class="num">8</div>
+      <div class="what"><h3>Keyframes</h3><p>Shots without Amber are drawn from words alone. Shots with her are drawn from her photo and the shot's words, in the universe's medium, with her expression named.</p><span class="src">pipeline/keyframes.py · amber_keys.py</span></div>
+      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">MOSS-Image</span><span class="chip">Qwen-Image-Edit-2511</span><span class="chip">Lightning 8-step</span></div><div class="box">thing1 · thing2 · tritus</div></div>
+      <div class="out"><div class="lbl">Hands on</div><ul><li>keys/shot_NNN.png</li></ul></div>
+    </div>
+    <div class="strip a">
+      <div class="num">9</div>
+      <div class="what"><h3>Still check</h3><p>Flags blank stills, a stranger in Amber's shots (face recognition), and impossible anatomy or objects (a vision LLM asked countable questions). Flagged stills are re-rolled up to 3 times; near-duplicate scenes are merged.</p><span class="src">check_keys.py · critic.py · merge_similar.py</span></div>
+      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">YuNet + SFace</span><span class="chip">Qwen3.8 vision</span></div><div class="box">gruntus</div></div>
+      <div class="out"><div class="lbl">Hands on</div><ul><li>reroll.json</li><li>storyboard sheet</li></ul></div>
+    </div>
+  </div>
+  <div class="gate"><b>Review</b>The storyboard sheet, before the hours of video (<code>HOLD_BEFORE_VIDEO=1</code>).</div>
+</div>
+
+<!-- MOVE -->
+<div class="phase">
+  <div class="phase-h"><h2>Move</h2><p>The stills become one continuous take</p></div>
+  <div class="board">
+    <div class="strip o">
+      <div class="num">10</div>
+      <div class="what"><h3>Transitions as events</h3><p>For each change of still, the LLM writes how A becomes B as a physical event in action words (a door bursts open, smoke whips through). A quiet A→B cross-fades instead of morphing. Changes inside one scene are written as camera moves.</p><span class="src">pipeline/scenes.py (TRANSITION)</span></div>
+      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Qwen3.8-27B</span></div><div class="box">gruntus</div></div>
+      <div class="out"><div class="lbl">Hands on</div><ul><li>scenes.json</li></ul></div>
+    </div>
+    <div class="strip o">
+      <div class="num">11</div>
+      <div class="what"><h3>Video chain</h3><p>Each clip starts from the previous clip's last frame and is guided to the next still, so the film is one take. Every change lands on a downbeat.</p><span class="src">pipeline/ltx_chain.py</span></div>
+      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">LTX-2.5 distilled</span><span class="chip">LTX-2.3 Transition LoRA</span></div><div class="box">thing1 / thing2 · quintus</div></div>
+      <div class="out"><div class="lbl">Hands on</div><ul><li>ltx_chain/%05d.png</li></ul></div>
+    </div>
+  </div>
+</div>
+
+<!-- FINISH -->
+<div class="phase">
+  <div class="phase-h"><h2>Finish</h2><p>Sync, sing, grade, mux</p></div>
+  <div class="board">
+    <div class="strip s">
+      <div class="num">12</div>
+      <div class="what"><h3>Retime and finish</h3><p>Each transition's midpoint moved onto its downbeat. Grade (the Offline black-and-white look, or the universe's), deflare, light bursts on the drum runs, song muxed in. No beat pulse for R.Amber.</p><span class="src">retime_to_beats.py · finish.py</span></div>
+      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">ffmpeg</span><span class="chip">numpy / OpenCV</span></div><div class="box">gruntus</div></div>
+      <div class="out"><div class="lbl">Hands on</div><ul><li>NAME-nosync.mp4</li></ul></div>
+    </div>
+    <div class="strip a">
+      <div class="num">13</div>
+      <div class="what"><h3>Lip-sync inserts</h3><p>Each run of shots cued "sing" becomes one clip of Amber singing, driven by the vocal stem for exactly that stretch and starting from that run's still, then spliced in on shot boundaries.</p><span class="src">sing_inserts.py · bin/infinitetalk_quant.sh</span></div>
+      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">InfiniteTalk int8</span><span class="chip">Wan 2.1 base</span></div><div class="box">thing1 · thing2 · gruntus</div></div>
+      <div class="out"><div class="lbl">Hands on</div><ul><li>sing/*.mp4</li></ul></div>
+    </div>
+  </div>
+</div>
+
+<div class="final"><h2>Video</h2><code>pieces/&lt;song&gt;/outputs/v&lt;N&gt;/&lt;song&gt;.mp4</code></div>
+
+<div class="notes">
+  <section>
+    <h2>What each workflow brings</h2>
+    <table>
+      <tr><th>Workflow</th><th>Proven contribution</th></tr>
+      <tr><td>Amber + directors</td><td>A story and a chosen universe; Amber drawn from her photo; where she appears and sings; lip-synced singing; still checks for strangers and impossible frames.</td></tr>
+      <tr><td>Offline</td><td>A generated song (ACE-Step); one prompt per line with the whole lyric as context; uniform monochrome stills; staged event morphs between stills; a strong grade.</td></tr>
+      <tr><td>Both</td><td>Demucs stems, aligned lyrics, the beat grid, keyframes, retiming to downbeats, the finish.</td></tr>
+    </table>
+  </section>
+  <section>
+    <h2>Known weak points</h2>
+    <ul>
+      <li>Never run end to end from a prompt with Amber.</li>
+      <li>Amber holds in some media (charcoal, photographic) and not others (glass, oil, war photograph): facebench, 4 of 10 cases.</li>
+      <li>LTX drifts a drawn medium toward photographs unless the clip is named a hand-drawn animation.</li>
+      <li>Directors' workshops have overused explosions and spectacle; the Offline per-line prompts drew far fewer.</li>
+      <li>InfiniteTalk needs at least 3.2 s of audio and mouths some vowels wrongly ("ooo" for "I").</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Boxes</h2>
+    <table>
+      <tr><td>gruntus</td><td>RTX 4090 24 GB · control, LLM, analysis, finish</td></tr>
+      <tr><td>thing1, thing2</td><td>DGX Spark 128 GB · stills, video, lip-sync</td></tr>
+      <tr><td>tritus</td><td>Strix Halo 128 GB · MOSS stills</td></tr>
+      <tr><td>quintus</td><td>M5 Max · LTX video, native</td></tr>
+    </table>
+  </section>
+</div>
+</div>
