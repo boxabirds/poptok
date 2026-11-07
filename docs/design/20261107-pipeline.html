@@ -49,24 +49,27 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 
 .overview { margin: 26px 0 8px; background: var(--paper); border: 1px solid var(--rule); border-radius: 4px; padding: 16px 18px; }
 .overview h2 { margin: 0; font: 700 22px/1 var(--display); letter-spacing: .04em; text-transform: uppercase; }
-.ov-sub { margin: 6px 0 10px; color: var(--muted); font-size: 13.5px; max-width: 80ch; }
-.ov-scroll { overflow-x: auto; }
-.ov-scroll svg { display: block; min-width: 1100px; width: 100%; height: auto; }
-.ov-box rect, .ov-in rect { fill: var(--bg); stroke: var(--rule); stroke-width: 1.5; }
-.ov-out rect { fill: var(--ink); }
-.ov-out text { fill: var(--paper) !important; }
-.ov-av rect { fill: var(--amber-soft); stroke: var(--amber); stroke-width: 2; }
-.ov-t { font: 700 15px var(--display); letter-spacing: .06em; fill: var(--ink); }
-.ov-s { font: 13px var(--body); fill: var(--ink); }
-.ov-m { font: 12px var(--mono); fill: var(--muted); }
-.ov-rule { stroke: var(--rule); }
-.ov-flow line { stroke: var(--ink); stroke-width: 2; }
-.ov-arrowhead { fill: var(--ink); }
-.ov-lab text { font: 12px var(--mono); fill: var(--shared); }
-.ov-avline path, .ov-avline line { stroke: var(--amber); stroke-width: 2; fill: none; }
-.ov-avlab text { font: 12px var(--mono); fill: var(--amber); }
-.ov-side path { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 4 4; fill: none; }
-.ov-side text { font: 11.5px var(--mono); fill: var(--muted); }
+.ov-sub { margin: 6px 0 14px; color: var(--muted); font-size: 13.5px; max-width: 80ch; }
+.flow { list-style: none; margin: 0 auto; padding: 0; max-width: 520px; display: grid; }
+.fnode { background: var(--bg); border: 1.5px solid var(--rule); border-radius: 4px; padding: 12px 14px; min-width: 0; }
+.fhead { display: flex; align-items: center; gap: 10px; font: 700 18px/1 var(--display); letter-spacing: .05em; text-transform: uppercase; }
+.fhead i { font-style: normal; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: var(--paper); font-size: 14px; }
+.fsteps { margin: 10px 0 0; padding-left: 18px; font-size: 14px; }
+.ftech { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--rule); }
+.ftech span { font: 12px/1.3 var(--mono); padding: 3px 7px; border: 1px solid var(--rule); border-radius: 3px; background: var(--paper); }
+.ftag { margin-top: 8px; font: 12.5px/1.4 var(--mono); padding: 5px 8px; border-radius: 3px; }
+.ftag.av { background: var(--amber-soft); border-left: 3px solid var(--amber); }
+.ftag.stem { border-left: 3px dashed var(--muted); color: var(--muted); }
+.fins { display: grid; gap: 6px; margin-top: 10px; }
+.fins div { display: grid; gap: 1px; padding: 6px 8px; background: var(--paper); border-radius: 3px; font-size: 14px; }
+.fins span { font: 12px var(--mono); color: var(--muted); }
+.fins .fav { background: var(--amber-soft); border: 1.5px solid var(--amber); }
+.fout { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.fout p { margin: 8px 0 0; font-size: 14px; }
+.farrow { display: flex; flex-direction: column; align-items: center; padding: 4px 0; }
+.farrow::before { content: ""; width: 2px; height: 14px; background: var(--ink); }
+.farrow::after { content: ""; border: 7px solid transparent; border-top: 9px solid var(--ink); border-bottom: 0; }
+.farrow span { font: 12px var(--mono); color: var(--shared); padding: 3px 0; text-align: center; }
 
 .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; color: var(--muted); }
 .legend span { display: inline-flex; align-items: center; gap: 8px; }
@@ -149,86 +152,45 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 
 <section class="overview" aria-labelledby="ov-h">
   <h2 id="ov-h">Overview</h2>
-  <p class="ov-sub">Inputs on the left, the video on the right. Each box is a phase; its technologies are listed under the line. The avatar still feeds three phases directly.</p>
-  <div class="ov-scroll">
-  <svg viewBox="0 0 1620 470" role="img" aria-label="Flow chart: prompt and brief go to Song, Listen, Plan, Draw, Move and Finish, giving the music video; the avatar still feeds Plan, Draw and Finish.">
-    <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ov-arrowhead"/></marker></defs>
-    <!-- main row: boxes at x = 20 + 200i, y 70, 170 x 240 -->
-    <g class="ov-in"><rect x="20" y="70" width="170" height="150" rx="4"/>
-      <text x="34" y="96" class="ov-t">INPUTS</text>
-      <text x="34" y="124" class="ov-s">Text prompt</text><text x="34" y="141" class="ov-m">"A song about…"</text>
-      <text x="34" y="170" class="ov-s">Artist brief</text><text x="34" y="187" class="ov-m">optional</text></g>
-    <g class="ov-box"><rect x="220" y="70" width="170" height="240" rx="4"/>
-      <text x="234" y="96" class="ov-t">1 SONG</text>
-      <text x="234" y="120" class="ov-s">Songwriters' workshop</text><text x="234" y="138" class="ov-s">Takes; best one kept</text>
-      <line x1="234" x2="376" y1="156" y2="156" class="ov-rule"/>
-      <text x="234" y="176" class="ov-m">Qwen3.8-27B</text><text x="234" y="194" class="ov-m">ACE-Step 1.5</text><text x="234" y="212" class="ov-m">Whisper</text></g>
-    <g class="ov-box"><rect x="420" y="70" width="170" height="240" rx="4"/>
-      <text x="434" y="96" class="ov-t">2 LISTEN</text>
-      <text x="434" y="120" class="ov-s">Stems</text><text x="434" y="138" class="ov-s">Lyrics on the clock</text><text x="434" y="156" class="ov-s">Beats, drum runs</text>
-      <line x1="434" x2="576" y1="174" y2="174" class="ov-rule"/>
-      <text x="434" y="194" class="ov-m">Demucs</text><text x="434" y="212" class="ov-m">whisper-timestamped</text><text x="434" y="230" class="ov-m">MMS aligner</text><text x="434" y="248" class="ov-m">librosa</text></g>
-    <g class="ov-box"><rect x="620" y="70" width="170" height="240" rx="4"/>
-      <text x="634" y="96" class="ov-t">3 PLAN</text>
-      <text x="634" y="120" class="ov-s">Directors' workshop</text><text x="634" y="138" class="ov-s">Universe (medium)</text><text x="634" y="156" class="ov-s">A prompt per line</text>
-      <line x1="634" x2="776" y1="174" y2="174" class="ov-rule"/>
-      <text x="634" y="194" class="ov-m">Qwen3.8-27B</text><text x="634" y="212" class="ov-m">MOSS-Image</text><text x="634" y="230" class="ov-m">Qwen-Image-Edit</text></g>
-    <g class="ov-box"><rect x="820" y="70" width="170" height="240" rx="4"/>
-      <text x="834" y="96" class="ov-t">4 DRAW</text>
-      <text x="834" y="120" class="ov-s">A still per shot</text><text x="834" y="138" class="ov-s">Check and re-roll</text>
-      <line x1="834" x2="976" y1="156" y2="156" class="ov-rule"/>
-      <text x="834" y="176" class="ov-m">MOSS-Image</text><text x="834" y="194" class="ov-m">Qwen-Image-Edit 2511</text><text x="834" y="212" class="ov-m">YuNet + SFace</text><text x="834" y="230" class="ov-m">Qwen3.8 vision</text></g>
-    <g class="ov-box"><rect x="1020" y="70" width="170" height="240" rx="4"/>
-      <text x="1034" y="96" class="ov-t">5 MOVE</text>
-      <text x="1034" y="120" class="ov-s">Event transitions</text><text x="1034" y="138" class="ov-s">One continuous take</text>
-      <line x1="1034" x2="1176" y1="156" y2="156" class="ov-rule"/>
-      <text x="1034" y="176" class="ov-m">Qwen3.8-27B</text><text x="1034" y="194" class="ov-m">LTX-2.5 distilled</text><text x="1034" y="212" class="ov-m">LTX-2.3 Transition</text><text x="1034" y="230" class="ov-m">  LoRA</text></g>
-    <g class="ov-box"><rect x="1220" y="70" width="170" height="240" rx="4"/>
-      <text x="1234" y="96" class="ov-t">6 FINISH</text>
-      <text x="1234" y="120" class="ov-s">Cuts on downbeats</text><text x="1234" y="138" class="ov-s">Lip-sync inserts</text><text x="1234" y="156" class="ov-s">Grade, song muxed</text>
-      <line x1="1234" x2="1376" y1="174" y2="174" class="ov-rule"/>
-      <text x="1234" y="194" class="ov-m">InfiniteTalk int8</text><text x="1234" y="212" class="ov-m">ffmpeg</text></g>
-    <g class="ov-out"><rect x="1420" y="70" width="180" height="150" rx="4"/>
-      <text x="1434" y="96" class="ov-t">MUSIC VIDEO</text>
-      <text x="1434" y="124" class="ov-s">The song, with Amber</text><text x="1434" y="142" class="ov-s">on screen and singing</text>
-      <text x="1434" y="176" class="ov-m">&lt;song&gt;.mp4</text></g>
-    <!-- main arrows at y 110, artefact labels above -->
-    <g class="ov-flow">
-      <line x1="190" y1="110" x2="218" y2="110" marker-end="url(#ar)"/>
-      <line x1="390" y1="110" x2="418" y2="110" marker-end="url(#ar)"/>
-      <line x1="590" y1="110" x2="618" y2="110" marker-end="url(#ar)"/>
-      <line x1="790" y1="110" x2="818" y2="110" marker-end="url(#ar)"/>
-      <line x1="990" y1="110" x2="1018" y2="110" marker-end="url(#ar)"/>
-      <line x1="1190" y1="110" x2="1218" y2="110" marker-end="url(#ar)"/>
-      <line x1="1390" y1="110" x2="1418" y2="110" marker-end="url(#ar)"/>
-    </g>
-    <g class="ov-lab">
-      <text x="305" y="58" text-anchor="middle">lyrics, music style</text>
-      <text x="505" y="58" text-anchor="middle">song.wav</text>
-      <text x="705" y="40" text-anchor="middle">stems, timed lyrics,</text><text x="705" y="58" text-anchor="middle">beats</text>
-      <text x="905" y="58" text-anchor="middle">shots.json</text>
-      <text x="1105" y="58" text-anchor="middle">keyframes</text>
-      <text x="1305" y="58" text-anchor="middle">frames</text>
-    </g>
-    <!-- avatar lane -->
-    <g class="ov-av"><rect x="20" y="370" width="170" height="80" rx="4"/>
-      <text x="34" y="396" class="ov-t">AVATAR STILL</text>
-      <text x="34" y="418" class="ov-s">One image of Amber</text><text x="34" y="436" class="ov-m">required</text></g>
-    <g class="ov-avline">
-      <path d="M190,410 H1305"/>
-      <line x1="705" y1="410" x2="705" y2="312" marker-end="url(#ar)"/>
-      <line x1="905" y1="410" x2="905" y2="312" marker-end="url(#ar)"/>
-      <line x1="1305" y1="410" x2="1305" y2="312" marker-end="url(#ar)"/>
-    </g>
-    <g class="ov-avlab">
-      <text x="713" y="348">test shots</text>
-      <text x="913" y="348">her face in</text><text x="913" y="364">every shot; check</text>
-      <text x="1313" y="348">singing starts</text><text x="1313" y="364">from her still</text>
-    </g>
-    <!-- stems feed lip-sync -->
-    <g class="ov-side"><path d="M505,310 V330 H1270 V312" marker-end="url(#ar)"/><text x="900" y="326" text-anchor="middle">vocal stem drives the lip-sync</text></g>
-  </svg>
-  </div>
+  <p class="ov-sub">Inputs at the top, the video at the bottom. Each box is a phase, with its technologies under the line. Between boxes: what passes on. Amber tags mark where the avatar still feeds in directly.</p>
+  <ol class="flow">
+    <li class="fnode fin"><div class="fhead">Inputs</div>
+      <div class="fins">
+        <div><b>Text prompt</b><span>"A song about…"</span></div>
+        <div><b>Artist brief</b><span>optional</span></div>
+        <div class="fav"><b>Avatar still</b><span>One image of Amber · required</span></div>
+      </div></li>
+    <li class="farrow"><span>prompt, brief</span></li>
+    <li class="fnode"><div class="fhead"><i>1</i>Song</div>
+      <ul class="fsteps"><li>Songwriters' workshop</li><li>Takes; best one kept</li></ul>
+      <div class="ftech"><span>Qwen3.8-27B</span><span>ACE-Step 1.5</span><span>Whisper</span></div></li>
+    <li class="farrow"><span>lyrics, music style, song.wav</span></li>
+    <li class="fnode"><div class="fhead"><i>2</i>Listen</div>
+      <ul class="fsteps"><li>Stems</li><li>Lyrics on the clock</li><li>Beats, drum runs</li></ul>
+      <div class="ftech"><span>Demucs</span><span>whisper-timestamped</span><span>MMS aligner</span><span>librosa</span></div></li>
+    <li class="farrow"><span>stems, timed lyrics, beats</span></li>
+    <li class="fnode"><div class="fhead"><i>3</i>Plan</div>
+      <ul class="fsteps"><li>Directors' workshop</li><li>Universe (medium)</li><li>A prompt per line</li></ul>
+      <div class="ftag av">Avatar still → test shots of the universe</div>
+      <div class="ftech"><span>Qwen3.8-27B</span><span>MOSS-Image</span><span>Qwen-Image-Edit</span></div></li>
+    <li class="farrow"><span>shots.json</span></li>
+    <li class="fnode"><div class="fhead"><i>4</i>Draw</div>
+      <ul class="fsteps"><li>A still per shot</li><li>Check and re-roll</li></ul>
+      <div class="ftag av">Avatar still → her face in every shot; the stranger check</div>
+      <div class="ftech"><span>MOSS-Image</span><span>Qwen-Image-Edit 2511</span><span>YuNet + SFace</span><span>Qwen3.8 vision</span></div></li>
+    <li class="farrow"><span>keyframes</span></li>
+    <li class="fnode"><div class="fhead"><i>5</i>Move</div>
+      <ul class="fsteps"><li>Event transitions</li><li>One continuous take</li></ul>
+      <div class="ftech"><span>Qwen3.8-27B</span><span>LTX-2.5 distilled</span><span>LTX-2.3 Transition LoRA</span></div></li>
+    <li class="farrow"><span>frames</span></li>
+    <li class="fnode"><div class="fhead"><i>6</i>Finish</div>
+      <ul class="fsteps"><li>Cuts on downbeats</li><li>Lip-sync inserts</li><li>Grade, song muxed</li></ul>
+      <div class="ftag av">Avatar still → singing starts from her still</div>
+      <div class="ftag stem">Vocal stem (from Listen) → drives the lip-sync</div>
+      <div class="ftech"><span>InfiniteTalk int8</span><span>ffmpeg</span></div></li>
+    <li class="farrow"><span>&lt;song&gt;.mp4</span></li>
+    <li class="fnode fout"><div class="fhead">Music video</div><p>The song, with Amber on screen and singing.</p></li>
+  </ol>
 </section>
 
 <div class="inputs">
