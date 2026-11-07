@@ -59,15 +59,28 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 .fdo { font-size: 13.5px; line-height: 1.4; }
 .fby { font: 12px/1.4 var(--mono); color: var(--shared); align-self: start; }
 @media (max-width: 520px) { .fsteps li { grid-template-columns: minmax(0, 1fr); } .fby::before { content: "→ "; color: var(--muted); } }
-.ftag { margin-top: 8px; font: 12.5px/1.4 var(--mono); padding: 5px 8px; border-radius: 3px; }
-.ftag.av { border: 1px solid var(--amber); color: var(--ink); }
-.ftag.av::before { content: "Avatar input · "; color: var(--amber); font-weight: 500; }
-.ftag.stem::before { content: "Audio input · "; font-weight: 500; }
 .themebtn { justify-self: end; font: 500 12px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink);
   background: var(--paper); border: 1px solid var(--rule); border-radius: 3px; padding: 8px 12px; cursor: pointer; }
 .themebtn:hover { border-color: var(--ink); }
 .headtop { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .ftag.stem { border-left: 3px dashed var(--muted); color: var(--muted); }
+.fby a, .chip a, .src a { color: inherit; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; text-decoration-color: var(--rule); }
+.fby a:hover, .chip a:hover, .src a:hover { text-decoration-color: currentColor; }
+.flowwrap { position: relative; max-width: 800px; margin: 0 auto; padding-left: 40px; }
+.flow { max-width: none; }
+.wires { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+.wires .av { stroke: var(--amber); fill: none; stroke-width: 2; }
+.wires .stem { stroke: var(--shared); fill: none; stroke-width: 2; stroke-dasharray: 5 4; }
+.wires .halo { stroke: var(--paper); fill: none; stroke-width: 7; }
+.wires .dot.av { fill: var(--amber); stroke: none; } .wires .dot.stem { fill: var(--shared); stroke: none; }
+.wires .head.av { fill: var(--amber); } .wires .head.stem { fill: var(--shared); }
+[data-in~="avatar"] { box-shadow: inset 3px 0 0 var(--amber); }
+[data-out="stem"] { box-shadow: inset 3px 0 0 var(--shared); }
+.flegend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0 0 12px; font-size: 13px; color: var(--muted); }
+.flegend span { display: inline-flex; align-items: center; gap: 8px; }
+.ln { width: 28px; height: 0; border-top: 2px solid var(--amber); }
+.ln.stem { border-top: 2px dashed var(--shared); }
+@media (max-width: 520px) { .flowwrap { padding-left: 32px; } }
 .fins { display: grid; gap: 6px; margin-top: 10px; }
 .fins div { display: grid; gap: 1px; padding: 6px 8px; background: var(--paper); border-radius: 3px; font-size: 14px; }
 .fins span { font: 12px var(--mono); color: var(--muted); }
@@ -160,45 +173,45 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 
 <section class="overview" aria-labelledby="ov-h">
   <h2 id="ov-h">Overview</h2>
-  <p class="ov-sub">Inputs at the top, the video at the bottom. Each box is a phase: every step in it, and the technology that does that step. Between boxes: what passes on. Outlined tags at the foot of a box mark where the avatar still, or the vocal stem, feeds into that phase directly.</p>
+  <p class="ov-sub">Inputs at the top, the video at the bottom. Each box is a phase: every step in it, and the technology that does that step. Between boxes: what passes on. The lines down the left carry the avatar still and the vocal stem straight to each step that uses them.</p>
+  <div class="flegend"><span><i class="ln av"></i>Avatar still</span><span><i class="ln stem"></i>Vocal stem</span></div>
+  <div class="flowwrap">
+  <svg class="wires" aria-hidden="true"></svg>
   <ol class="flow">
     <li class="fnode fin"><div class="fhead">Inputs</div>
       <div class="fins">
         <div><b>Text prompt</b><span>"A song about…"</span></div>
         <div><b>Artist brief</b><span>optional</span></div>
-        <div class="fav"><b>Avatar still</b><span>One image of your singer / actor · required</span></div>
+        <div class="fav" data-out="avatar"><b>Avatar still</b><span>One image of your singer / actor · required</span></div>
       </div></li>
     <li class="farrow"><span>prompt, brief</span></li>
     <li class="fnode"><div class="fhead"><i>1</i>Create the song</div>
-      <ul class="fsteps"><li><span class="fdo">Write the lyrics and a music-style description (three simulated songwriters)</span><span class="fby">Qwen3.8-27B in llama-server</span></li></ul></li>
+      <ul class="fsteps"><li><span class="fdo">Write the lyrics and a music-style description (three simulated songwriters)</span><span class="fby"><a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a> in <a href="https://github.com/ggml-org/llama.cpp" target="_blank" rel="noopener">llama-server</a></span></li></ul></li>
     <li class="farrow"><span>lyrics, music style</span></li>
     <li class="fnode"><div class="fhead"><i>2</i>Record (generate) the song</div>
-      <ul class="fsteps"><li><span class="fdo">Sing several takes from the lyrics and the style</span><span class="fby">ACE-Step 1.5 xl-sft</span></li><li><span class="fdo">Keep the take whose sung words match the lyrics best</span><span class="fby">Whisper (transcribe each take, compare to the lyrics)</span></li></ul></li>
+      <ul class="fsteps"><li><span class="fdo">Sing several takes from the lyrics and the style</span><span class="fby"><a href="https://huggingface.co/ACE-Step/acestep-v15-xl-sft" target="_blank" rel="noopener">ACE-Step 1.5 xl-sft</a></span></li><li><span class="fdo">Keep the take whose sung words match the lyrics best</span><span class="fby"><a href="https://github.com/openai/whisper" target="_blank" rel="noopener">Whisper</a> (transcribe each take, compare to the lyrics)</span></li></ul></li>
     <li class="farrow"><span>song.wav</span></li>
     <li class="fnode"><div class="fhead"><i>3</i>Disassemble the song</div>
-      <ul class="fsteps"><li><span class="fdo">Split the song into vocals, drums, bass and other</span><span class="fby">Demucs</span></li><li><span class="fdo">Transcribe the vocal with a time for every word</span><span class="fby">whisper-timestamped</span></li><li><span class="fdo">Find when each known lyric word is sung, even in stacked choruses</span><span class="fby">MMS forced aligner (torchaudio, wav2vec2)</span></li><li><span class="fdo">Tempo, beats and downbeats (where cuts land)</span><span class="fby">librosa</span></li><li><span class="fdo">Runs of deep drum hits (for light bursts; told to the directors)</span><span class="fby">numpy spectral flux, 40–250 Hz, on the drum stem</span></li></ul></li>
+      <ul class="fsteps"><li data-out="stem"><span class="fdo">Split the song into vocals, drums, bass and other</span><span class="fby"><a href="https://github.com/facebookresearch/demucs" target="_blank" rel="noopener">Demucs</a></span></li><li><span class="fdo">Transcribe the vocal with a time for every word</span><span class="fby"><a href="https://github.com/linto-ai/whisper-timestamped" target="_blank" rel="noopener">whisper-timestamped</a></span></li><li><span class="fdo">Find when each known lyric word is sung, even in stacked choruses</span><span class="fby"><a href="https://docs.pytorch.org/audio/stable/tutorials/ctc_forced_alignment_api_tutorial.html" target="_blank" rel="noopener">MMS forced aligner</a> (<a href="https://docs.pytorch.org/audio/stable/" target="_blank" rel="noopener">torchaudio</a>, wav2vec2)</span></li><li><span class="fdo">Tempo, beats and downbeats (where cuts land)</span><span class="fby"><a href="https://librosa.org/doc/latest/index.html" target="_blank" rel="noopener">librosa</a></span></li><li><span class="fdo">Runs of deep drum hits (for light bursts; told to the directors)</span><span class="fby"><a href="https://numpy.org" target="_blank" rel="noopener">numpy</a> spectral flux, 40–250 Hz, on the drum stem</span></li></ul></li>
     <li class="farrow"><span>stems, timed lyrics, beats</span></li>
     <li class="fnode"><div class="fhead"><i>4</i>Create the singer / actor</div>
-      <ul class="fsteps"><li><span class="fdo">Propose 14 candidate universes (the medium every frame, and the singer, is made of), pick 3</span><span class="fby">Qwen3.8-27B</span></li><li><span class="fdo">Draw each pick's world on 2 test shots</span><span class="fby">MOSS-Image</span></li><li><span class="fdo">Put the singer into those test shots from the avatar still</span><span class="fby">Qwen-Image-Edit 2511 + Lightning</span></li></ul>
-      <div class="ftag av">Avatar still → the singer drawn in each candidate medium</div></li>
+      <ul class="fsteps"><li><span class="fdo">Propose 14 candidate universes (the medium every frame, and the singer, is made of), pick 3</span><span class="fby"><a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a></span></li><li><span class="fdo">Draw each pick's world on 2 test shots</span><span class="fby"><a href="https://huggingface.co/OpenMOSS-Team/MOSS-Image-SFT" target="_blank" rel="noopener">MOSS-Image</a></span></li><li data-in="avatar"><span class="fdo">Put the singer into those test shots from the avatar still</span><span class="fby"><a href="https://huggingface.co/Qwen/Qwen-Image-Edit-2511" target="_blank" rel="noopener">Qwen-Image-Edit 2511</a> + <a href="https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning" target="_blank" rel="noopener">Lightning</a></span></li></ul></li>
     <li class="farrow"><span>universe, singer test shots</span></li>
     <li class="fnode"><div class="fhead"><i>5</i>Design the video scenes</div>
-      <ul class="fsteps"><li><span class="fdo">Story of 4–8 scenes; where the singer appears and sings; a shot per line and per 6–8 s of instrumental (three simulated directors)</span><span class="fby">Qwen3.8-27B</span></li><li><span class="fdo">Write an image prompt for every shot, with the whole lyric and the previous line as context</span><span class="fby">Qwen3.8-27B</span></li></ul></li>
+      <ul class="fsteps"><li><span class="fdo">Story of 4–8 scenes; where the singer appears and sings; a shot per line and per 6–8 s of instrumental (three simulated directors)</span><span class="fby"><a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a></span></li><li><span class="fdo">Write an image prompt for every shot, with the whole lyric and the previous line as context</span><span class="fby"><a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a></span></li></ul></li>
     <li class="farrow"><span>shots.json</span></li>
     <li class="fnode"><div class="fhead"><i>6</i>Create key frames</div>
-      <ul class="fsteps"><li><span class="fdo">Draw shots without the singer, from words alone</span><span class="fby">MOSS-Image</span></li><li><span class="fdo">Draw shots with the singer, from the avatar still and the words</span><span class="fby">Qwen-Image-Edit 2511 + Lightning</span></li><li><span class="fdo">Flag blank or flat stills</span><span class="fby">OpenCV (brightness and contrast)</span></li><li><span class="fdo">Flag a stranger's face in the singer's shots</span><span class="fby">YuNet (find faces) + SFace (match to the avatar)</span></li><li><span class="fdo">Flag impossible hands, people, objects</span><span class="fby">Qwen3.8-27B vision, countable questions</span></li><li><span class="fdo">Re-draw flagged stills with a new seed, up to 3 times</span><span class="fby">MOSS-Image / Qwen-Image-Edit</span></li></ul>
-      <div class="ftag av">Avatar still → their face in every shot; the stranger check</div></li>
+      <ul class="fsteps"><li><span class="fdo">Draw shots without the singer, from words alone</span><span class="fby"><a href="https://huggingface.co/OpenMOSS-Team/MOSS-Image-SFT" target="_blank" rel="noopener">MOSS-Image</a></span></li><li data-in="avatar"><span class="fdo">Draw shots with the singer, from the avatar still and the words</span><span class="fby"><a href="https://huggingface.co/Qwen/Qwen-Image-Edit-2511" target="_blank" rel="noopener">Qwen-Image-Edit 2511</a> + <a href="https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning" target="_blank" rel="noopener">Lightning</a></span></li><li><span class="fdo">Flag blank or flat stills</span><span class="fby"><a href="https://opencv.org" target="_blank" rel="noopener">OpenCV</a> (brightness and contrast)</span></li><li data-in="avatar"><span class="fdo">Flag a stranger's face in the singer's shots</span><span class="fby"><a href="https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet" target="_blank" rel="noopener">YuNet</a> (find faces) + <a href="https://github.com/opencv/opencv_zoo/tree/main/models/face_recognition_sface" target="_blank" rel="noopener">SFace</a> (match to the avatar)</span></li><li><span class="fdo">Flag impossible hands, people, objects</span><span class="fby"><a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a> vision, countable questions</span></li><li><span class="fdo">Re-draw flagged stills with a new seed, up to 3 times</span><span class="fby"><a href="https://huggingface.co/OpenMOSS-Team/MOSS-Image-SFT" target="_blank" rel="noopener">MOSS-Image</a> / <a href="https://huggingface.co/Qwen/Qwen-Image-Edit-2511" target="_blank" rel="noopener">Qwen-Image-Edit</a></span></li></ul></li>
     <li class="farrow"><span>keyframes</span></li>
     <li class="fnode"><div class="fhead"><i>7</i>Create the scenes</div>
-      <ul class="fsteps"><li><span class="fdo">Write how each still becomes the next as a physical event, in action words</span><span class="fby">Qwen3.8-27B</span></li><li><span class="fdo">Render each clip from the previous clip's last frame, guided to the next still</span><span class="fby">LTX-2.5 distilled</span></li><li><span class="fdo">Turn the change of scene into a morph instead of a cross-fade</span><span class="fby">LTX-2.3 Transition LoRA (trigger word)</span></li><li><span class="fdo">Make the singer sing the sung lines, from the vocal stem and that run's still</span><span class="fby">InfiniteTalk int8 (on Wan 2.1)</span></li></ul>
-      <div class="ftag av">Avatar still → singing starts from their still</div>
-      <div class="ftag stem">Vocal stem (from Disassemble) → drives the lip-sync</div></li>
+      <ul class="fsteps"><li><span class="fdo">Write how each still becomes the next as a physical event, in action words</span><span class="fby"><a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a></span></li><li><span class="fdo">Render each clip from the previous clip's last frame, guided to the next still</span><span class="fby"><a href="https://huggingface.co/Lightricks/LTX-2.5" target="_blank" rel="noopener">LTX-2.5 distilled</a></span></li><li><span class="fdo">Turn the change of scene into a morph instead of a cross-fade</span><span class="fby"><a href="https://huggingface.co/valiantcat/LTX-2.3-Transition-LORA" target="_blank" rel="noopener">LTX-2.3 Transition LoRA</a> (trigger word)</span></li><li data-in="avatar stem"><span class="fdo">Make the singer sing the sung lines, from the vocal stem and that run's still</span><span class="fby"><a href="https://github.com/MeiGen-AI/InfiniteTalk" target="_blank" rel="noopener">InfiniteTalk int8</a> (on <a href="https://huggingface.co/Wan-AI/Wan2.1-I2V-14B-480P" target="_blank" rel="noopener">Wan 2.1</a>)</span></li></ul></li>
     <li class="farrow"><span>frames, singing clips</span></li>
     <li class="fnode"><div class="fhead"><i>8</i>Assemble the video</div>
-      <ul class="fsteps"><li><span class="fdo">Sync each morph to its downbeat by deleting or duplicating frames: find the frame where the clip is halfway from one still to the next, then drop or repeat frames around it until that frame falls on the downbeat (no new frames are made)</span><span class="fby">numpy (grey frame differences, nearest-frame resampling), PIL</span></li><li><span class="fdo">Splice the singing clips in on shot boundaries</span><span class="fby">ffmpeg (concat filter)</span></li><li><span class="fdo">Grade, deflare, light bursts on the drum runs</span><span class="fby">OpenCV + numpy</span></li><li><span class="fdo">Encode the video and mux in the song</span><span class="fby">ffmpeg</span></li></ul></li>
+      <ul class="fsteps"><li><span class="fdo">Sync each morph to its downbeat by deleting or duplicating frames: find the frame where the clip is halfway from one still to the next, then drop or repeat frames around it until that frame falls on the downbeat (no new frames are made)</span><span class="fby"><a href="https://numpy.org" target="_blank" rel="noopener">numpy</a> (grey frame differences, nearest-frame resampling), <a href="https://python-pillow.org" target="_blank" rel="noopener">PIL</a></span></li><li><span class="fdo">Splice the singing clips in on shot boundaries</span><span class="fby"><a href="https://ffmpeg.org" target="_blank" rel="noopener">ffmpeg</a> (concat filter)</span></li><li><span class="fdo">Grade, deflare, light bursts on the drum runs</span><span class="fby"><a href="https://opencv.org" target="_blank" rel="noopener">OpenCV</a> + <a href="https://numpy.org" target="_blank" rel="noopener">numpy</a></span></li><li><span class="fdo">Encode the video and mux in the song</span><span class="fby"><a href="https://ffmpeg.org" target="_blank" rel="noopener">ffmpeg</a></span></li></ul></li>
     <li class="farrow"><span>&lt;song&gt;.mp4</span></li>
     <li class="fnode fout"><div class="fhead">Music video</div><p>The song, with Amber on screen and singing.</p></li>
   </ol>
+  </div>
 </section>
 
 <div class="inputs">
@@ -214,8 +227,8 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   <div class="board">
     <div class="strip a">
       <div class="num">1</div>
-      <div class="what"><h3>Songwriters' workshop</h3><p>Three fictional songwriters (Nashville craft, pop melody, singer-songwriter) agree an angle, title, hook and music, draft chorus and verses, and cut each other's clichés. Checked against the song form and retried if it doesn't fit.</p><span class="src">pipeline/songwriters.py</span></div>
-      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Qwen3.8-27B</span><span class="chip">llama-server</span></div><div class="box">gruntus · 4090</div></div>
+      <div class="what"><h3>Songwriters' workshop</h3><p>Three fictional songwriters (Nashville craft, pop melody, singer-songwriter) agree an angle, title, hook and music, draft chorus and verses, and cut each other's clichés. Checked against the song form and retried if it doesn't fit.</p><span class="src"><a href="https://github.com/boxabirds/poptok/blob/main/pipeline/songwriters.py" target="_blank" rel="noopener">pipeline/songwriters.py</a></span></div>
+      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip"><a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a></span><span class="chip"><a href="https://github.com/ggml-org/llama.cpp" target="_blank" rel="noopener">llama-server</a></span></div><div class="box">gruntus · 4090</div></div>
       <div class="out"><div class="lbl">Hands on</div><ul><li>lyrics.txt</li><li>music-style.txt</li><li>songwriters.md</li></ul></div>
     </div>
   </div>
@@ -227,8 +240,8 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   <div class="board">
     <div class="strip o">
       <div class="num">2</div>
-      <div class="what"><h3>Sing the song</h3><p>Several takes from the lyrics and the music style. Whisper transcribes each take; the one whose sung words it understands best is kept. Length set by the song, not a fixed 150 s.</p><span class="src">pipeline/ace_gen.py · ace_score.py · bin/make_song.sh</span></div>
-      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">ACE-Step 1.5 xl-sft</span><span class="chip">Whisper</span></div><div class="box">gruntus · acestep image</div></div>
+      <div class="what"><h3>Sing the song</h3><p>Several takes from the lyrics and the music style. Whisper transcribes each take; the one whose sung words it understands best is kept. Length set by the song, not a fixed 150 s.</p><span class="src"><a href="https://github.com/boxabirds/poptok/blob/main/pipeline/ace_gen.py" target="_blank" rel="noopener">pipeline/ace_gen.py</a> · <a href="https://github.com/boxabirds/poptok/blob/main/pipeline/ace_score.py" target="_blank" rel="noopener">ace_score.py</a> · <a href="https://github.com/boxabirds/poptok/blob/main/bin/make_song.sh" target="_blank" rel="noopener">bin/make_song.sh</a></span></div>
+      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip"><a href="https://huggingface.co/ACE-Step/acestep-v15-xl-sft" target="_blank" rel="noopener">ACE-Step 1.5 xl-sft</a></span><span class="chip"><a href="https://github.com/openai/whisper" target="_blank" rel="noopener">Whisper</a></span></div><div class="box">gruntus · acestep image</div></div>
       <div class="out"><div class="lbl">Hands on</div><ul><li>outputs/song.wav</li></ul></div>
     </div>
   </div>
@@ -240,14 +253,14 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   <div class="board">
     <div class="strip s">
       <div class="num">3</div>
-      <div class="what"><h3>Stems, tempo and transcript</h3><p>Split the song into vocals, drums, bass and other. Tempo from the drum stem. A word-timed transcript of the vocal.</p><span class="src">pipeline/analyse.py</span></div>
-      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Demucs</span><span class="chip">librosa</span><span class="chip">whisper-timestamped</span></div><div class="box">gruntus · analysis image</div></div>
+      <div class="what"><h3>Stems, tempo and transcript</h3><p>Split the song into vocals, drums, bass and other. Tempo from the drum stem. A word-timed transcript of the vocal.</p><span class="src"><a href="https://github.com/boxabirds/poptok/blob/main/pipeline/analyse.py" target="_blank" rel="noopener">pipeline/analyse.py</a></span></div>
+      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip"><a href="https://github.com/facebookresearch/demucs" target="_blank" rel="noopener">Demucs</a></span><span class="chip"><a href="https://librosa.org/doc/latest/index.html" target="_blank" rel="noopener">librosa</a></span><span class="chip"><a href="https://github.com/linto-ai/whisper-timestamped" target="_blank" rel="noopener">whisper-timestamped</a></span></div><div class="box">gruntus · analysis image</div></div>
       <div class="out"><div class="lbl">Hands on</div><ul><li>*-vocals / drums / bass / other.mp3</li><li>*-medium.json (words)</li><li>metadata.json (tempo)</li></ul></div>
     </div>
     <div class="strip s">
       <div class="num">4</div>
-      <div class="what"><h3>Lyrics aligned, beats, drum runs</h3><p>The known lyrics force-aligned to the vocal stem, so stacked choruses still get times. Beats and downbeats for cuts. Runs of deep drum hits for light bursts, and so the directors know where they are.</p><span class="src">force_align.py · beat_grid.py · drum_hits.py</span></div>
-      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">MMS aligner (wav2vec2)</span><span class="chip">torchaudio</span><span class="chip">librosa</span></div><div class="box">gruntus · m2v-pre image</div></div>
+      <div class="what"><h3>Lyrics aligned, beats, drum runs</h3><p>The known lyrics force-aligned to the vocal stem, so stacked choruses still get times. Beats and downbeats for cuts. Runs of deep drum hits for light bursts, and so the directors know where they are.</p><span class="src"><a href="https://github.com/boxabirds/poptok/blob/main/pipeline/force_align.py" target="_blank" rel="noopener">force_align.py</a> · <a href="https://github.com/boxabirds/poptok/blob/main/pipeline/beat_grid.py" target="_blank" rel="noopener">beat_grid.py</a> · <a href="https://github.com/boxabirds/poptok/blob/main/pipeline/drum_hits.py" target="_blank" rel="noopener">drum_hits.py</a></span></div>
+      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip"><a href="https://docs.pytorch.org/audio/stable/tutorials/ctc_forced_alignment_api_tutorial.html" target="_blank" rel="noopener">MMS aligner (wav2vec2)</a></span><span class="chip"><a href="https://docs.pytorch.org/audio/stable/" target="_blank" rel="noopener">torchaudio</a></span><span class="chip"><a href="https://librosa.org/doc/latest/index.html" target="_blank" rel="noopener">librosa</a></span></div><div class="box">gruntus · m2v-pre image</div></div>
       <div class="out"><div class="lbl">Hands on</div><ul><li>*-true-segments.json</li><li>beats.json</li><li>drum_hits.json</li></ul></div>
     </div>
   </div>
@@ -259,8 +272,8 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   <div class="board">
     <div class="strip a">
       <div class="num">5</div>
-      <div class="what"><h3>Universe step</h3><p>The medium every frame is made of, chosen from a sheet before the directors meet, so they plan for a known medium: 14 candidates (open ideas and the song's central image), 3 picks drawn on 2 test shots with Amber in them, from the avatar still. This is where the singer's look is settled.</p><span class="src">pipeline/universe.py</span></div>
-      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Qwen3.8-27B</span><span class="chip">MOSS-Image</span><span class="chip">Qwen-Image-Edit</span></div><div class="box">gruntus → Sparks</div></div>
+      <div class="what"><h3>Universe step</h3><p>The medium every frame is made of, chosen from a sheet before the directors meet, so they plan for a known medium: 14 candidates (open ideas and the song's central image), 3 picks drawn on 2 test shots with Amber in them, from the avatar still. This is where the singer's look is settled.</p><span class="src"><a href="https://github.com/boxabirds/poptok/blob/main/pipeline/universe.py" target="_blank" rel="noopener">pipeline/universe.py</a></span></div>
+      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip"><a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a></span><span class="chip"><a href="https://huggingface.co/OpenMOSS-Team/MOSS-Image-SFT" target="_blank" rel="noopener">MOSS-Image</a></span><span class="chip"><a href="https://huggingface.co/Qwen/Qwen-Image-Edit-2511" target="_blank" rel="noopener">Qwen-Image-Edit</a></span></div><div class="box">gruntus → Sparks</div></div>
       <div class="out"><div class="lbl">Hands on</div><ul><li>universe.txt (STYLE_WORD + brief)</li><li>visual-look.txt</li></ul></div>
     </div>
   </div>
@@ -272,14 +285,14 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   <div class="board">
     <div class="strip a">
       <div class="num">6</div>
-      <div class="what"><h3>Directors' workshop</h3><p>Three fictional directors (handmade, observational, graphic) read the timed lyrics, the brief, the avatar's description, the chosen universe and what the machine can draw. They agree a story of 4–8 scenes, where Amber appears and where she sings, and a shot for every line plus one every 6–8 s of instrumental. A plausibility pass removes shots no camera could see.</p><span class="src">pipeline/workshop.py</span></div>
-      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Qwen3.8-27B</span><span class="chip">llama-server</span></div><div class="box">gruntus · GPU lock</div></div>
+      <div class="what"><h3>Directors' workshop</h3><p>Three fictional directors (handmade, observational, graphic) read the timed lyrics, the brief, the avatar's description, the chosen universe and what the machine can draw. They agree a story of 4–8 scenes, where Amber appears and where she sings, and a shot for every line plus one every 6–8 s of instrumental. A plausibility pass removes shots no camera could see.</p><span class="src"><a href="https://github.com/boxabirds/poptok/blob/main/pipeline/workshop.py" target="_blank" rel="noopener">pipeline/workshop.py</a></span></div>
+      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip"><a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a></span><span class="chip"><a href="https://github.com/ggml-org/llama.cpp" target="_blank" rel="noopener">llama-server</a></span></div><div class="box">gruntus · GPU lock</div></div>
       <div class="out"><div class="lbl">Hands on</div><ul><li>story.md · workshop.md</li><li>lyrics-cued.txt (none / pov / part / scene / sing)</li></ul></div>
     </div>
     <div class="strip o">
       <div class="num">7</div>
-      <div class="what"><h3>One prompt per line</h3><p>An image prompt for every line and instrumental slot, written with the whole lyric and the previous line as context, the universe style leading every prompt. This is the Offline C6 method (from music2vid), which kept consecutive shots in one world.</p><span class="src">pipeline/prompts_per_line.py · treatment.py</span></div>
-      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Qwen3.8-27B</span></div><div class="box">gruntus</div></div>
+      <div class="what"><h3>One prompt per line</h3><p>An image prompt for every line and instrumental slot, written with the whole lyric and the previous line as context, the universe style leading every prompt. This is the Offline C6 method (from music2vid), which kept consecutive shots in one world.</p><span class="src"><a href="https://github.com/boxabirds/poptok/blob/main/pipeline/prompts_per_line.py" target="_blank" rel="noopener">pipeline/prompts_per_line.py</a> · <a href="https://github.com/boxabirds/poptok/blob/main/pipeline/treatment.py" target="_blank" rel="noopener">treatment.py</a></span></div>
+      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip"><a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a></span></div><div class="box">gruntus</div></div>
       <div class="out"><div class="lbl">Hands on</div><ul><li>shots.json (prompt, time, cue)</li></ul></div>
     </div>
   </div>
@@ -292,14 +305,14 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   <div class="board">
     <div class="strip s">
       <div class="num">8</div>
-      <div class="what"><h3>Keyframes</h3><p>Shots without Amber are drawn from words alone. Shots with her are drawn from the avatar still and the shot's words, in the universe's medium, with her expression named.</p><span class="src">pipeline/keyframes.py · amber_keys.py</span></div>
-      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">MOSS-Image</span><span class="chip">Qwen-Image-Edit-2511</span><span class="chip">Lightning 8-step</span></div><div class="box">thing1 · thing2 · tritus</div></div>
+      <div class="what"><h3>Keyframes</h3><p>Shots without Amber are drawn from words alone. Shots with her are drawn from the avatar still and the shot's words, in the universe's medium, with her expression named.</p><span class="src"><a href="https://github.com/boxabirds/poptok/blob/main/pipeline/keyframes.py" target="_blank" rel="noopener">pipeline/keyframes.py</a> · <a href="https://github.com/boxabirds/poptok/blob/main/pipeline/amber_keys.py" target="_blank" rel="noopener">amber_keys.py</a></span></div>
+      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip"><a href="https://huggingface.co/OpenMOSS-Team/MOSS-Image-SFT" target="_blank" rel="noopener">MOSS-Image</a></span><span class="chip"><a href="https://huggingface.co/Qwen/Qwen-Image-Edit-2511" target="_blank" rel="noopener">Qwen-Image-Edit-2511</a></span><span class="chip"><a href="https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning" target="_blank" rel="noopener">Lightning 8-step</a></span></div><div class="box">thing1 · thing2 · tritus</div></div>
       <div class="out"><div class="lbl">Hands on</div><ul><li>keys/shot_NNN.png</li></ul></div>
     </div>
     <div class="strip a">
       <div class="num">9</div>
-      <div class="what"><h3>Still check</h3><p>Flags blank stills, a stranger in Amber's shots (face recognition against the avatar still), and impossible anatomy or objects (a vision LLM asked countable questions). Flagged stills are re-rolled up to 3 times; near-duplicate scenes are merged.</p><span class="src">check_keys.py · critic.py · merge_similar.py</span></div>
-      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">YuNet + SFace</span><span class="chip">Qwen3.8 vision</span></div><div class="box">gruntus</div></div>
+      <div class="what"><h3>Still check</h3><p>Flags blank stills, a stranger in Amber's shots (face recognition against the avatar still), and impossible anatomy or objects (a vision LLM asked countable questions). Flagged stills are re-rolled up to 3 times; near-duplicate scenes are merged.</p><span class="src"><a href="https://github.com/boxabirds/poptok/blob/main/pipeline/check_keys.py" target="_blank" rel="noopener">check_keys.py</a> · <a href="https://github.com/boxabirds/poptok/blob/main/pipeline/critic.py" target="_blank" rel="noopener">critic.py</a> · <a href="https://github.com/boxabirds/poptok/blob/main/pipeline/merge_scenes.py" target="_blank" rel="noopener">merge_scenes.py</a></span></div>
+      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip"><a href="https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet" target="_blank" rel="noopener">YuNet</a> + <a href="https://github.com/opencv/opencv_zoo/tree/main/models/face_recognition_sface" target="_blank" rel="noopener">SFace</a></span><span class="chip"><a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8</a> vision</span></div><div class="box">gruntus</div></div>
       <div class="out"><div class="lbl">Hands on</div><ul><li>reroll.json</li><li>storyboard sheet</li></ul></div>
     </div>
   </div>
@@ -312,20 +325,20 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   <div class="board">
     <div class="strip o">
       <div class="num">10</div>
-      <div class="what"><h3>Transitions as events</h3><p>For each change of still, the LLM writes how A becomes B as a physical event in action words (a door bursts open, smoke whips through). A quiet A→B cross-fades instead of morphing. Changes inside one scene are written as camera moves.</p><span class="src">pipeline/scenes.py (TRANSITION)</span></div>
-      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Qwen3.8-27B</span></div><div class="box">gruntus</div></div>
+      <div class="what"><h3>Transitions as events</h3><p>For each change of still, the LLM writes how A becomes B as a physical event in action words (a door bursts open, smoke whips through). A quiet A→B cross-fades instead of morphing. Changes inside one scene are written as camera moves.</p><span class="src"><a href="https://github.com/boxabirds/poptok/blob/main/pipeline/scenes.py" target="_blank" rel="noopener">pipeline/scenes.py</a> (TRANSITION)</span></div>
+      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip"><a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a></span></div><div class="box">gruntus</div></div>
       <div class="out"><div class="lbl">Hands on</div><ul><li>scenes.json</li></ul></div>
     </div>
     <div class="strip o">
       <div class="num">11</div>
-      <div class="what"><h3>Video chain</h3><p>Each clip starts from the previous clip's last frame and is guided to the next still, so the film is one take. Each change is asked to happen on a downbeat; LTX gets close, and the assembly step corrects the rest.</p><span class="src">pipeline/ltx_chain.py</span></div>
-      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">LTX-2.5 distilled</span><span class="chip">LTX-2.3 Transition LoRA</span></div><div class="box">thing1 / thing2 · quintus</div></div>
+      <div class="what"><h3>Video chain</h3><p>Each clip starts from the previous clip's last frame and is guided to the next still, so the film is one take. Each change is asked to happen on a downbeat; LTX gets close, and the assembly step corrects the rest.</p><span class="src"><a href="https://github.com/boxabirds/poptok/blob/main/pipeline/ltx_chain.py" target="_blank" rel="noopener">pipeline/ltx_chain.py</a></span></div>
+      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip"><a href="https://huggingface.co/Lightricks/LTX-2.5" target="_blank" rel="noopener">LTX-2.5 distilled</a></span><span class="chip"><a href="https://huggingface.co/valiantcat/LTX-2.3-Transition-LORA" target="_blank" rel="noopener">LTX-2.3 Transition LoRA</a></span></div><div class="box">thing1 / thing2 · quintus</div></div>
       <div class="out"><div class="lbl">Hands on</div><ul><li>ltx_chain/%05d.png</li></ul></div>
     </div>
     <div class="strip a">
       <div class="num">12</div>
-      <div class="what"><h3>Lip-sync inserts</h3><p>Each run of shots cued "sing" becomes one clip of Amber singing, driven by the vocal stem for exactly that stretch and starting from that run's keyframe (drawn from the avatar). The clips are spliced in when the video is assembled.</p><span class="src">sing_inserts.py · bin/infinitetalk_quant.sh</span></div>
-      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">InfiniteTalk int8</span><span class="chip">Wan 2.1 base</span></div><div class="box">thing1 · thing2 · gruntus</div></div>
+      <div class="what"><h3>Lip-sync inserts</h3><p>Each run of shots cued "sing" becomes one clip of Amber singing, driven by the vocal stem for exactly that stretch and starting from that run's keyframe (drawn from the avatar). The clips are spliced in when the video is assembled.</p><span class="src"><a href="https://github.com/boxabirds/poptok/blob/main/pipeline/sing_inserts.py" target="_blank" rel="noopener">sing_inserts.py</a> · <a href="https://github.com/boxabirds/poptok/blob/main/bin/infinitetalk_quant.sh" target="_blank" rel="noopener">bin/infinitetalk_quant.sh</a></span></div>
+      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip"><a href="https://github.com/MeiGen-AI/InfiniteTalk" target="_blank" rel="noopener">InfiniteTalk int8</a></span><span class="chip"><a href="https://huggingface.co/Wan-AI/Wan2.1-I2V-14B-480P" target="_blank" rel="noopener">Wan 2.1 base</a></span></div><div class="box">thing1 · thing2 · gruntus</div></div>
       <div class="out"><div class="lbl">Hands on</div><ul><li>sing/*.mp4</li></ul></div>
     </div>
   </div>
@@ -337,8 +350,8 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   <div class="board">
     <div class="strip s">
       <div class="num">13</div>
-      <div class="what"><h3>Retime, splice and finish</h3><p>Sync to the beat by deleting or duplicating frames: each transition's halfway frame is found, and frames around it are dropped or repeated until it falls on its downbeat. No frames are interpolated, so a big correction can show as a small stutter or jump. The singing clips are cut in on shot boundaries. Grade (the Offline black-and-white look, or the universe's), deflare, light bursts on the drum runs, song muxed in. No beat pulse for R.Amber.</p><span class="src">retime_to_beats.py · sing_inserts.py splice · finish.py</span></div>
-      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">ffmpeg</span><span class="chip">numpy / OpenCV</span></div><div class="box">gruntus</div></div>
+      <div class="what"><h3>Retime, splice and finish</h3><p>Sync to the beat by deleting or duplicating frames: each transition's halfway frame is found, and frames around it are dropped or repeated until it falls on its downbeat. No frames are interpolated, so a big correction can show as a small stutter or jump. The singing clips are cut in on shot boundaries. Grade (the Offline black-and-white look, or the universe's), deflare, light bursts on the drum runs, song muxed in. No beat pulse for R.Amber.</p><span class="src"><a href="https://github.com/boxabirds/poptok/blob/main/pipeline/retime_to_beats.py" target="_blank" rel="noopener">retime_to_beats.py</a> · <a href="https://github.com/boxabirds/poptok/blob/main/pipeline/sing_inserts.py" target="_blank" rel="noopener">sing_inserts.py</a> splice · <a href="https://github.com/boxabirds/poptok/blob/main/pipeline/finish.py" target="_blank" rel="noopener">finish.py</a></span></div>
+      <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip"><a href="https://ffmpeg.org" target="_blank" rel="noopener">ffmpeg</a></span><span class="chip"><a href="https://numpy.org" target="_blank" rel="noopener">numpy</a> / <a href="https://opencv.org" target="_blank" rel="noopener">OpenCV</a></span></div><div class="box">gruntus</div></div>
       <div class="out"><div class="lbl">Hands on</div><ul><li>NAME-nosync.mp4</li></ul></div>
     </div>
   </div>
@@ -378,6 +391,38 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 </div>
 </div>
 <script>
+(function () {
+  var NS = 'http://www.w3.org/2000/svg', wrap = document.querySelector('.flowwrap'), svg = wrap.querySelector('.wires');
+  function el(tag, attrs) { var e = document.createElementNS(NS, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); return e; }
+  function draw() {
+    var R = wrap.getBoundingClientRect(), narrow = R.width < 480;
+    svg.setAttribute('width', R.width); svg.setAttribute('height', R.height);
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    // the stem rail runs outside the avatar rail, so its two horizontals are the only crossings; they hop over it
+    var rails = [['avatar', 'av', narrow ? 22 : 27], ['stem', 'stem', narrow ? 8 : 11]];
+    rails.forEach(function (r) {
+      var src = wrap.querySelector('[data-out="' + r[0] + '"]'), dsts = wrap.querySelectorAll('[data-in~="' + r[0] + '"]');
+      if (!src || !dsts.length) return;
+      var x = r[2], b = src.getBoundingClientRect(), sy = b.top - R.top + b.height / 2, sx = b.left - R.left;
+      var ys = [], ends = [];
+      dsts.forEach(function (d) { var q = d.getBoundingClientRect(); ys.push(q.top - R.top + q.height / 2); ends.push(q.left - R.left); });
+      var last = ys[ys.length - 1];
+      var d = 'M' + sx + ' ' + sy + 'H' + x + 'V' + last;
+      ys.forEach(function (y, i) { d += 'M' + x + ' ' + y + 'H' + (ends[i] - 8); });
+      if (r[0] === 'stem') svg.appendChild(el('path', { d: d, 'class': 'halo' }));
+      svg.appendChild(el('path', { d: d, 'class': r[1] }));
+      svg.appendChild(el('circle', { cx: sx, cy: sy, r: 3.5, 'class': 'dot ' + r[1] }));
+      ys.forEach(function (y, i) {
+        if (i < ys.length - 1) svg.appendChild(el('circle', { cx: x, cy: y, r: 3, 'class': 'dot ' + r[1] }));
+        var e = ends[i];
+        svg.appendChild(el('path', { d: 'M' + (e - 9) + ' ' + (y - 5) + 'L' + e + ' ' + y + 'L' + (e - 9) + ' ' + (y + 5) + 'Z', 'class': 'head ' + r[1] }));
+      });
+    });
+  }
+  draw();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+  if (window.ResizeObserver) new ResizeObserver(draw).observe(wrap); else window.addEventListener('resize', draw);
+})();
 (function () {
   var root = document.documentElement, btn = document.getElementById('themebtn');
   var mq = window.matchMedia('(prefers-color-scheme: dark)');
