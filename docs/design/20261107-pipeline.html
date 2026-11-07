@@ -162,6 +162,24 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 .final h2 { margin: 0; font: 700 22px/1 var(--display); text-transform: uppercase; letter-spacing: .04em; }
 .final code { font: 14px var(--mono); }
 
+.comfy { margin-top: 36px; background: var(--paper); border: 1px solid var(--rule); border-radius: 4px; padding: 16px 18px; }
+.comfy h2 { margin: 0 0 6px; font: 700 22px/1.1 var(--display); letter-spacing: .04em; text-transform: uppercase; }
+.comfy h3 { margin: 0 0 6px; font: 700 16px/1.1 var(--display); letter-spacing: .04em; text-transform: uppercase; }
+.comfy-lede { margin: 0 0 12px; max-width: 80ch; font-size: 14.5px; }
+.comfy-lede a { color: inherit; text-underline-offset: 2px; }
+.comfy-scroll { overflow-x: auto; }
+.comfy table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 520px; }
+.comfy th, .comfy td { text-align: left; padding: 7px 10px 7px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.comfy th { font: 500 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.comfy td:first-child a { font: 12.5px var(--mono); color: var(--ink); }
+.comfy td:nth-child(2) { white-space: nowrap; font-weight: 500; }
+.fit { font: 500 11.5px/1 var(--mono); padding: 3px 6px; border-radius: 3px; border: 1px solid; white-space: nowrap; }
+.fit.good { color: var(--shared); } .fit.mixed { color: var(--amber); } .fit.poor { color: var(--hypo); }
+.comfy-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; margin-top: 16px; }
+.comfy ul { margin: 0; padding-left: 18px; font-size: 13.5px; } .comfy li + li { margin-top: 6px; }
+.comfy-grid p { margin: 0 0 8px; font-size: 13.5px; }
+.comfy-caveat { color: var(--muted); font-style: italic; }
+@media (max-width: 600px) { .comfy td:nth-child(2) { white-space: normal; } }
 .notes { margin-top: 36px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
 .notes section { background: var(--paper); border: 1px solid var(--rule); border-radius: 4px; padding: 16px 18px; min-width: 0; }
 .notes h2 { margin: 0 0 8px; font: 700 18px/1.1 var(--display); text-transform: uppercase; letter-spacing: .04em; }
@@ -424,6 +442,24 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 </div>
 
 <div class="final"><h2>Video</h2><code>pieces/&lt;song&gt;/outputs/v&lt;N&gt;/&lt;song&gt;.mp4</code></div>
+
+<section class="comfy" id="comfyui" aria-labelledby="comfy-h">
+  <h2 id="comfy-h">Could this run in ComfyUI?</h2>
+  <p class="comfy-lede">Technically yes: any Python step can be wrapped as a <a href="https://github.com/comfyanonymous/ComfyUI" target="_blank" rel="noopener">ComfyUI</a> custom node, so the whole workflow could run inside it. The useful question is how much of it ComfyUI does <em>well</em>.</p>
+  <div class="comfy-scroll"><table>
+    <thead><tr><th>#</th><th>Stage</th><th>Fit</th><th>Why</th></tr></thead>
+    <tbody><tr><td><a href="#stage-1">1</a></td><td>Create the song</td><td><span class="fit poor">Poor</span></td><td>The three-songwriter workshop is a multi-turn LLM conversation with retries. LLM nodes can call llama-server, but the logic ends up as one big custom node.</td></tr><tr><td><a href="#stage-2">2</a></td><td>Record the song</td><td><span class="fit good">Good</span></td><td>ACE-Step has native ComfyUI support and Whisper nodes exist; picking the best take is a small custom node.</td></tr><tr><td><a href="#stage-3">3</a></td><td>Disassemble the song</td><td><span class="fit mixed">Mixed</span></td><td>Demucs and librosa beat nodes exist in community packs; the MMS forced aligner and the drum-run detector would be custom nodes.</td></tr><tr><td><a href="#stage-4">4</a></td><td>Create the singer / actor</td><td><span class="fit good">Good</span></td><td>Qwen-Image-Edit is native; MOSS-Image probably needs a custom node; proposing the universes is an LLM step (see 1).</td></tr><tr><td><a href="#stage-5">5</a></td><td>Design the video scenes</td><td><span class="fit poor">Poor</span></td><td>Same as 1: the directors' workshop is code, not a graph.</td></tr><tr><td><a href="#stage-6">6</a></td><td>Create key frames</td><td><span class="fit mixed">Good to draw, weak to check</span></td><td>Drawing fits naturally. &ldquo;Flag it, then redraw up to 3 times&rdquo; is a loop with a condition, which ComfyUI handles badly.</td></tr><tr><td><a href="#stage-7">7</a></td><td>Create the scenes</td><td><span class="fit good">Good</span></td><td>Lightricks publishes official LTX nodes, LoRAs load natively, and community Wan wrappers run InfiniteTalk. Chaining each clip from the previous one's last frame across 20+ shots is the awkward part.</td></tr><tr><td><a href="#stage-8">8</a></td><td>Assemble the video</td><td><span class="fit good">Good</span></td><td>Video Helper Suite does the ffmpeg work, and frame-interpolation packs include FILM and RIFE. Beat-sync retiming would be custom.</td></tr></tbody>
+  </table></div>
+  <div class="comfy-grid">
+    <div><h3>Where it breaks down</h3><ul>
+      <li><b>Loops and decisions.</b> The workflow runs once per shot, redraws stills that fail a check, and pauses twice for the artist's review. ComfyUI graphs run straight through, so in practice a script queues one graph per shot through ComfyUI's API, and that script is the pipeline.</li>
+      <li><b>One machine per graph.</b> Spreading stills and video over several GPUs means a ComfyUI server on each box plus a dispatcher.</li>
+      <li><b>Memory.</b> By default ComfyUI moves models to CPU memory when the GPU fills. Run it GPU-only, one job per box, and unload the 22B LTX model before loading the 14B Wan model.</li>
+    </ul></div>
+    <div><h3>Recommendation</h3><p>Keep a script as the orchestrator for the LLM workshops, the audio analysis and the control flow, and use ComfyUI graphs for the per-shot image and video steps (stages 2, 4, 6, 7 and 8, where most of the GPU time goes). That gives a visual graph, hand fixes to single shots and shareable workflows, without rebuilding the workshops as nodes.</p>
+    <p class="comfy-caveat">Not yet checked: whether current ComfyUI nodes support the exact versions used here (ACE-Step 1.5 xl-sft, LTX-2.5, Qwen-Image-Edit-2511, InfiniteTalk int8, MOSS-Image).</p></div>
+  </div>
+</section>
 
 <div class="notes">
   <section>
