@@ -60,7 +60,13 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 .fby { font: 12px/1.4 var(--mono); color: var(--shared); align-self: start; }
 @media (max-width: 520px) { .fsteps li { grid-template-columns: minmax(0, 1fr); } .fby::before { content: "→ "; color: var(--muted); } }
 .ftag { margin-top: 8px; font: 12.5px/1.4 var(--mono); padding: 5px 8px; border-radius: 3px; }
-.ftag.av { background: var(--amber-soft); border-left: 3px solid var(--amber); }
+.ftag.av { border: 1px solid var(--amber); color: var(--ink); }
+.ftag.av::before { content: "Avatar input · "; color: var(--amber); font-weight: 500; }
+.ftag.stem::before { content: "Audio input · "; font-weight: 500; }
+.themebtn { justify-self: end; font: 500 12px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink);
+  background: var(--paper); border: 1px solid var(--rule); border-radius: 3px; padding: 8px 12px; cursor: pointer; }
+.themebtn:hover { border-color: var(--ink); }
+.headtop { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .ftag.stem { border-left: 3px dashed var(--muted); color: var(--muted); }
 .fins { display: grid; gap: 6px; margin-top: 10px; }
 .fins div { display: grid; gap: 1px; padding: 6px 8px; background: var(--paper); border-radius: 3px; font-size: 14px; }
@@ -140,7 +146,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 
 <div class="wrap">
 <header>
-  <div class="eyebrow">poptok · pipeline draft 1 · 7 Nov 2026</div>
+  <div class="headtop"><div class="eyebrow">poptok · pipeline draft 1 · 7 Nov 2026</div><button class="themebtn" id="themebtn" type="button">Light mode</button></div>
   <h1>Prompt to music video</h1>
   <p class="lede">One line of text in, a finished music video out, with <strong>Amber</strong> appearing and singing on camera. The plan blends the two AI workflows that have each worked on their own: the <strong>Amber + creative-director panel</strong> workflow, and the more conventional <strong>Offline</strong> workflow (one prompt per lyric line, event morphs, a strong black-and-white look).</p>
   <div class="status"><b>Hypothetical</b><span>Every step below has been run on its own. No piece has yet gone from a prompt to a finished video with Amber in one pass. Offline-local went from lyrics to video with a generated song; the Amber pieces (Chronophobia, Slippery Road, Noble Hunt, Cuckoo) all started from a real song.</span></div>
@@ -154,7 +160,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 
 <section class="overview" aria-labelledby="ov-h">
   <h2 id="ov-h">Overview</h2>
-  <p class="ov-sub">Inputs at the top, the video at the bottom. Each box is a phase: every step in it, and the technology that does that step. Between boxes: what passes on. Amber tags mark where the avatar still feeds in directly.</p>
+  <p class="ov-sub">Inputs at the top, the video at the bottom. Each box is a phase: every step in it, and the technology that does that step. Between boxes: what passes on. Outlined tags at the foot of a box mark where the avatar still, or the vocal stem, feeds into that phase directly.</p>
   <ol class="flow">
     <li class="fnode fin"><div class="fhead">Inputs</div>
       <div class="fins">
@@ -371,3 +377,20 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   </section>
 </div>
 </div>
+<script>
+(function () {
+  var root = document.documentElement, btn = document.getElementById('themebtn');
+  var mq = window.matchMedia('(prefers-color-scheme: dark)');
+  try { var saved = localStorage.getItem('theme'); if (saved) root.setAttribute('data-theme', saved); } catch (e) {}
+  function isDark() { var t = root.getAttribute('data-theme'); return t ? t === 'dark' : mq.matches; }
+  function label() { btn.textContent = isDark() ? 'Light mode' : 'Dark mode'; }
+  btn.addEventListener('click', function () {
+    var next = isDark() ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('theme', next); } catch (e) {}
+    label();
+  });
+  if (mq.addEventListener) mq.addEventListener('change', label);
+  label();
+})();
+</script>
