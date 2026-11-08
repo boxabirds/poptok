@@ -90,9 +90,6 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   background: var(--paper); border: 1px solid var(--rule); border-left: 4px solid var(--muted); border-radius: 3px; font-size: 14px; }
 .st-io.st-out li { border-left-color: var(--ink); }
 .st-io li > span:not(.what):not(.eg) { font: 12px/1.4 var(--mono); color: var(--muted); text-align: right; }
-.st-io li.av { border-left-color: var(--amber); } .st-io li.av b { color: var(--amber); }
-.st-io li.stem { border-left: 4px dashed var(--shared); }
-.st-io li.stem > span { color: var(--shared); }
 .st-inputs .st-io.st-in li { grid-template-columns: minmax(0, 1fr); }
 .st-inputs .st-io.st-in li > span { text-align: left; }
 .st-io code { font: 12px var(--mono); color: var(--ink); }
@@ -196,7 +193,6 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 .cast { margin: 0; display: grid; gap: 6px; }
 .cast div { display: grid; grid-template-columns: 11em minmax(0, 1fr); gap: 2px 14px; padding: 8px 10px; background: var(--paper);
   border: 1px solid var(--rule); border-left: 4px solid var(--muted); border-radius: 3px; }
-.cast div.av { border-left-color: var(--amber); } .cast div.av dt { color: var(--amber); }
 .cast dt { font-weight: 600; font-size: 14px; } .cast dd { margin: 0; font-size: 13.5px; }
 .cast-note { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
 @media (max-width: 520px) { .cast div { grid-template-columns: minmax(0, 1fr); } }
@@ -206,7 +202,6 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 .optgroup { margin-top: 16px; }
 .optgroup li { border-style: dashed; border-left-style: dashed; }
 .reqgroup li { border-left-color: var(--ink); border-left-width: 5px; }
-.reqgroup li.av { border-left-color: var(--amber); }
 .new { font: normal 600 10.5px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--hypo); border: 1px solid var(--hypo); border-radius: 3px; padding: 2px 4px; margin-left: 4px; white-space: nowrap; }
 .hwt-scroll { overflow-x: auto; }
 .hwt { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 12.5px; line-height: 1.4; }
@@ -246,12 +241,12 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 
 <section class="overview" aria-labelledby="ov-h">
   <h2 id="ov-h">Overview</h2>
-  <p class="ov-sub">Who's who and the words used come first, then the flow, then one card per stage: what comes in, every step with the technology that does it, what goes out, and the hardware it needs. Each card is sized to screenshot by itself. Amber marks the singer; teal dashed marks the vocal stem; <em class="new">new</em> marks a step the code doesn't do yet.</p>
+  <p class="ov-sub">Who's who and the words used come first, then the flow, then one card per stage: what comes in, every step with the technology that does it, what goes out, and the hardware it needs. Each card is sized to screenshot by itself. <em class="new">new</em> marks a step the code doesn't do yet.</p>
 <article class="stage st-intro" id="cast">
   <header class="st-h"><div><h3>Who's who</h3><p>The people and roles that appear on the cards below</p></div></header>
   <dl class="cast">
     <div><dt>You, the artist</dt><dd>Write the song prompt and supply the picture of the singer. Optionally write a video brief. Review the work at two pauses (the look and story; the storyboard) and can override any choice.</dd></div>
-    <div class="av"><dt>The singer / actor</dt><dd>The one person who appears and sings in the video. Their face comes from a single picture you supply (the avatar still). The examples on this page use <b>Amber</b>, an AI singer.</dd></div>
+    <div><dt>The singer / actor</dt><dd>The one person who appears and sings in the video. Their face comes from a single picture you supply (the avatar still). The examples on this page use <b>Amber</b>, an AI singer.</dd></div>
     <div><dt>The songwriters</dt><dd>Three fictional songwriters, each from a different tradition (Nashville craft, pop melody, singer-songwriter). They write the lyrics and describe the music.</dd></div>
     <div><dt>The producer</dt><dd>Picks the 3 most promising universes (see Words used) from 14 proposals, for you to choose between.</dd></div>
     <div><dt>The directors</dt><dd>Three fictional film directors (handmade, observational, graphic). They decide the story, where the singer appears and sings, and every shot.</dd></div>
@@ -262,7 +257,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 <article class="stage st-intro" id="terms">
   <header class="st-h"><div><h3>Words used</h3><p>Terms the cards below rely on</p></div></header>
   <dl class="cast">
-    <div class="av"><dt>Avatar still</dt><dd>The one picture of the singer that every shot of them is drawn from.</dd></div>
+    <div><dt>Avatar still</dt><dd>The one picture of the singer that every shot of them is drawn from.</dd></div>
     <div><dt>Video brief</dt><dd>A short text saying what the video must say and show.</dd></div>
     <div><dt>Universe</dt><dd>What everything in the video is made of, in every frame: charcoal drawing, felt, glass, photograph. The singer is made of it too.</dd></div>
     <div><dt>Stem</dt><dd>One part of the song on its own: vocals, drums, bass or the rest.</dd></div>
@@ -281,7 +276,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   <header class="st-h"><i>0</i><div><h3>Inputs</h3><p>What you supply</p></div></header>
   <div class="st-io st-in reqgroup"><div class="grp req-on">Required</div><ul>
     <li><b>Song prompt</b><span class="what">What the song is about, in a line or a paragraph. The songwriters write the song from it.</span></li>
-    <li class="av"><b>Avatar still</b><span class="what">One picture of the singer / actor: the only source of their face in every shot. Make it however you like, a photo or an image model.</span>
+    <li><b>Avatar still</b><span class="what">One picture of the singer / actor: the only source of their face in every shot. Make it however you like, a photo or an image model.</span>
       <q>Photo of Slender Blonde Long haired 23 yo caucasian woman 1/4 korean blue eyed top half body photo shot singer posing for album no text no mic</q><span class="eg">Example: the image prompt Amber's still was made from</span></li>
   </ul></div>
   <div class="st-io st-in optgroup"><div class="grp req-off">Optional</div><ul>
@@ -291,82 +286,82 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 </article>
 <article class="stage" id="stage-1">
   <header class="st-h"><i>1</i><div><h3>Create the song</h3><p>Lyrics and a music style from the prompt</p></div></header>
-  <div class="st-io st-in"><div class="lbl">In</div><ul><li class=""><b>Song prompt</b></li></ul></div>
+  <div class="st-io st-in"><div class="lbl">In</div><ul><li><b>Song prompt</b></li></ul></div>
   <div class="st-arrow" aria-hidden="true"></div>
   <div class="lbl">Steps · technology</div>
   <ul class="fsteps"><li><span class="fdo">Write the lyrics and a description of the music (the songwriters)</span><span class="fby">Language model (<a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a> in <a href="https://github.com/ggml-org/llama.cpp" target="_blank" rel="noopener">llama-server</a>)</span></li></ul>
   <div class="st-arrow" aria-hidden="true"></div>
-  <div class="st-io st-out"><div class="lbl">Out</div><ul><li class=""><b>Lyrics</b></li><li class=""><b>Music description</b></li></ul></div>
+  <div class="st-io st-out"><div class="lbl">Out</div><ul><li><b>Lyrics</b></li><li><b>Music description</b></li></ul></div>
   <div class="st-needs"><div class="lbl">Hardware</div><div class="hwt-scroll"><table class="hwt"><thead><tr><th>What runs</th><th>Memory</th><th>Time (measured)</th><th>Why</th><th>Known supported architectures</th></tr></thead><tbody><tr><td>Language model (<a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a>), 4-bit</td><td>~20 GB</td><td>not measured</td><td>18 GB of weights plus ~2 GB of working memory for a long conversation. Fits a 24 GB RTX 4090.</td><td>NVIDIA, AMD, Apple Silicon, Intel GPUs, any Vulkan GPU, processor only (llama.cpp)</td></tr></tbody></table></div></div>
 </article>
 <article class="stage" id="stage-2">
   <header class="st-h"><i>2</i><div><h3>Record (generate) the song</h3><p>Sung takes; the clearest kept</p></div></header>
-  <div class="st-io st-in"><div class="lbl">In</div><ul><li class=""><b>Lyrics</b></li><li class=""><b>Music description</b></li></ul></div>
+  <div class="st-io st-in"><div class="lbl">In</div><ul><li><b>Lyrics</b></li><li><b>Music description</b></li></ul></div>
   <div class="st-arrow" aria-hidden="true"></div>
   <div class="lbl">Steps · technology</div>
   <ul class="fsteps"><li><span class="fdo">Sing several takes from the lyrics and the music description</span><span class="fby">Music model (<a href="https://huggingface.co/ACE-Step/acestep-v15-xl-sft" target="_blank" rel="noopener">ACE-Step 1.5 XL</a>)</span></li><li><span class="fdo">Keep the take whose sung words match the lyrics best</span><span class="fby">Speech recogniser (<a href="https://github.com/openai/whisper" target="_blank" rel="noopener">Whisper</a>)</span></li></ul>
   <div class="st-arrow" aria-hidden="true"></div>
-  <div class="st-io st-out"><div class="lbl">Out</div><ul><li class=""><b>Song (audio)</b></li></ul></div>
+  <div class="st-io st-out"><div class="lbl">Out</div><ul><li><b>Song (audio)</b></li></ul></div>
   <div class="st-needs"><div class="lbl">Hardware</div><div class="hwt-scroll"><table class="hwt"><thead><tr><th>What runs</th><th>Memory</th><th>Time (measured)</th><th>Why</th><th>Known supported architectures</th></tr></thead><tbody><tr><td>Music model XL (4B) with the 4B planner</td><td>~27 GB</td><td>&mdash;</td><td>19 GB model + 8 GB planner: too big for a 24 GB card.</td><td>NVIDIA, AMD (ROCm), Apple Silicon (MLX), Intel GPUs, processor only</td></tr><tr><td>Music model XL (4B) without the planner</td><td>~19 GB</td><td>23 s per song (RTX 4090)</td><td>Fits a 24 GB card.</td><td>NVIDIA, AMD (ROCm), Apple Silicon (MLX), Intel GPUs, processor only</td></tr><tr><td>Music model 2B with a planner</td><td>~4.7 GB of weights; runs in ≤6 GB with int8 and offload</td><td>45 s per song (RTX 4090)</td><td>The smaller size, for smaller cards.</td><td>NVIDIA, AMD (ROCm), Apple Silicon (MLX), Intel GPUs, processor only</td></tr><tr><td>Speech recogniser</td><td>a few GB (not measured)</td><td>&mdash;</td><td>Small model.</td><td>NVIDIA (no others stated)</td></tr></tbody></table></div></div>
 </article>
 <article class="stage" id="stage-3">
   <header class="st-h"><i>3</i><div><h3>Disassemble the song</h3><p>The parts of the song, and when every word and beat happens</p></div></header>
-  <div class="st-io st-in"><div class="lbl">In</div><ul><li class=""><b>Song (audio)</b></li><li class=""><b>Lyrics</b></li></ul></div>
+  <div class="st-io st-in"><div class="lbl">In</div><ul><li><b>Song (audio)</b></li><li><b>Lyrics</b></li></ul></div>
   <div class="st-arrow" aria-hidden="true"></div>
   <div class="lbl">Steps · technology</div>
   <ul class="fsteps"><li><span class="fdo">Split the song into stems: vocals, drums, bass and the rest</span><span class="fby">Stem splitter (<a href="https://github.com/facebookresearch/demucs" target="_blank" rel="noopener">Demucs</a>)</span></li><li><span class="fdo">Write down the sung words with a time for each</span><span class="fby">Speech recogniser (<a href="https://github.com/linto-ai/whisper-timestamped" target="_blank" rel="noopener">whisper-timestamped</a>)</span></li><li><span class="fdo">Find when each lyric word is sung, even where voices overlap</span><span class="fby">Lyric aligner (<a href="https://docs.pytorch.org/audio/stable/tutorials/ctc_forced_alignment_api_tutorial.html" target="_blank" rel="noopener">MMS forced aligner</a>)</span></li><li><span class="fdo">Find the tempo, beats and downbeats</span><span class="fby">Audio analysis library (<a href="https://librosa.org/doc/latest/index.html" target="_blank" rel="noopener">librosa</a>)</span></li><li><span class="fdo">Find runs of deep drum hits (for flashes of light; the directors are told where they are)</span><span class="fby">Maths library (<a href="https://numpy.org" target="_blank" rel="noopener">numpy</a>), on the drum stem</span></li></ul>
   <div class="st-arrow" aria-hidden="true"></div>
-  <div class="st-io st-out"><div class="lbl">Out</div><ul><li class="stem"><b>Vocal stem</b></li><li class=""><b>Timed lyrics</b></li><li class=""><b>Beats and downbeats</b></li><li class=""><b>Drum runs</b></li></ul></div>
+  <div class="st-io st-out"><div class="lbl">Out</div><ul><li><b>Vocal stem</b></li><li><b>Timed lyrics</b></li><li><b>Beats and downbeats</b></li><li><b>Drum runs</b></li></ul></div>
   <div class="st-needs"><div class="lbl">Hardware</div><div class="hwt-scroll"><table class="hwt"><thead><tr><th>What runs</th><th>Memory</th><th>Time (measured)</th><th>Why</th><th>Known supported architectures</th></tr></thead><tbody><tr><td>Stem splitter, speech recogniser, aligner</td><td>a few GB (not measured)</td><td>~5 min per 4-minute song (RTX 4090)</td><td>Small models; any of the machines here will do.</td><td>NVIDIA; Demucs also processor only (no others stated)</td></tr></tbody></table></div></div>
 </article>
 <article class="stage" id="stage-4">
   <header class="st-h"><i>4</i><div><h3>Create the singer / actor</h3><p>The universe chosen, and the singer drawn in it from the avatar still</p></div></header>
-  <div class="st-io st-in"><div class="lbl">In</div><ul><li class="av"><b>Avatar still</b></li><li class=""><b>Song prompt</b></li><li class=""><b>Lyrics</b></li><li class=""><b>Video brief, if you wrote one</b></li></ul></div>
+  <div class="st-io st-in"><div class="lbl">In</div><ul><li><b>Avatar still</b></li><li><b>Song prompt</b></li><li><b>Lyrics</b></li><li><b>Video brief, if you wrote one</b></li></ul></div>
   <div class="st-arrow" aria-hidden="true"></div>
   <div class="lbl">Steps · technology</div>
   <ul class="fsteps"><li><span class="fdo">No video brief? The directors write one from the song prompt and the lyrics <em class="new">new</em></span><span class="fby">Language model (<a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a>)</span></li><li><span class="fdo">Describe the singer's appearance in one line from the avatar still: hair, face, age, build; not clothes or pose <em class="new">new</em></span><span class="fby">Vision language model (<a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a> + its vision add-on)</span></li><li><span class="fdo">Propose 14 universes; the producer picks 3</span><span class="fby">Language model (<a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a>)</span></li><li><span class="fdo">Draw each pick on 2 test shots</span><span class="fby">Image model (<a href="https://huggingface.co/OpenMOSS-Team/MOSS-Image-SFT" target="_blank" rel="noopener">MOSS-Image</a>)</span></li><li><span class="fdo">Put the singer into those test shots from the avatar still</span><span class="fby">Image editing model (<a href="https://huggingface.co/Qwen/Qwen-Image-Edit-2511" target="_blank" rel="noopener">Qwen-Image-Edit 2511</a> + <a href="https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning" target="_blank" rel="noopener">Lightning</a> speed-up)</span></li></ul>
   <div class="st-arrow" aria-hidden="true"></div>
-  <div class="st-io st-out"><div class="lbl">Out</div><ul><li class=""><b>Video brief</b></li><li class="av"><b>Singer description</b></li><li class=""><b>The chosen universe</b></li><li class="av"><b>Universe sheet: the singer in 3 universes</b><span>to your review</span></li></ul></div>
+  <div class="st-io st-out"><div class="lbl">Out</div><ul><li><b>Video brief</b></li><li><b>Singer description</b></li><li><b>The chosen universe</b></li><li><b>Universe sheet: the singer in 3 universes</b><span>to your review</span></li></ul></div>
   <div class="st-needs"><div class="lbl">Hardware</div><div class="hwt-scroll"><table class="hwt"><thead><tr><th>What runs</th><th>Memory</th><th>Time (measured)</th><th>Why</th><th>Known supported architectures</th></tr></thead><tbody><tr><td>Language model (<a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a>)</td><td>~20 GB</td><td>not measured</td><td>As stage 1.</td><td>NVIDIA, AMD, Apple Silicon, Intel GPUs, any Vulkan GPU, processor only (llama.cpp)</td></tr><tr><td>Vision language model (<a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a> + its vision add-on)</td><td>~21 GB</td><td>not measured</td><td>The language model plus a 0.9 GB vision add-on.</td><td>NVIDIA, AMD, Apple Silicon, Intel GPUs, any Vulkan GPU, processor only (llama.cpp)</td></tr><tr><td>Image model (<a href="https://huggingface.co/OpenMOSS-Team/MOSS-Image-SFT" target="_blank" rel="noopener">MOSS-Image</a>)</td><td>33 GB of weights</td><td>~45 s per still (DGX Spark); ~78 s (Strix Halo)</td><td>Too big for a 24 GB card; this project never moves models to slower CPU memory.</td><td>NVIDIA, AMD (ROCm). Not Apple Silicon yet: one line of its code uses a number type Apple GPUs lack</td></tr><tr><td>Image editing model (<a href="https://huggingface.co/Qwen/Qwen-Image-Edit-2511" target="_blank" rel="noopener">Qwen-Image-Edit 2511</a> + <a href="https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning" target="_blank" rel="noopener">Lightning</a> speed-up)</td><td>67 GB at peak</td><td>~24 s per still (DGX Spark); ~33 s (M5 Max)</td><td>Needs a 128 GB unified-memory machine.</td><td>NVIDIA, Apple Silicon</td></tr></tbody></table></div></div>
 </article>
 <article class="stage" id="stage-5">
   <header class="st-h"><i>5</i><div><h3>Design the video scenes</h3><p>The directors decide the story and the shots</p></div></header>
-  <div class="st-io st-in"><div class="lbl">In</div><ul><li class=""><b>Timed lyrics, beats, drum runs</b></li><li class=""><b>Video brief</b></li><li class=""><b>The chosen universe</b></li><li class="av"><b>Singer description</b></li></ul></div>
+  <div class="st-io st-in"><div class="lbl">In</div><ul><li><b>Timed lyrics, beats, drum runs</b></li><li><b>Video brief</b></li><li><b>The chosen universe</b></li><li><b>Singer description</b></li></ul></div>
   <div class="st-arrow" aria-hidden="true"></div>
   <div class="lbl">Steps · technology</div>
   <ul class="fsteps"><li><span class="fdo">Agree a story of 4&ndash;8 scenes; where the singer appears and sings; a shot for every line, and one every 6&ndash;8 s of instrumental (the directors)</span><span class="fby">Language model (<a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a>)</span></li><li><span class="fdo">Write a picture description for every shot, with the whole lyric and the previous line in mind</span><span class="fby">Language model (<a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a>)</span></li></ul>
   <div class="st-arrow" aria-hidden="true"></div>
-  <div class="st-io st-out"><div class="lbl">Out</div><ul><li class=""><b>The story</b><span>to your review</span></li><li class=""><b>Shot list: per shot, its time, picture description, and whether the singer sings</b></li></ul></div>
+  <div class="st-io st-out"><div class="lbl">Out</div><ul><li><b>The story</b><span>to your review</span></li><li><b>Shot list: per shot, its time, picture description, and whether the singer sings</b></li></ul></div>
   <div class="st-needs"><div class="lbl">Hardware</div><div class="hwt-scroll"><table class="hwt"><thead><tr><th>What runs</th><th>Memory</th><th>Time (measured)</th><th>Why</th><th>Known supported architectures</th></tr></thead><tbody><tr><td>Language model (<a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a>)</td><td>~20 GB</td><td>not measured</td><td>As stage 1. Fits a 24 GB RTX 4090.</td><td>NVIDIA, AMD, Apple Silicon, Intel GPUs, any Vulkan GPU, processor only (llama.cpp)</td></tr></tbody></table></div></div>
 </article>
 <article class="stage" id="stage-6">
   <header class="st-h"><i>6</i><div><h3>Create key frames</h3><p>One still per shot, checked before any video is made</p></div></header>
-  <div class="st-io st-in"><div class="lbl">In</div><ul><li class=""><b>Shot list</b></li><li class=""><b>The chosen universe</b></li><li class="av"><b>Avatar still</b></li></ul></div>
+  <div class="st-io st-in"><div class="lbl">In</div><ul><li><b>Shot list</b></li><li><b>The chosen universe</b></li><li><b>Avatar still</b></li></ul></div>
   <div class="st-arrow" aria-hidden="true"></div>
   <div class="lbl">Steps · technology</div>
   <ul class="fsteps"><li><span class="fdo">Draw the shots without the singer, from the description alone</span><span class="fby">Image model (<a href="https://huggingface.co/OpenMOSS-Team/MOSS-Image-SFT" target="_blank" rel="noopener">MOSS-Image</a>)</span></li><li><span class="fdo">Draw the shots with the singer, from the avatar still and the description</span><span class="fby">Image editing model (<a href="https://huggingface.co/Qwen/Qwen-Image-Edit-2511" target="_blank" rel="noopener">Qwen-Image-Edit 2511</a> + <a href="https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning" target="_blank" rel="noopener">Lightning</a> speed-up)</span></li><li><span class="fdo">Flag blank or flat stills (the checkers)</span><span class="fby">Image library (<a href="https://opencv.org" target="_blank" rel="noopener">OpenCV</a>): brightness and contrast</span></li><li><span class="fdo">Flag a stranger's face in the singer's shots (the checkers)</span><span class="fby">Face detector (<a href="https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet" target="_blank" rel="noopener">YuNet</a>) + face matcher (<a href="https://github.com/opencv/opencv_zoo/tree/main/models/face_recognition_sface" target="_blank" rel="noopener">SFace</a>), against the avatar still</span></li><li><span class="fdo">Flag impossible hands, people and objects (the checkers)</span><span class="fby">Vision language model (<a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a> + its vision add-on), asked questions with countable answers</span></li><li><span class="fdo">Redraw flagged stills, up to 3 times</span><span class="fby">The same image models</span></li></ul>
   <div class="st-arrow" aria-hidden="true"></div>
-  <div class="st-io st-out"><div class="lbl">Out</div><ul><li class=""><b>Keyframes: one still per shot</b></li><li class=""><b>Storyboard sheet</b><span>to your review</span></li></ul></div>
+  <div class="st-io st-out"><div class="lbl">Out</div><ul><li><b>Keyframes: one still per shot</b></li><li><b>Storyboard sheet</b><span>to your review</span></li></ul></div>
   <div class="st-needs"><div class="lbl">Hardware</div><div class="hwt-scroll"><table class="hwt"><thead><tr><th>What runs</th><th>Memory</th><th>Time (measured)</th><th>Why</th><th>Known supported architectures</th></tr></thead><tbody><tr><td>Image models (as stage 4)</td><td>33&ndash;67 GB</td><td>as stage 4, for each of 20&ndash;60 stills</td><td>Needs a 128 GB unified-memory machine.</td><td>MOSS-Image: NVIDIA, AMD (ROCm). Qwen-Image-Edit: NVIDIA, Apple Silicon</td></tr><tr><td>Face detector + matcher</td><td>0.5 GB (runs on the processor)</td><td>&mdash;</td><td>Tiny models.</td><td>Processor: x86, ARM, macOS</td></tr><tr><td>Vision language model (<a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a> + its vision add-on)</td><td>~21 GB</td><td>not measured</td><td>As stage 4.</td><td>NVIDIA, AMD, Apple Silicon, Intel GPUs, any Vulkan GPU, processor only (llama.cpp)</td></tr></tbody></table></div></div>
 </article>
 <article class="stage" id="stage-7">
   <header class="st-h"><i>7</i><div><h3>Create the scenes</h3><p>The stills become one continuous take; the singing clips are made</p></div></header>
-  <div class="st-io st-in"><div class="lbl">In</div><ul><li class=""><b>Keyframes</b></li><li class=""><b>Shot list</b></li><li class=""><b>Beats and downbeats</b></li><li class="stem"><b>Vocal stem</b></li><li class="av"><b>Singer description</b></li></ul></div>
+  <div class="st-io st-in"><div class="lbl">In</div><ul><li><b>Keyframes</b></li><li><b>Shot list</b></li><li><b>Beats and downbeats</b></li><li><b>Vocal stem</b></li><li><b>Singer description</b></li></ul></div>
   <div class="st-arrow" aria-hidden="true"></div>
   <div class="lbl">Steps · technology</div>
   <ul class="fsteps"><li><span class="fdo">Write how each still turns into the next as a physical event, in action words</span><span class="fby">Language model (<a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a>)</span></li><li><span class="fdo">Animate each clip from the previous clip's last frame towards the next still</span><span class="fby">Video model (<a href="https://huggingface.co/Lightricks/LTX-2.5" target="_blank" rel="noopener">LTX-2.5 distilled</a>)</span></li><li><span class="fdo">Make each change of scene a morph, not a fade</span><span class="fby">Morph add-on for the video model (<a href="https://huggingface.co/valiantcat/LTX-2.3-Transition-LORA" target="_blank" rel="noopener">LTX-2.3 Transition LoRA</a>)</span></li><li><span class="fdo">Make the singer sing the sung lines, from the vocal stem and that shot's still</span><span class="fby">Lip-sync model (<a href="https://github.com/MeiGen-AI/InfiniteTalk" target="_blank" rel="noopener">InfiniteTalk int8</a>, built on <a href="https://huggingface.co/Wan-AI/Wan2.1-I2V-14B-480P" target="_blank" rel="noopener">Wan 2.1</a>)</span></li></ul>
   <div class="st-arrow" aria-hidden="true"></div>
-  <div class="st-io st-out"><div class="lbl">Out</div><ul><li class=""><b>Every frame of the take</b></li><li class=""><b>Where each change of still happens</b></li><li class=""><b>Singing clips</b></li></ul></div>
+  <div class="st-io st-out"><div class="lbl">Out</div><ul><li><b>Every frame of the take</b></li><li><b>Where each change of still happens</b></li><li><b>Singing clips</b></li></ul></div>
   <div class="st-needs"><div class="lbl">Hardware</div><div class="hwt-scroll"><table class="hwt"><thead><tr><th>What runs</th><th>Memory</th><th>Time (measured)</th><th>Why</th><th>Known supported architectures</th></tr></thead><tbody><tr><td>Language model (<a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a>)</td><td>~20 GB</td><td>not measured</td><td>As stage 1.</td><td>NVIDIA, AMD, Apple Silicon, Intel GPUs, any Vulkan GPU, processor only (llama.cpp)</td></tr><tr><td>Video model</td><td>68 GB of weights</td><td>1.0&ndash;1.3 s per frame (DGX Spark), about 2 h for a 4-minute song; 1.25&ndash;1.6 s (M5 Max); ~2 s (Strix Halo)</td><td>42 GB video model + 26 GB text reader: needs a 128 GB unified-memory machine.</td><td>NVIDIA, AMD (ROCm), Apple Silicon. Not processor only</td></tr><tr><td>Lip-sync model, int8</td><td>24.1 GB at peak</td><td>~62 s per second of video (RTX 4090)</td><td>Just fits a 24 GB card.</td><td>NVIDIA, AMD (ROCm, with compatibility fixes). Not Apple Silicon yet: it needs NVIDIA-only libraries</td></tr><tr><td>Lip-sync model, full precision</td><td>more than 24 GB</td><td>~2.4 min per second of video (DGX Spark)</td><td>More than a 24 GB card holds.</td><td>NVIDIA, AMD (ROCm, with compatibility fixes). Not Apple Silicon yet: it needs NVIDIA-only libraries</td></tr></tbody></table></div></div>
 </article>
 <article class="stage" id="stage-8">
   <header class="st-h"><i>8</i><div><h3>Assemble the video</h3><p>On the beat, singing cut in, colour, sound</p></div></header>
-  <div class="st-io st-in"><div class="lbl">In</div><ul><li class=""><b>Frames, change points, singing clips</b></li><li class=""><b>Song (audio)</b></li><li class=""><b>Beats, drum runs</b></li><li class=""><b>Shot list</b></li></ul></div>
+  <div class="st-io st-in"><div class="lbl">In</div><ul><li><b>Frames, change points, singing clips</b></li><li><b>Song (audio)</b></li><li><b>Beats, drum runs</b></li><li><b>Shot list</b></li></ul></div>
   <div class="st-arrow" aria-hidden="true"></div>
   <div class="lbl">Steps · technology</div>
   <ul class="fsteps"><li><span class="fdo">Put each morph on its downbeat: find the frame halfway through the change, then delete or repeat frames around it until that frame lands on the downbeat (no new frames are made)</span><span class="fby">Maths library (<a href="https://numpy.org" target="_blank" rel="noopener">numpy</a>), image library (<a href="https://python-pillow.org" target="_blank" rel="noopener">PIL</a>)</span></li><li><span class="fdo">Cut the singing clips in where shots change</span><span class="fby">Video tool (<a href="https://ffmpeg.org" target="_blank" rel="noopener">ffmpeg</a>)</span></li><li><span class="fdo">Set the colour, reduce glare, add flashes of light on the drum runs</span><span class="fby">Image library (<a href="https://opencv.org" target="_blank" rel="noopener">OpenCV</a>) + maths library (<a href="https://numpy.org" target="_blank" rel="noopener">numpy</a>)</span></li><li><span class="fdo">Encode the video and add the song</span><span class="fby">Video tool (<a href="https://ffmpeg.org" target="_blank" rel="noopener">ffmpeg</a>)</span></li></ul>
   <div class="st-arrow" aria-hidden="true"></div>
-  <div class="st-io st-out"><div class="lbl">Out</div><ul><li class=""><b>The music video</b></li></ul></div>
+  <div class="st-io st-out"><div class="lbl">Out</div><ul><li><b>The music video</b></li></ul></div>
   <div class="st-needs"><div class="lbl">Hardware</div><div class="hwt-scroll"><table class="hwt"><thead><tr><th>What runs</th><th>Memory</th><th>Time (measured)</th><th>Why</th><th>Known supported architectures</th></tr></thead><tbody><tr><td>Video tool and image libraries</td><td>no GPU (runs on the processor)</td><td>~6 min per 4-minute song</td><td>No AI models in this stage.</td><td>Processor: x86, ARM, macOS</td></tr></tbody></table></div></div>
 </article>
 </section>
