@@ -139,10 +139,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; }
 .strip > div { padding: 12px 14px; min-width: 0; }
 .num { display: grid; place-items: center; font: 700 22px/1 var(--display); color: var(--paper); }
-.strip.a .num { background: var(--amber); } .strip.o .num { background: var(--offline); } .strip.s .num { background: var(--shared); }
-.strip.a .what { background: linear-gradient(90deg, var(--amber-soft), transparent 70%); }
-.strip.o .what { background: linear-gradient(90deg, var(--offline-soft), transparent 70%); }
-.strip.s .what { background: linear-gradient(90deg, var(--shared-soft), transparent 70%); }
+.strip .num { background: var(--ink); }
 .what h3 { margin: 0 0 4px; font: 600 18px/1.15 var(--display); letter-spacing: .01em; }
 .what p { margin: 0; font-size: 14px; }
 .what .src { display: block; margin-top: 6px; font: 12px var(--mono); color: var(--muted); }
@@ -244,11 +241,6 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
   <h1>Prompt to music video</h1>
   <p class="lede">One line of text in, a finished music video out, with an AI singer appearing and singing on camera. The plan blends the two AI workflows that have each worked on their own: the <strong>Amber + creative-director panel</strong> workflow (a fictional panel of directors plans a story around the singer), and the more conventional <strong>Offline</strong> workflow (one picture description per lyric line, scenes that morph into each other, a strong black-and-white look).</p>
   <div class="status"><b>Hypothetical</b><span>Every step below has been run on its own, but nothing has yet gone from a prompt to a finished video with the singer in one pass. The Offline workflow has gone from lyrics to video with a generated song; the Amber videos so far all started from a real song.</span></div>
-  <div class="legend">
-    <span><i class="sw a"></i>From the Amber + directors workflow</span>
-    <span><i class="sw o"></i>From the Offline workflow</span>
-    <span><i class="sw s"></i>Shared by both</span>
-  </div>
 </header>
 
 
@@ -384,7 +376,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 <div class="phase">
   <div class="phase-h"><h2>Create the song</h2><p>Lyrics and a music style from the prompt</p></div>
   <div class="board">
-    <div class="strip a">
+    <div class="strip">
       <div class="num">1</div>
       <div class="what"><h3>Songwriters' workshop</h3><p>Three fictional songwriters (Nashville craft, pop melody, singer-songwriter) agree an angle, title, hook and music, draft chorus and verses, and cut each other's clichés. Checked against the song form and retried if it doesn't fit.</p><span class="src"><a href="https://github.com/boxabirds/poptok/blob/main/pipeline/songwriters.py" target="_blank" rel="noopener">pipeline/songwriters.py</a></span></div>
       <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Language model (<a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a>)</span><span class="chip">LLM server (<a href="https://github.com/ggml-org/llama.cpp" target="_blank" rel="noopener">llama-server</a>)</span></div><div class="box">gruntus · 4090</div></div>
@@ -397,7 +389,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 <div class="phase">
   <div class="phase-h"><h2>Record (generate) the song</h2><p>Sung takes; the clearest kept</p></div>
   <div class="board">
-    <div class="strip o">
+    <div class="strip">
       <div class="num">2</div>
       <div class="what"><h3>Sing the song</h3><p>Several takes from the lyrics and the music style. Whisper transcribes each take; the one whose sung words it understands best is kept. Length set by the song, not a fixed 150 s.</p><span class="src"><a href="https://github.com/boxabirds/poptok/blob/main/pipeline/ace_gen.py" target="_blank" rel="noopener">pipeline/ace_gen.py</a> · <a href="https://github.com/boxabirds/poptok/blob/main/pipeline/ace_score.py" target="_blank" rel="noopener">ace_score.py</a> · <a href="https://github.com/boxabirds/poptok/blob/main/bin/make_song.sh" target="_blank" rel="noopener">bin/make_song.sh</a></span></div>
       <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Music model (<a href="https://huggingface.co/ACE-Step/acestep-v15-xl-sft" target="_blank" rel="noopener">ACE-Step 1.5 xl-sft</a>)</span><span class="chip">Speech recogniser (<a href="https://github.com/openai/whisper" target="_blank" rel="noopener">Whisper</a>)</span></div><div class="box">gruntus · acestep image</div></div>
@@ -410,13 +402,13 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 <div class="phase">
   <div class="phase-h"><h2>Disassemble the song</h2><p>Stems, and every word and beat on the song's clock</p></div>
   <div class="board">
-    <div class="strip s">
+    <div class="strip">
       <div class="num">3</div>
       <div class="what"><h3>Stems, tempo and transcript</h3><p>Split the song into vocals, drums, bass and other. Tempo from the drum stem. A word-timed transcript of the vocal.</p><span class="src"><a href="https://github.com/boxabirds/poptok/blob/main/pipeline/analyse.py" target="_blank" rel="noopener">pipeline/analyse.py</a></span></div>
       <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Stem splitter (<a href="https://github.com/facebookresearch/demucs" target="_blank" rel="noopener">Demucs</a>)</span><span class="chip">Audio analysis (<a href="https://librosa.org/doc/latest/index.html" target="_blank" rel="noopener">librosa</a>)</span><span class="chip">Speech recogniser (<a href="https://github.com/linto-ai/whisper-timestamped" target="_blank" rel="noopener">whisper-timestamped</a>)</span></div><div class="box">gruntus · analysis image</div></div>
       <div class="out"><div class="lbl">Hands on</div><ul><li>*-vocals / drums / bass / other.mp3</li><li>*-medium.json (words)</li><li>metadata.json (tempo)</li></ul></div>
     </div>
-    <div class="strip s">
+    <div class="strip">
       <div class="num">4</div>
       <div class="what"><h3>Lyrics aligned, beats, drum runs</h3><p>The known lyrics force-aligned to the vocal stem, so stacked choruses still get times. Beats and downbeats for cuts. Runs of deep drum hits for light bursts, and so the directors know where they are.</p><span class="src"><a href="https://github.com/boxabirds/poptok/blob/main/pipeline/force_align.py" target="_blank" rel="noopener">force_align.py</a> · <a href="https://github.com/boxabirds/poptok/blob/main/pipeline/beat_grid.py" target="_blank" rel="noopener">beat_grid.py</a> · <a href="https://github.com/boxabirds/poptok/blob/main/pipeline/drum_hits.py" target="_blank" rel="noopener">drum_hits.py</a></span></div>
       <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Lyric aligner (<a href="https://docs.pytorch.org/audio/stable/tutorials/ctc_forced_alignment_api_tutorial.html" target="_blank" rel="noopener">MMS aligner (wav2vec2)</a>)</span><span class="chip">Audio library (<a href="https://docs.pytorch.org/audio/stable/" target="_blank" rel="noopener">torchaudio</a>)</span><span class="chip">Audio analysis (<a href="https://librosa.org/doc/latest/index.html" target="_blank" rel="noopener">librosa</a>)</span></div><div class="box">gruntus · m2v-pre image</div></div>
@@ -429,7 +421,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 <div class="phase">
   <div class="phase-h"><h2>Create the singer / actor</h2><p>The singer drawn from the avatar still, in the medium the whole video is made of</p></div>
   <div class="board">
-    <div class="strip a">
+    <div class="strip">
       <div class="num">5</div>
       <div class="what"><h3>Universe step</h3><p>The medium every frame is made of, chosen from a sheet before the directors meet, so they plan for a known medium: 14 candidates (open ideas and the song's central image), 3 picks drawn on 2 test shots with Amber in them, from the avatar still. This is where the singer's look is settled.</p><span class="src"><a href="https://github.com/boxabirds/poptok/blob/main/pipeline/universe.py" target="_blank" rel="noopener">pipeline/universe.py</a></span></div>
       <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Language model (<a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a>)</span><span class="chip">Image model (<a href="https://huggingface.co/OpenMOSS-Team/MOSS-Image-SFT" target="_blank" rel="noopener">MOSS-Image</a>)</span><span class="chip">Image editing model (<a href="https://huggingface.co/Qwen/Qwen-Image-Edit-2511" target="_blank" rel="noopener">Qwen-Image-Edit</a>)</span></div><div class="box">gruntus → Sparks</div></div>
@@ -442,13 +434,13 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 <div class="phase">
   <div class="phase-h"><h2>Design the video scenes</h2><p>The directors decide the story and the shots</p></div>
   <div class="board">
-    <div class="strip a">
+    <div class="strip">
       <div class="num">6</div>
       <div class="what"><h3>Directors' workshop</h3><p>Three fictional directors (handmade, observational, graphic) read the timed lyrics, the brief, the avatar's description, the chosen universe and what the machine can draw. They agree a story of 4–8 scenes, where Amber appears and where she sings, and a shot for every line plus one every 6–8 s of instrumental. A plausibility pass removes shots no camera could see.</p><span class="src"><a href="https://github.com/boxabirds/poptok/blob/main/pipeline/workshop.py" target="_blank" rel="noopener">pipeline/workshop.py</a></span></div>
       <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Language model (<a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a>)</span><span class="chip">LLM server (<a href="https://github.com/ggml-org/llama.cpp" target="_blank" rel="noopener">llama-server</a>)</span></div><div class="box">gruntus · GPU lock</div></div>
       <div class="out"><div class="lbl">Hands on</div><ul><li>story.md · workshop.md</li><li>lyrics-cued.txt (none / pov / part / scene / sing)</li></ul></div>
     </div>
-    <div class="strip o">
+    <div class="strip">
       <div class="num">7</div>
       <div class="what"><h3>One prompt per line</h3><p>An image prompt for every line and instrumental slot, written with the whole lyric and the previous line as context, the universe style leading every prompt. This is the Offline C6 method (from music2vid), which kept consecutive shots in one world.</p><span class="src"><a href="https://github.com/boxabirds/poptok/blob/main/pipeline/prompts_per_line.py" target="_blank" rel="noopener">pipeline/prompts_per_line.py</a> · <a href="https://github.com/boxabirds/poptok/blob/main/pipeline/treatment.py" target="_blank" rel="noopener">treatment.py</a></span></div>
       <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Language model (<a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a>)</span></div><div class="box">gruntus</div></div>
@@ -462,13 +454,13 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 <div class="phase">
   <div class="phase-h"><h2>Create key frames</h2><p>One still per shot, checked before any video</p></div>
   <div class="board">
-    <div class="strip s">
+    <div class="strip">
       <div class="num">8</div>
       <div class="what"><h3>Keyframes</h3><p>Shots without Amber are drawn from words alone. Shots with her are drawn from the avatar still and the shot's words, in the universe's medium, with her expression named.</p><span class="src"><a href="https://github.com/boxabirds/poptok/blob/main/pipeline/keyframes.py" target="_blank" rel="noopener">pipeline/keyframes.py</a> · <a href="https://github.com/boxabirds/poptok/blob/main/pipeline/amber_keys.py" target="_blank" rel="noopener">amber_keys.py</a></span></div>
       <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Image model (<a href="https://huggingface.co/OpenMOSS-Team/MOSS-Image-SFT" target="_blank" rel="noopener">MOSS-Image</a>)</span><span class="chip">Image editing model (<a href="https://huggingface.co/Qwen/Qwen-Image-Edit-2511" target="_blank" rel="noopener">Qwen-Image-Edit-2511</a>)</span><span class="chip">Speed-up add-on (<a href="https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning" target="_blank" rel="noopener">Lightning 8-step</a>)</span></div><div class="box">thing1 · thing2 · tritus</div></div>
       <div class="out"><div class="lbl">Hands on</div><ul><li>keys/shot_NNN.png</li></ul></div>
     </div>
-    <div class="strip a">
+    <div class="strip">
       <div class="num">9</div>
       <div class="what"><h3>Still check</h3><p>Flags blank stills, a stranger in Amber's shots (face recognition against the avatar still), and impossible anatomy or objects (a vision LLM asked countable questions). Flagged stills are re-rolled up to 3 times; near-duplicate scenes are merged.</p><span class="src"><a href="https://github.com/boxabirds/poptok/blob/main/pipeline/check_keys.py" target="_blank" rel="noopener">check_keys.py</a> · <a href="https://github.com/boxabirds/poptok/blob/main/pipeline/critic.py" target="_blank" rel="noopener">critic.py</a> · <a href="https://github.com/boxabirds/poptok/blob/main/pipeline/merge_scenes.py" target="_blank" rel="noopener">merge_scenes.py</a></span></div>
       <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Face detector (<a href="https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet" target="_blank" rel="noopener">YuNet</a>) + face matcher (<a href="https://github.com/opencv/opencv_zoo/tree/main/models/face_recognition_sface" target="_blank" rel="noopener">SFace</a>)</span><span class="chip">Vision language model (<a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8</a>)</span></div><div class="box">gruntus</div></div>
@@ -482,19 +474,19 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 <div class="phase">
   <div class="phase-h"><h2>Create the scenes</h2><p>The stills become one continuous take; the singing clips are made</p></div>
   <div class="board">
-    <div class="strip o">
+    <div class="strip">
       <div class="num">10</div>
       <div class="what"><h3>Transitions as events</h3><p>For each change of still, the LLM writes how A becomes B as a physical event in action words (a door bursts open, smoke whips through). A quiet A→B cross-fades instead of morphing. Changes inside one scene are written as camera moves.</p><span class="src"><a href="https://github.com/boxabirds/poptok/blob/main/pipeline/scenes.py" target="_blank" rel="noopener">pipeline/scenes.py</a> (TRANSITION)</span></div>
       <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Language model (<a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noopener">Qwen3.8-27B</a>)</span></div><div class="box">gruntus</div></div>
       <div class="out"><div class="lbl">Hands on</div><ul><li>scenes.json</li></ul></div>
     </div>
-    <div class="strip o">
+    <div class="strip">
       <div class="num">11</div>
       <div class="what"><h3>Video chain</h3><p>Each clip starts from the previous clip's last frame and is guided to the next still, so the film is one take. Each change is asked to happen on a downbeat; LTX gets close, and the assembly step corrects the rest.</p><span class="src"><a href="https://github.com/boxabirds/poptok/blob/main/pipeline/ltx_chain.py" target="_blank" rel="noopener">pipeline/ltx_chain.py</a></span></div>
       <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Video model (<a href="https://huggingface.co/Lightricks/LTX-2.5" target="_blank" rel="noopener">LTX-2.5 distilled</a>)</span><span class="chip">Morph add-on (<a href="https://huggingface.co/valiantcat/LTX-2.3-Transition-LORA" target="_blank" rel="noopener">LTX-2.3 Transition LoRA</a>)</span></div><div class="box">thing1 / thing2 · quintus</div></div>
       <div class="out"><div class="lbl">Hands on</div><ul><li>ltx_chain/%05d.png</li></ul></div>
     </div>
-    <div class="strip a">
+    <div class="strip">
       <div class="num">12</div>
       <div class="what"><h3>Lip-sync inserts</h3><p>Each run of shots cued "sing" becomes one clip of Amber singing, driven by the vocal stem for exactly that stretch and starting from that run's keyframe (drawn from the avatar). The clips are spliced in when the video is assembled.</p><span class="src"><a href="https://github.com/boxabirds/poptok/blob/main/pipeline/sing_inserts.py" target="_blank" rel="noopener">sing_inserts.py</a> · <a href="https://github.com/boxabirds/poptok/blob/main/bin/infinitetalk_quant.sh" target="_blank" rel="noopener">bin/infinitetalk_quant.sh</a></span></div>
       <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Lip-sync model (<a href="https://github.com/MeiGen-AI/InfiniteTalk" target="_blank" rel="noopener">InfiniteTalk int8</a>)</span><span class="chip">Base video model (<a href="https://huggingface.co/Wan-AI/Wan2.1-I2V-14B-480P" target="_blank" rel="noopener">Wan 2.1 base</a>)</span></div><div class="box">thing1 · thing2 · gruntus</div></div>
@@ -507,7 +499,7 @@ h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--display); margin: 0; letter-spacin
 <div class="phase">
   <div class="phase-h"><h2>Assemble the video</h2><p>Sync, splice, grade, mux</p></div>
   <div class="board">
-    <div class="strip s">
+    <div class="strip">
       <div class="num">13</div>
       <div class="what"><h3>Retime, splice and finish</h3><p>Sync to the beat by deleting or duplicating frames: each transition's halfway frame is found, and frames around it are dropped or repeated until it falls on its downbeat. No frames are interpolated, so a big correction can show as a small stutter or jump. The singing clips are cut in on shot boundaries. Grade (the Offline black-and-white look, or the universe's), deflare, light bursts on the drum runs, song muxed in. No beat pulse for R.Amber.</p><span class="src"><a href="https://github.com/boxabirds/poptok/blob/main/pipeline/retime_to_beats.py" target="_blank" rel="noopener">retime_to_beats.py</a> · <a href="https://github.com/boxabirds/poptok/blob/main/pipeline/sing_inserts.py" target="_blank" rel="noopener">sing_inserts.py</a> splice · <a href="https://github.com/boxabirds/poptok/blob/main/pipeline/finish.py" target="_blank" rel="noopener">finish.py</a></span></div>
       <div class="tech"><div class="lbl">Technology</div><div class="chips"><span class="chip">Video tool (<a href="https://ffmpeg.org" target="_blank" rel="noopener">ffmpeg</a>)</span><span class="chip">Maths library (<a href="https://numpy.org" target="_blank" rel="noopener">numpy</a>) + image library (<a href="https://opencv.org" target="_blank" rel="noopener">OpenCV</a>)</span></div><div class="box">gruntus</div></div>
