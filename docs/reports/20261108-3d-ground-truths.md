@@ -23,8 +23,14 @@ The prompt-only pipeline ("AI") draws each shot's keyframe separately, so:
 
 The question: if a 3D model of the place (and of her body) fixes geometry, camera and motion, can an AI video model
 supply only the *look*, so that every shot is the same place, the camera does exactly what was planned, and she stays
-her? The user's prompt for the idea was Matrix-Game 4.0 (matrix-game-v4-0.github.io): a deliberately plain 3D proxy
-plus a renderer fine-tuned on that one world.
+her? The user's prompt for the idea was **Matrix-Game 4.0** by Skywork AI (released 15–16 October 2026; code MIT,
+weights Apache 2.0): a deliberately plain 3D proxy (flat colours, one per kind of thing) plus a renderer fine-tuned on
+that one world, so consistency comes from the trained renderer, not from painted textures. Sources: the
+[project page](https://matrix-game-v4-0.github.io/page/), the
+[GitHub README](https://github.com/SkyworkAI/Matrix-Game/tree/main/Matrix-Game-4) and
+[architecture notes](https://github.com/SkyworkAI/Matrix-Game/blob/main/Matrix-Game-4/docs/architecture.md), the
+[weights](https://huggingface.co/Skywork/Matrix-Game-4.0). Its recipe was adopted from round 5 on: the flat-colour
+proxy in `flat_layout.py` and the per-world LoRA.
 
 ## 2. Hypotheses
 
