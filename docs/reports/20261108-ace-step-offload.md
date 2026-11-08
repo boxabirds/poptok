@@ -64,15 +64,25 @@ We compared songs with and without ACE-Step's planner on the RTX 4090
 
 (Percentage: share of the 353 lyric words that a speech recogniser, Whisper, heard in the right order.)
 
-- **The planner runs were offloaded.** XL plus the 4B planner doesn't fit in 24 GB. The planner runs' own log wasn't
-  kept, but the same script with the same 4B planner on the same card that morning
-  (`pieces/offline/outputs/songs/loop/r01/ace.log`, 10:29) logs "Offloading LLM to CPU" and
-  "offload_to_cpu=True". Our script then had offloading on; the no-offload rule came at 17:29 that day.
+- **The planner runs were offloaded.** The planner runs' own log wasn't kept, but the same script with the same 4B
+  planner on the same card that morning (`pieces/offline/outputs/songs/loop/r01/ace.log`, 10:29) logs "Offloading LLM
+  to CPU" and "offload_to_cpu=True". Our script then had offloading on; the no-offload rule came at 17:29 that day.
+- **The offloading wasn't needed.** Two days later the Unrequited song ran XL plus the 4B planner on the same 4090
+  with offloading off (`pieces/unrequited/outputs/song-song/ace.log`, 25 October):
+  - two songs, 195 s and 175 s long, in 49 s and 43 s each, faster than the offloaded 59–64 s;
+  - the log says "Offload to CPU: False" and has no offloading lines;
+  - about 19 GB was in use, with 4.2–4.4 GB left for the music step;
+  - a third take, which the planner made 245 s long, needed ~4.6 GB, failed the memory check and stopped instead of
+    offloading.
+
+  So on a 24 GB card the limit is song length, roughly 3½ minutes with this setup. We believed it didn't fit, and so
+  did ACE-Step's launcher, which would have switched offloading on. Neither was checked against a run. That is this
+  report's point in miniature.
 - **The quality results stand.** Offloading changes speed, not the sound.
-- **The times with the planner don't.** They include the swapping (about 5 s each time the planner moves out), so
-  they are slower than a machine where everything fits, and can't be repeated under our rules.
+- **The times with the planner don't.** They include the swapping (about 5 s each time the planner moves out). The
+  Unrequited times (43–49 s) are the ones to use.
 - **Two setups have never been measured without offloading:**
-  - 2B plus the 4B planner on the 4090. On paper it fits: about 5 GB plus about 8 GB.
+  - 2B plus the 4B planner on the 4090. It should fit with room to spare, since XL plus the planner fits.
   - XL plus the 4B planner on a 128 GB machine. There's no ACE-Step container for the DGX Sparks' ARM processors yet.
 
 ## What we should do
@@ -83,8 +93,9 @@ We compared songs with and without ACE-Step's planner on the RTX 4090
    - if it doesn't fit, refuse and say which machine it would fit on.
 2. **Remove `ace_gen.py`'s `--offload` flag,** so offloading can't be switched on by accident.
 3. **Never use ACE-Step's launcher for measurements.** It decides about offloading for you.
-4. **Measure the two missing setups without offloading:** 2B plus the planner on the 4090, and XL plus the planner on a
-   Spark once an ARM container exists.
+4. **Measure the missing setups without offloading:** 2B plus the planner on the 4090; XL plus the planner on a Spark
+   once an ARM container exists; and, for songs over ~3½ minutes on a 24 GB card, the 1.7B planner (about 4.6 GB
+   smaller) or the XL fast model (about half the working memory, by ACE-Step's own table).
 5. **Generally:** any model that can offload by itself needs the same treatment: a fit check before the job, and a
    log line that says plainly "offloading: on/off".
 
