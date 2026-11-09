@@ -78,10 +78,12 @@ if need drums; then
   python3 pipeline/drum_hits.py "$ANA" "$STEM" > /dev/null; made; fi          # deep drum hits (bursts, workshop)
 # 2 lyrics
 if need segments; then
-  python3 pipeline/align_lyrics.py "$SONG" "$LYRICS" --analysis "$ANA"      # lyric timings: Whisper matching, then forced
-  analysis python pipeline/force_align.py "$SONG" "$LYRICS" --analysis "$ANA" --merge="$TAG" > "$ANA/force_align.log" 2>&1 \
-    || log "forced alignment failed ($ANA/force_align.log): keeping Whisper-matched timings"   # alignment of the known
-  made                                                                      # lyrics on the vocal stem
+  python3 pipeline/align_lyrics.py "$SONG" "$LYRICS" --analysis "$ANA"      # lyric timings: our lyrics on Whisper's word times
+  if [ -n "${FORCE_ALIGN:-}" ]; then                                        # opt-in only: forced alignment no better than the
+    analysis python pipeline/force_align.py "$SONG" "$LYRICS" --analysis "$ANA" --merge="$TAG" > "$ANA/force_align.log" 2>&1 \
+      || log "forced alignment failed ($ANA/force_align.log): keeping Whisper-matched timings"   # fixed Whisper timings
+  fi                                                                        # (D50, docs/reports/20261109-lyric-timing.md)
+  made
 fi
 # --analysis-only: stop here (./poptok runs this before the directors' workshop, which needs the lyric timings)
 [ -n "$ANAONLY" ] && { [ -n "${DEPS_DRY:-}" ] || log "analysis done: $ANA"; exit 0; }

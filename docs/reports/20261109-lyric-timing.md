@@ -93,7 +93,13 @@ which lines those are.)
 - **Both together are right on 8 more lines than Whisper alone,** but only if something chooses per line. Today the
   pipeline always takes the aligner's timings, so it gets 160, not 170.
 
-## What this means
+## Decision (D50)
+
+One timing method: Whisper on the vocal stem, with the fix. The forced aligner is no longer run by default
+(`FORCE_ALIGN=1` in `bin/make_video.sh` turns it back on). Most of both methods' large errors come from songs that
+don't sing what the lyrics file says (Unrequited's extra closing chorus), which is the next thing to fix.
+
+## What this meant before the decision
 
 1. **Whisper (fixed) should be the default.** It's as accurate as the aligner by count and fails less badly.
 2. **The aligner is worth keeping only as a second opinion,** used per line: where the two disagree by more than
