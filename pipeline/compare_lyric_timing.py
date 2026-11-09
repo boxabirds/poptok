@@ -23,6 +23,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument("out")
 ap.add_argument("pieces", nargs="+")
 ap.add_argument("--tol", type=float, default=0.3)
+ap.add_argument("--whisper", default="-true-whisper-segments.json", help="suffix of the Whisper-matched file")
 a = ap.parse_args()
 SR = 16000
 toks = lambda s: re.findall(r"[a-z0-9']+", s.lower().replace("’", "'"))
@@ -52,7 +53,7 @@ for piece in a.pieces:
     ana = Path("pieces") / piece / "analysis"
     fa = Path(glob.glob(str(ana / "*-fa-segments.json"))[0])
     stem = fa.name.removesuffix("-fa-segments.json")
-    wh = next(ana.glob(f"{stem}*-whisper-segments.json"))
+    wh = next(ana.glob(f"{stem}*{a.whisper}"))
     F, W = json.load(open(fa))["segments"], json.load(open(wh))["segments"]
     assert len(F) == len(W), (piece, len(F), len(W))
     audio = whisper.load_audio(str(ana / f"{stem}-vocals.mp3"))

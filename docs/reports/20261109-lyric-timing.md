@@ -29,7 +29,7 @@ the vocal stem to each method's time window and asks Whisper, afresh and without
 
 The referee is Whisper again, which is a bias. But it hears each clip on its own, so it can't copy its song-wide pass.
 
-## Results
+## Results (before the fix)
 
 | Song | Lines | Agree | Disagree, both fine | Aligner right | Whisper right | Neither clearly right |
 |---|---|---|---|---|---|---|
@@ -67,13 +67,40 @@ The aligner's confidence score is low on most of these, but not reliably. A rule
 at least 0.1, otherwise Whisper" picks the right one on 24 of the 31 lines where only one is right. Always using the
 aligner gets 19, and always using Whisper gets 12. With only 31 decided lines, that rule could be overfitted.
 
+## After fixing Whisper's early starts
+
+`align_lyrics.py` now corrects the stretched first word. For a word Whisper says lasts over 1 s, it looks at the vocal
+stem from the word's start to 0.5 s past its end. If there's a silence of at least 0.5 s in there, the word starts where
+the silence ends. Shorter gaps are between the syllables of a held word ("Cuckoo"), and are left alone. Whisper's
+timings for the 5 songs were made again with the fix (`*-true-whisper2-segments.json`; the pipeline's own timings were
+not touched), and the referee run again (`pieces/_bench/eval/lyric-timing/after-fix/lyric-timing.json`).
+
+| Lines right (of 180) | Before the fix | After |
+|---|---|---|
+| Whisper alone | 148 | **162** |
+| Aligner alone | 155 | 160 |
+| Best of both, line by line | 167 | **170** |
+| Neither | 13 | 10 |
+
+("Aligner alone" moves a little too, because the referee only judges lines where the two disagree, and the fix changed
+which lines those are.)
+
+- **Whisper alone is now level with the aligner, and its misses are smaller.** Its remaining misses:
+  - 6 are within 0.4–1.4 s, including two in Cuckoo that the fix made slightly worse (a held "Cuckoo", "Fall the");
+  - 2 are 13–16 s off: New Parade lines 39–40, which it didn't hear at all and spaced out between neighbours.
+- **The aligner's 10 unique misses are mostly large:** 10–20 s late at the Slippery Road outro, Unrequited lines 33 and
+  35 and the end of New Parade, where the singing departs from the written lyrics.
+- **Both together are right on 8 more lines than Whisper alone,** but only if something chooses per line. Today the
+  pipeline always takes the aligner's timings, so it gets 160, not 170.
+
 ## What this means
 
-1. **Keep both.** Most lines agree, and their failures don't overlap much. The aligner isn't a replacement for Whisper,
-   or the other way round.
-2. **Fix Whisper's long-first-word error** in `align_lyrics.py`. Once that is fixed, re-run this comparison: Whisper's
-   biggest losses all come from it.
-3. **Then choose line by line,** not by song: where the two disagree, use the one that passes a check like this
-   referee's, and flag lines that neither passes for review.
+1. **Whisper (fixed) should be the default.** It's as accurate as the aligner by count and fails less badly.
+2. **The aligner is worth keeping only as a second opinion,** used per line: where the two disagree by more than
+   0.3 s, take the one that passes the referee's check, and flag lines that pass neither (10 here, most of them in New
+   Parade's repeated outro) for review. The referee costs one short Whisper pass per disputed line (about a minute per
+   song on the RTX 4090).
+3. **Not yet done:** the pipeline still uses the aligner's timings by default (`bin/make_video.sh`, `force_align.py
+   --merge`). Switching to the per-line choice is the next step.
 4. **The design page's claim** that the aligner finds words "even where voices overlap" came from the misdiagnosis. It
    has been corrected.

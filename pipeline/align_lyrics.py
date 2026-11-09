@@ -23,6 +23,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument("song")
 ap.add_argument("lyrics")
 ap.add_argument("--analysis", default=None)
+ap.add_argument("--out", help="output file name (default <song>-true-segments.json)")
 a = ap.parse_args()
 song = Path(a.song); ana = analysis_dir(song, a.analysis)
 toks = lambda s: re.findall(r"[a-z0-9']+", s.lower().replace("’", "'"))
@@ -39,6 +40,39 @@ for seg in json.load(open(ana / f"{song.stem}-medium.json"))["segments"]:
         for t in toks(w["text"]):
             wt.append(t); wtime.append((w["start"], w["end"]))
 
+_vo = []
+
+
+def voiced() -> list[bool]:
+    """Per 0.1 s of the vocal stem: is someone singing (RMS above 10% of its loud level)? Cached."""
+    if not _vo:
+        import subprocess
+        import numpy as np
+        v = ana / f"{song.stem}-vocals.mp3"
+        x = np.frombuffer(subprocess.run(["ffmpeg", "-v", "error", "-i", str(v), "-ac", "1", "-ar", "8000", "-f", "f32le", "-"],
+                                         capture_output=True).stdout, np.float32) if v.exists() else np.zeros(1, np.float32)
+        r = np.sqrt(np.mean(x[: len(x) // 800 * 800].reshape(-1, 800) ** 2, axis=1)) if len(x) >= 800 else np.zeros(1)
+        _vo.append(list(r > 0.1 * np.percentile(r, 95)))
+    return _vo[0]
+
+
+# Whisper stretches the first word after a pause back over the silence ("The" 0.0-10.8 s at the start of unrequited,
+# the singing starting ~0.3 s after that "end"; docs/reports/20261109-lyric-timing.md). For a word over 1 s, find the
+# longest silence in the vocal stem from its start to 0.5 s past its end; if that silence lasts 0.5 s or more, the word
+# starts where it ends. Shorter gaps are between syllables of a held word ("Cuckoo"), and are left alone.
+STRETCH, SILENCE = 1.0, 5                                   # seconds; frames of 0.1 s
+for k, (ws, we) in enumerate(wtime):
+    if we - ws > STRETCH:
+        vo = voiced()
+        f0, f1 = int(ws * 10), min(int((we + 0.5) * 10), len(vo))
+        best, run = (0, None), 0
+        for f in range(f0, f1):
+            run = 0 if vo[f] else run + 1
+            if run > best[0]:
+                best = (run, f + 1)                            # f + 1: first frame after the silence so far
+        if best[0] >= SILENCE and best[1] < f1 and vo[best[1]]:
+            wtime[k] = (best[1] / 10, max(we, best[1] / 10 + 0.1))
+
 hit = [None] * len(mt)
 for b in SequenceMatcher(None, mt, wt, autojunk=False).get_matching_blocks():
     for k in range(b.size):
@@ -54,16 +88,10 @@ _ve = []
 
 
 def vocal_end() -> float:
-    """When the vocal stem last carries singing (RMS above 10% of its loud level), for trailing unheard lines."""
+    """When the vocal stem last carries singing, for trailing unheard lines."""
     if not _ve:
-        import subprocess
-        import numpy as np
-        v = ana / f"{song.stem}-vocals.mp3"
-        x = np.frombuffer(subprocess.run(["ffmpeg", "-v", "error", "-i", str(v), "-ac", "1", "-ar", "8000", "-f", "f32le", "-"],
-                                         capture_output=True).stdout, np.float32) if v.exists() else np.zeros(1, np.float32)
-        r = np.sqrt(np.mean(x[: len(x) // 800 * 800].reshape(-1, 800) ** 2, axis=1)) if len(x) >= 800 else np.zeros(1)
-        on = np.nonzero(r > 0.1 * np.percentile(r, 95))[0]
-        _ve.append(float(on[-1] + 1) * 0.1 if len(on) else 0.0)
+        on = [k for k, v in enumerate(voiced()) if v]
+        _ve.append(float(on[-1] + 1) * 0.1 if on else 0.0)
     return _ve[0]
 for i, s in enumerate(seg):                                   # place unmatched lines between matched neighbours
     if s["start"] is None:
@@ -81,7 +109,7 @@ for i, s in enumerate(seg):                                   # place unmatched 
 for i in range(len(seg) - 1):                                 # monotonic, no overlaps
     seg[i + 1]["start"] = max(seg[i + 1]["start"], seg[i]["start"])
     seg[i]["end"] = max(seg[i]["end"], seg[i]["start"])
-out = ana / f"{song.stem}-true-segments.json"
+out = ana / (a.out or f"{song.stem}-true-segments.json")
 json.dump({"source": str(a.lyrics), "segments": [{k: (round(v, 2) if isinstance(v, float) else v) for k, v in s.items()}
                                                   for s in seg]}, open(out, "w"), indent=1)
 weak = [s for s in seg if s["matched"] < 0.5]

@@ -1,0 +1,3250 @@
+[
+ {
+  "piece": "cuckoo",
+  "line": 0,
+  "text": "Silent",
+  "fa": [
+   12.13,
+   14.49
+  ],
+  "fa_score": 0.391,
+  "wh": [
+   12.2,
+   14.36
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.07,
+  "winner": "agree"
+ },
+ {
+  "piece": "cuckoo",
+  "line": 1,
+  "text": "Fall the",
+  "fa": [
+   17.91,
+   19.85
+  ],
+  "fa_score": 0.238,
+  "wh": [
+   20.6,
+   20.7
+  ],
+  "wh_matched": 0.5,
+  "diff": 2.69,
+  "fa_inside": 0.0,
+  "fa_starts": false,
+  "wh_inside": 0.0,
+  "wh_starts": false,
+  "winner": "neither"
+ },
+ {
+  "piece": "cuckoo",
+  "line": 2,
+  "text": "Paper leaves",
+  "fa": [
+   20.55,
+   23.22
+  ],
+  "fa_score": 0.383,
+  "wh": [
+   20.6,
+   23.26
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.05,
+  "winner": "agree"
+ },
+ {
+  "piece": "cuckoo",
+  "line": 3,
+  "text": "Breathing",
+  "fa": [
+   23.3,
+   27.88
+  ],
+  "fa_score": 0.369,
+  "wh": [
+   23.26,
+   26.26
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.04,
+  "winner": "agree"
+ },
+ {
+  "piece": "cuckoo",
+  "line": 4,
+  "text": "In I smell",
+  "fa": [
+   27.94,
+   29.48
+  ],
+  "fa_score": 0.338,
+  "wh": [
+   28.14,
+   29.88
+  ],
+  "wh_matched": 0.67,
+  "diff": 0.2,
+  "winner": "agree"
+ },
+ {
+  "piece": "cuckoo",
+  "line": 5,
+  "text": "The earth",
+  "fa": [
+   30.22,
+   31.0
+  ],
+  "fa_score": 0.521,
+  "wh": [
+   29.88,
+   31.26
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.34,
+  "fa_inside": 1.0,
+  "fa_starts": true,
+  "wh_inside": 1.0,
+  "wh_starts": true,
+  "winner": "both"
+ },
+ {
+  "piece": "cuckoo",
+  "line": 6,
+  "text": "And amongst the trees",
+  "fa": [
+   33.12,
+   34.78
+  ],
+  "fa_score": 0.886,
+  "wh": [
+   33.1,
+   34.82
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.02,
+  "winner": "agree"
+ },
+ {
+  "piece": "cuckoo",
+  "line": 7,
+  "text": "When I want to run",
+  "fa": [
+   34.86,
+   36.31
+  ],
+  "fa_score": 0.936,
+  "wh": [
+   34.82,
+   36.4
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.04,
+  "winner": "agree"
+ },
+ {
+  "piece": "cuckoo",
+  "line": 8,
+  "text": "The mud in my boots",
+  "fa": [
+   36.71,
+   38.35
+  ],
+  "fa_score": 0.88,
+  "wh": [
+   36.7,
+   38.4
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.01,
+  "winner": "agree"
+ },
+ {
+  "piece": "cuckoo",
+  "line": 9,
+  "text": "Holds me",
+  "fa": [
+   38.47,
+   39.25
+  ],
+  "fa_score": 0.832,
+  "wh": [
+   38.4,
+   39.78
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.07,
+  "winner": "agree"
+ },
+ {
+  "piece": "cuckoo",
+  "line": 10,
+  "text": "Back in darkening",
+  "fa": [
+   39.71,
+   43.93
+  ],
+  "fa_score": 0.66,
+  "wh": [
+   39.78,
+   42.84
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.07,
+  "winner": "agree"
+ },
+ {
+  "piece": "cuckoo",
+  "line": 11,
+  "text": "Cuckoo",
+  "fa": [
+   45.89,
+   47.67
+  ],
+  "fa_score": 0.013,
+  "wh": [
+   46.5,
+   47.16
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.61,
+  "fa_inside": 1.0,
+  "fa_starts": true,
+  "wh_inside": 0.0,
+  "wh_starts": false,
+  "winner": "fa"
+ },
+ {
+  "piece": "cuckoo",
+  "line": 12,
+  "text": "Cuckoo",
+  "fa": [
+   47.95,
+   49.19
+  ],
+  "fa_score": 0.116,
+  "wh": [
+   48.9,
+   49.0
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.95,
+  "fa_inside": 1.0,
+  "fa_starts": true,
+  "wh_inside": 0.0,
+  "wh_starts": true,
+  "winner": "both"
+ },
+ {
+  "piece": "cuckoo",
+  "line": 13,
+  "text": "Cuckoo",
+  "fa": [
+   49.21,
+   49.73
+  ],
+  "fa_score": 0.16,
+  "wh": [
+   48.94,
+   49.98
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.27,
+  "winner": "agree"
+ },
+ {
+  "piece": "cuckoo",
+  "line": 14,
+  "text": "Fly home",
+  "fa": [
+   49.88,
+   52.42
+  ],
+  "fa_score": 0.396,
+  "wh": [
+   49.98,
+   52.42
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.1,
+  "winner": "agree"
+ },
+ {
+  "piece": "cuckoo",
+  "line": 15,
+  "text": "Cuckoo",
+  "fa": [
+   52.52,
+   53.18
+  ],
+  "fa_score": 0.034,
+  "wh": [
+   54.1,
+   54.2
+  ],
+  "wh_matched": 1.0,
+  "diff": 1.58,
+  "fa_inside": 0.0,
+  "fa_starts": true,
+  "wh_inside": 0.0,
+  "wh_starts": true,
+  "winner": "both"
+ },
+ {
+  "piece": "cuckoo",
+  "line": 16,
+  "text": "Cuckoo",
+  "fa": [
+   54.1,
+   55.06
+  ],
+  "fa_score": 0.341,
+  "wh": [
+   54.26,
+   55.26
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.16,
+  "winner": "agree"
+ },
+ {
+  "piece": "cuckoo",
+  "line": 17,
+  "text": "Why can't",
+  "fa": [
+   55.2,
+   56.24
+  ],
+  "fa_score": 0.351,
+  "wh": [
+   55.7,
+   56.52
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.5,
+  "fa_inside": 1.0,
+  "fa_starts": true,
+  "wh_inside": 1.0,
+  "wh_starts": true,
+  "winner": "both"
+ },
+ {
+  "piece": "cuckoo",
+  "line": 18,
+  "text": "I come home too",
+  "fa": [
+   56.62,
+   58.58
+  ],
+  "fa_score": 0.842,
+  "wh": [
+   56.52,
+   58.82
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.1,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 0,
+  "text": "The slightest frown",
+  "fa": [
+   21.72,
+   23.08
+  ],
+  "fa_score": 0.682,
+  "wh": [
+   21.8,
+   23.2
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.08,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 1,
+  "text": "A single tear",
+  "fa": [
+   23.16,
+   24.4
+  ],
+  "fa_score": 0.783,
+  "wh": [
+   23.24,
+   24.54
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.08,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 2,
+  "text": "A breath I can’t explain",
+  "fa": [
+   24.46,
+   27.22
+  ],
+  "fa_score": 0.814,
+  "wh": [
+   24.72,
+   27.4
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.26,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 3,
+  "text": "Something shifts behind my eyes",
+  "fa": [
+   27.96,
+   31.04
+  ],
+  "fa_score": 0.715,
+  "wh": [
+   27.94,
+   31.06
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.02,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 4,
+  "text": "The merest thought of rain",
+  "fa": [
+   31.1,
+   34.49
+  ],
+  "fa_score": 0.285,
+  "wh": [
+   31.26,
+   35.54
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.16,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 5,
+  "text": "And so I walk",
+  "fa": [
+   36.77,
+   39.73
+  ],
+  "fa_score": 0.242,
+  "wh": [
+   36.38,
+   39.78
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.39,
+  "fa_inside": 1.0,
+  "fa_starts": true,
+  "wh_inside": 1.0,
+  "wh_starts": false,
+  "winner": "fa"
+ },
+ {
+  "piece": "new-parade",
+  "line": 6,
+  "text": "I walk freely",
+  "fa": [
+   40.27,
+   43.43
+  ],
+  "fa_score": 0.18,
+  "wh": [
+   40.22,
+   42.06
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.05,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 7,
+  "text": "In a new parade",
+  "fa": [
+   43.81,
+   46.79
+  ],
+  "fa_score": 0.209,
+  "wh": [
+   44.0,
+   46.7
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.19,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 8,
+  "text": "I walk freely",
+  "fa": [
+   47.32,
+   53.16
+  ],
+  "fa_score": 0.201,
+  "wh": [
+   46.8,
+   49.92
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.52,
+  "fa_inside": 0.67,
+  "fa_starts": true,
+  "wh_inside": 0.67,
+  "wh_starts": true,
+  "winner": "both"
+ },
+ {
+  "piece": "new-parade",
+  "line": 9,
+  "text": "Reaching deep into the well",
+  "fa": [
+   53.26,
+   59.96
+  ],
+  "fa_score": 0.008,
+  "wh": [
+   58.18,
+   60.58
+  ],
+  "wh_matched": 1.0,
+  "diff": 4.92,
+  "fa_inside": 0.8,
+  "fa_starts": false,
+  "wh_inside": 1.0,
+  "wh_starts": true,
+  "winner": "wh"
+ },
+ {
+  "piece": "new-parade",
+  "line": 10,
+  "text": "I throw that blackbird off my shoulder",
+  "fa": [
+   60.95,
+   63.69
+  ],
+  "fa_score": 0.85,
+  "wh": [
+   60.98,
+   63.88
+  ],
+  "wh_matched": 0.86,
+  "diff": 0.03,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 11,
+  "text": "Drag that black dog off my back",
+  "fa": [
+   64.39,
+   66.93
+  ],
+  "fa_score": 0.856,
+  "wh": [
+   64.42,
+   67.14
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.03,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 12,
+  "text": "Claw those black thoughts",
+  "fa": [
+   67.01,
+   68.77
+  ],
+  "fa_score": 0.603,
+  "wh": [
+   67.14,
+   68.8
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.13,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 13,
+  "text": "That black stain from my heart",
+  "fa": [
+   68.85,
+   71.87
+  ],
+  "fa_score": 0.778,
+  "wh": [
+   68.84,
+   71.9
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.01,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 14,
+  "text": "But some of it remains",
+  "fa": [
+   71.95,
+   74.66
+  ],
+  "fa_score": 0.656,
+  "wh": [
+   71.92,
+   75.1
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.03,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 15,
+  "text": "And I walk with what remains",
+  "fa": [
+   75.02,
+   81.32
+  ],
+  "fa_score": 0.718,
+  "wh": [
+   75.06,
+   77.96
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.04,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 16,
+  "text": "And so we walk",
+  "fa": [
+   81.36,
+   83.92
+  ],
+  "fa_score": 0.249,
+  "wh": [
+   80.78,
+   83.94
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.58,
+  "fa_inside": 0.5,
+  "fa_starts": true,
+  "wh_inside": 0.5,
+  "wh_starts": true,
+  "winner": "both"
+ },
+ {
+  "piece": "new-parade",
+  "line": 17,
+  "text": "We walk together",
+  "fa": [
+   83.98,
+   85.88
+  ],
+  "fa_score": 0.634,
+  "wh": [
+   84.04,
+   86.14
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.06,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 18,
+  "text": "In a new parade",
+  "fa": [
+   88.53,
+   91.07
+  ],
+  "fa_score": 0.125,
+  "wh": [
+   88.4,
+   91.06
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.13,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 19,
+  "text": "We walk together",
+  "fa": [
+   91.11,
+   93.03
+  ],
+  "fa_score": 0.1,
+  "wh": [
+   91.08,
+   93.28
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.03,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 20,
+  "text": "The embrace of two-ness",
+  "fa": [
+   94.65,
+   100.07
+  ],
+  "fa_score": 0.313,
+  "wh": [
+   94.64,
+   97.08
+  ],
+  "wh_matched": 0.6,
+  "diff": 0.01,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 21,
+  "text": "Three-ness",
+  "fa": [
+   103.14,
+   116.87
+  ],
+  "fa_score": 0.083,
+  "wh": [
+   97.08,
+   106.94
+  ],
+  "wh_matched": 0.0,
+  "diff": 6.06,
+  "fa_inside": 0.0,
+  "fa_starts": false,
+  "wh_inside": 0.0,
+  "wh_starts": false,
+  "winner": "neither"
+ },
+ {
+  "piece": "new-parade",
+  "line": 22,
+  "text": "Reaching out in surrender",
+  "fa": [
+   116.93,
+   119.15
+  ],
+  "fa_score": 0.199,
+  "wh": [
+   116.8,
+   119.7
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.13,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 23,
+  "text": "Maybe I’ll find hope",
+  "fa": [
+   120.41,
+   122.53
+  ],
+  "fa_score": 0.581,
+  "wh": [
+   120.56,
+   122.9
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.15,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 24,
+  "text": "Maybe I’ll find love",
+  "fa": [
+   123.97,
+   127.01
+  ],
+  "fa_score": 0.502,
+  "wh": [
+   124.14,
+   127.52
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.17,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 25,
+  "text": "But where",
+  "fa": [
+   127.53,
+   128.3
+  ],
+  "fa_score": 0.427,
+  "wh": [
+   127.52,
+   129.26
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.01,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 26,
+  "text": "Is this something I have to do",
+  "fa": [
+   129.44,
+   131.98
+  ],
+  "fa_score": 0.662,
+  "wh": [
+   129.26,
+   132.58
+  ],
+  "wh_matched": 0.86,
+  "diff": 0.18,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 27,
+  "text": "Is it my path",
+  "fa": [
+   132.72,
+   134.56
+  ],
+  "fa_score": 0.529,
+  "wh": [
+   132.88,
+   134.64
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.16,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 28,
+  "text": "Like so many say",
+  "fa": [
+   136.4,
+   139.28
+  ],
+  "fa_score": 0.912,
+  "wh": [
+   135.96,
+   139.38
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.44,
+  "fa_inside": 1.0,
+  "fa_starts": true,
+  "wh_inside": 1.0,
+  "wh_starts": true,
+  "winner": "both"
+ },
+ {
+  "piece": "new-parade",
+  "line": 29,
+  "text": "No. It’s hopeless.",
+  "fa": [
+   142.01,
+   142.95
+  ],
+  "fa_score": 0.277,
+  "wh": [
+   141.96,
+   142.96
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.05,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 30,
+  "text": "There’s no point.",
+  "fa": [
+   144.83,
+   145.57
+  ],
+  "fa_score": 0.368,
+  "wh": [
+   145.0,
+   145.58
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.17,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 31,
+  "text": "It’s your fault.",
+  "fa": [
+   148.95,
+   152.37
+  ],
+  "fa_score": 0.152,
+  "wh": [
+   149.4,
+   149.74
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.45,
+  "fa_inside": 1.0,
+  "fa_starts": true,
+  "wh_inside": 0.0,
+  "wh_starts": false,
+  "winner": "fa"
+ },
+ {
+  "piece": "new-parade",
+  "line": 32,
+  "text": "And so we march",
+  "fa": [
+   152.41,
+   155.02
+  ],
+  "fa_score": 0.099,
+  "wh": [
+   152.4,
+   155.02
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.01,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 33,
+  "text": "We march together",
+  "fa": [
+   155.08,
+   156.98
+  ],
+  "fa_score": 0.041,
+  "wh": [
+   155.28,
+   157.2
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.2,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 34,
+  "text": "In a new parade",
+  "fa": [
+   159.62,
+   162.08
+  ],
+  "fa_score": 0.136,
+  "wh": [
+   159.5,
+   162.16
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.12,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 35,
+  "text": "We march together",
+  "fa": [
+   162.22,
+   164.18
+  ],
+  "fa_score": 0.461,
+  "wh": [
+   162.22,
+   164.4
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.0,
+  "winner": "agree"
+ },
+ {
+  "piece": "new-parade",
+  "line": 36,
+  "text": "The embrace of two-ness",
+  "fa": [
+   165.74,
+   170.75
+  ],
+  "fa_score": 0.436,
+  "wh": [
+   164.4,
+   167.36
+  ],
+  "wh_matched": 0.6,
+  "diff": 1.34,
+  "fa_inside": 0.8,
+  "fa_starts": true,
+  "wh_inside": 0.8,
+  "wh_starts": false,
+  "winner": "fa"
+ },
+ {
+  "piece": "new-parade",
+  "line": 37,
+  "text": "Three-ness",
+  "fa": [
+   170.83,
+   177.29
+  ],
+  "fa_score": 0.026,
+  "wh": [
+   167.36,
+   168.65
+  ],
+  "wh_matched": 0.0,
+  "diff": 3.47,
+  "fa_inside": 0.0,
+  "fa_starts": false,
+  "wh_inside": 0.0,
+  "wh_starts": false,
+  "winner": "neither"
+ },
+ {
+  "piece": "new-parade",
+  "line": 38,
+  "text": "Togetherness",
+  "fa": [
+   177.43,
+   179.87
+  ],
+  "fa_score": 0.012,
+  "wh": [
+   168.65,
+   169.94
+  ],
+  "wh_matched": 0.0,
+  "diff": 8.78,
+  "fa_inside": 0.0,
+  "fa_starts": false,
+  "wh_inside": 0.0,
+  "wh_starts": false,
+  "winner": "neither"
+ },
+ {
+  "piece": "new-parade",
+  "line": 39,
+  "text": "And so we march",
+  "fa": [
+   183.4,
+   187.1
+  ],
+  "fa_score": 0.1,
+  "wh": [
+   169.94,
+   171.24
+  ],
+  "wh_matched": 0.0,
+  "diff": 13.46,
+  "fa_inside": 0.25,
+  "fa_starts": false,
+  "wh_inside": 0.0,
+  "wh_starts": false,
+  "winner": "fa"
+ },
+ {
+  "piece": "new-parade",
+  "line": 40,
+  "text": "We march together",
+  "fa": [
+   187.1,
+   191.98
+  ],
+  "fa_score": 0.115,
+  "wh": [
+   171.24,
+   172.53
+  ],
+  "wh_matched": 0.0,
+  "diff": 15.86,
+  "fa_inside": 1.0,
+  "fa_starts": true,
+  "wh_inside": 0.0,
+  "wh_starts": false,
+  "winner": "fa"
+ },
+ {
+  "piece": "new-parade",
+  "line": 41,
+  "text": "In a new parade",
+  "fa": [
+   192.0,
+   193.62
+  ],
+  "fa_score": 0.201,
+  "wh": [
+   173.82,
+   173.84
+  ],
+  "wh_matched": 0.25,
+  "diff": 18.18,
+  "fa_inside": 0.0,
+  "fa_starts": false,
+  "wh_inside": 0.0,
+  "wh_starts": false,
+  "winner": "neither"
+ },
+ {
+  "piece": "new-parade",
+  "line": 42,
+  "text": "We march together",
+  "fa": [
+   193.74,
+   212.36
+  ],
+  "fa_score": 0.038,
+  "wh": [
+   173.84,
+   181.41
+  ],
+  "wh_matched": 0.0,
+  "diff": 19.9,
+  "fa_inside": 0.33,
+  "fa_starts": false,
+  "wh_inside": 1.0,
+  "wh_starts": false,
+  "winner": "wh"
+ },
+ {
+  "piece": "new-parade",
+  "line": 43,
+  "text": "Together",
+  "fa": [
+   212.36,
+   213.26
+  ],
+  "fa_score": 0.026,
+  "wh": [
+   181.41,
+   188.97
+  ],
+  "wh_matched": 0.0,
+  "diff": 30.95,
+  "fa_inside": 0.0,
+  "fa_starts": false,
+  "wh_inside": 1.0,
+  "wh_starts": false,
+  "winner": "wh"
+ },
+ {
+  "piece": "new-parade",
+  "line": 44,
+  "text": "Together",
+  "fa": [
+   213.28,
+   214.46
+  ],
+  "fa_score": 0.037,
+  "wh": [
+   188.97,
+   196.54
+  ],
+  "wh_matched": 0.0,
+  "diff": 24.31,
+  "fa_inside": 0.0,
+  "fa_starts": false,
+  "wh_inside": 1.0,
+  "wh_starts": true,
+  "winner": "wh"
+ },
+ {
+  "piece": "new-parade",
+  "line": 45,
+  "text": "Together",
+  "fa": [
+   214.8,
+   216.74
+  ],
+  "fa_score": 0.024,
+  "wh": [
+   196.54,
+   204.1
+  ],
+  "wh_matched": 0.0,
+  "diff": 18.26,
+  "fa_inside": 0.0,
+  "fa_starts": false,
+  "wh_inside": 0.0,
+  "wh_starts": false,
+  "winner": "neither"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 0,
+  "text": "The streets are still, the rain keeps time",
+  "fa": [
+   28.96,
+   31.56
+  ],
+  "fa_score": 0.301,
+  "wh": [
+   29.8,
+   32.08
+  ],
+  "wh_matched": 0.5,
+  "diff": 0.84,
+  "fa_inside": 1.0,
+  "fa_starts": true,
+  "wh_inside": 0.62,
+  "wh_starts": false,
+  "winner": "fa"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 1,
+  "text": "On doors that close like quiet hymns",
+  "fa": [
+   32.7,
+   35.29
+  ],
+  "fa_score": 0.726,
+  "wh": [
+   32.08,
+   36.7
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.62,
+  "fa_inside": 1.0,
+  "fa_starts": false,
+  "wh_inside": 0.86,
+  "wh_starts": false,
+  "winner": "neither"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 2,
+  "text": "A radio hums through someone’s wall",
+  "fa": [
+   36.63,
+   39.13
+  ],
+  "fa_score": 0.641,
+  "wh": [
+   36.64,
+   40.38
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.01,
+  "winner": "agree"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 3,
+  "text": "A child is drawing animals",
+  "fa": [
+   40.45,
+   43.01
+  ],
+  "fa_score": 0.736,
+  "wh": [
+   40.38,
+   43.08
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.07,
+  "winner": "agree"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 4,
+  "text": "And somewhere past the edge of town",
+  "fa": [
+   44.11,
+   46.74
+  ],
+  "fa_score": 0.903,
+  "wh": [
+   44.1,
+   46.96
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.01,
+  "winner": "agree"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 5,
+  "text": "The sky remembers falling down",
+  "fa": [
+   47.86,
+   53.92
+  ],
+  "fa_score": 0.646,
+  "wh": [
+   48.0,
+   54.14
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.14,
+  "winner": "agree"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 6,
+  "text": "Free is all we want to be",
+  "fa": [
+   60.65,
+   64.65
+  ],
+  "fa_score": 0.012,
+  "wh": [
+   60.66,
+   66.08
+  ],
+  "wh_matched": 0.71,
+  "diff": 0.01,
+  "winner": "agree"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 7,
+  "text": "Free is all we’ll ever need",
+  "fa": [
+   68.23,
+   73.1
+  ],
+  "fa_score": 0.172,
+  "wh": [
+   68.2,
+   73.26
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.03,
+  "winner": "agree"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 8,
+  "text": "On the noble hunt, the noble hunt",
+  "fa": [
+   74.36,
+   77.4
+  ],
+  "fa_score": 0.826,
+  "wh": [
+   74.28,
+   77.48
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.08,
+  "winner": "agree"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 9,
+  "text": "We’re carrying the only peace",
+  "fa": [
+   77.5,
+   80.56
+  ],
+  "fa_score": 0.643,
+  "wh": [
+   77.48,
+   79.7
+  ],
+  "wh_matched": 0.8,
+  "diff": 0.02,
+  "winner": "agree"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 10,
+  "text": "That no one else can take from me",
+  "fa": [
+   81.42,
+   83.98
+  ],
+  "fa_score": 0.951,
+  "wh": [
+   81.4,
+   85.34
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.02,
+  "winner": "agree"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 11,
+  "text": "The rockets wrote their name in dust",
+  "fa": [
+   99.09,
+   101.8
+  ],
+  "fa_score": 0.755,
+  "wh": [
+   99.1,
+   101.82
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.01,
+  "winner": "agree"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 12,
+  "text": "But dust forgets, and so it must",
+  "fa": [
+   101.88,
+   105.28
+  ],
+  "fa_score": 0.921,
+  "wh": [
+   101.82,
+   105.32
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.06,
+  "winner": "agree"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 13,
+  "text": "Inside my chest a furnace hums",
+  "fa": [
+   105.92,
+   109.38
+  ],
+  "fa_score": 0.804,
+  "wh": [
+   106.1,
+   109.48
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.18,
+  "winner": "agree"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 14,
+  "text": "A shield of who I was, become",
+  "fa": [
+   109.42,
+   112.84
+  ],
+  "fa_score": 0.775,
+  "wh": [
+   109.48,
+   112.94
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.06,
+  "winner": "agree"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 15,
+  "text": "I track my freedom like a scent",
+  "fa": [
+   112.99,
+   115.29
+  ],
+  "fa_score": 0.771,
+  "wh": [
+   112.94,
+   115.48
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.05,
+  "winner": "agree"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 16,
+  "text": "Through corridors the bombs have bent",
+  "fa": [
+   116.55,
+   121.21
+  ],
+  "fa_score": 0.846,
+  "wh": [
+   116.5,
+   121.24
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.05,
+  "winner": "agree"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 17,
+  "text": "Free is all we want to be",
+  "fa": [
+   121.31,
+   125.29
+  ],
+  "fa_score": 0.18,
+  "wh": [
+   121.34,
+   126.2
+  ],
+  "wh_matched": 0.71,
+  "diff": 0.03,
+  "winner": "agree"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 18,
+  "text": "Free is all we’ll ever need",
+  "fa": [
+   128.92,
+   134.94
+  ],
+  "fa_score": 0.081,
+  "wh": [
+   129.0,
+   134.0
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.08,
+  "winner": "agree"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 19,
+  "text": "On the noble hunt, the noble hunt",
+  "fa": [
+   134.98,
+   138.06
+  ],
+  "fa_score": 0.807,
+  "wh": [
+   134.94,
+   138.08
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.04,
+  "winner": "agree"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 20,
+  "text": "We’re carrying the only peace",
+  "fa": [
+   138.12,
+   141.21
+  ],
+  "fa_score": 0.555,
+  "wh": [
+   138.08,
+   140.3
+  ],
+  "wh_matched": 0.8,
+  "diff": 0.04,
+  "winner": "agree"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 21,
+  "text": "That no one else can take from me",
+  "fa": [
+   142.05,
+   144.57
+  ],
+  "fa_score": 0.828,
+  "wh": [
+   142.14,
+   145.86
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.09,
+  "winner": "agree"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 22,
+  "text": "The hunt that feeds us, names us whole",
+  "fa": [
+   166.69,
+   169.35
+  ],
+  "fa_score": 0.553,
+  "wh": [
+   166.7,
+   169.84
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.01,
+  "winner": "agree"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 23,
+  "text": "That asks the body, asks the soul",
+  "fa": [
+   170.49,
+   173.25
+  ],
+  "fa_score": 0.791,
+  "wh": [
+   169.84,
+   173.58
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.65,
+  "fa_inside": 1.0,
+  "fa_starts": true,
+  "wh_inside": 1.0,
+  "wh_starts": true,
+  "winner": "both"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 24,
+  "text": "What will you save and what release?",
+  "fa": [
+   174.13,
+   177.87
+  ],
+  "fa_score": 0.741,
+  "wh": [
+   174.1,
+   177.02
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.03,
+  "winner": "agree"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 25,
+  "text": "We fight for life by holding peace",
+  "fa": [
+   177.95,
+   180.66
+  ],
+  "fa_score": 0.539,
+  "wh": [
+   177.02,
+   180.74
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.93,
+  "fa_inside": 1.0,
+  "fa_starts": true,
+  "wh_inside": 1.0,
+  "wh_starts": true,
+  "winner": "both"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 26,
+  "text": "The swish of rain, the steady breath",
+  "fa": [
+   181.66,
+   184.98
+  ],
+  "fa_score": 0.487,
+  "wh": [
+   181.7,
+   185.04
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.04,
+  "winner": "agree"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 27,
+  "text": "We choose ourselves above the rest",
+  "fa": [
+   185.48,
+   193.25
+  ],
+  "fa_score": 0.581,
+  "wh": [
+   185.04,
+   192.4
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.44,
+  "fa_inside": 1.0,
+  "fa_starts": true,
+  "wh_inside": 1.0,
+  "wh_starts": true,
+  "winner": "both"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 28,
+  "text": "Free is all we want to be",
+  "fa": [
+   193.41,
+   197.31
+  ],
+  "fa_score": 0.088,
+  "wh": [
+   192.5,
+   198.92
+  ],
+  "wh_matched": 0.71,
+  "diff": 0.91,
+  "fa_inside": 0.71,
+  "fa_starts": false,
+  "wh_inside": 0.57,
+  "wh_starts": false,
+  "winner": "neither"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 29,
+  "text": "Free is all we’ll ever need",
+  "fa": [
+   200.91,
+   206.54
+  ],
+  "fa_score": 0.069,
+  "wh": [
+   200.9,
+   205.58
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.01,
+  "winner": "agree"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 30,
+  "text": "On the noble hunt, the noble hunt",
+  "fa": [
+   207.02,
+   210.1
+  ],
+  "fa_score": 0.052,
+  "wh": [
+   206.9,
+   210.12
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.12,
+  "winner": "agree"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 31,
+  "text": "We’re carrying the only peace",
+  "fa": [
+   210.16,
+   213.32
+  ],
+  "fa_score": 0.576,
+  "wh": [
+   210.12,
+   212.34
+  ],
+  "wh_matched": 0.8,
+  "diff": 0.04,
+  "winner": "agree"
+ },
+ {
+  "piece": "noble-hunt",
+  "line": 32,
+  "text": "That no one else can take from me",
+  "fa": [
+   214.04,
+   216.6
+  ],
+  "fa_score": 0.761,
+  "wh": [
+   214.04,
+   218.58
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.0,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 0,
+  "text": "The train slips through the blanket of the night",
+  "fa": [
+   21.98,
+   25.78
+  ],
+  "fa_score": 0.792,
+  "wh": [
+   22.0,
+   26.02
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.02,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 1,
+  "text": "Glowing snakes of light along the slippery road",
+  "fa": [
+   26.0,
+   29.98
+  ],
+  "fa_score": 0.45,
+  "wh": [
+   26.02,
+   30.72
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.02,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 2,
+  "text": "The questioning passengers won’t meet my eye",
+  "fa": [
+   32.66,
+   36.33
+  ],
+  "fa_score": 0.662,
+  "wh": [
+   32.76,
+   36.44
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.1,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 3,
+  "text": "Going wherever it is they think they’re owed",
+  "fa": [
+   36.53,
+   41.29
+  ],
+  "fa_score": 0.251,
+  "wh": [
+   36.48,
+   38.86
+  ],
+  "wh_matched": 0.62,
+  "diff": 0.05,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 4,
+  "text": "Empty plastic bottles, liberated by the arctic wind",
+  "fa": [
+   42.93,
+   47.01
+  ],
+  "fa_score": 0.138,
+  "wh": [
+   42.9,
+   47.24
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.03,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 5,
+  "text": "Roll across the tracks like they remember how to breathe",
+  "fa": [
+   47.39,
+   52.7
+  ],
+  "fa_score": 0.463,
+  "wh": [
+   47.4,
+   52.44
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.01,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 6,
+  "text": "Giant brushstrokes of black tar paint over where I’ve been",
+  "fa": [
+   52.84,
+   57.48
+  ],
+  "fa_score": 0.533,
+  "wh": [
+   52.82,
+   57.44
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.02,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 7,
+  "text": "The tar speaks low — says no, says why bother, says sleep",
+  "fa": [
+   57.88,
+   64.27
+  ],
+  "fa_score": 0.157,
+  "wh": [
+   57.8,
+   61.92
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.08,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 8,
+  "text": "Why am I here, what am I doing",
+  "fa": [
+   64.69,
+   69.31
+  ],
+  "fa_score": 0.16,
+  "wh": [
+   64.64,
+   69.24
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.05,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 9,
+  "text": "Why am I here, what am I doing",
+  "fa": [
+   70.05,
+   74.65
+  ],
+  "fa_score": 0.271,
+  "wh": [
+   69.24,
+   74.72
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.81,
+  "fa_inside": 0.88,
+  "fa_starts": true,
+  "wh_inside": 0.88,
+  "wh_starts": true,
+  "winner": "both"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 10,
+  "text": "Why do I feel like I’m going down",
+  "fa": [
+   75.37,
+   79.3
+  ],
+  "fa_score": 0.279,
+  "wh": [
+   74.72,
+   79.42
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.65,
+  "fa_inside": 1.0,
+  "fa_starts": false,
+  "wh_inside": 1.0,
+  "wh_starts": false,
+  "winner": "neither"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 11,
+  "text": "The slippery road, the slippery road",
+  "fa": [
+   79.5,
+   83.26
+  ],
+  "fa_score": 0.077,
+  "wh": [
+   79.42,
+   82.0
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.08,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 12,
+  "text": "The slippery road in the night",
+  "fa": [
+   83.38,
+   87.76
+  ],
+  "fa_score": 0.068,
+  "wh": [
+   82.18,
+   86.02
+  ],
+  "wh_matched": 1.0,
+  "diff": 1.2,
+  "fa_inside": 0.0,
+  "fa_starts": false,
+  "wh_inside": 0.67,
+  "wh_starts": false,
+  "winner": "wh"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 13,
+  "text": "Where are they going, these people I don’t know",
+  "fa": [
+   107.52,
+   110.94
+  ],
+  "fa_score": 0.687,
+  "wh": [
+   107.5,
+   111.28
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.02,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 14,
+  "text": "To their dark empty homes, to their hungry cats",
+  "fa": [
+   111.34,
+   116.48
+  ],
+  "fa_score": 0.731,
+  "wh": [
+   111.36,
+   116.44
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.02,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 15,
+  "text": "To their TV ghosts flickering blue against the wall",
+  "fa": [
+   116.86,
+   121.61
+  ],
+  "fa_score": 0.37,
+  "wh": [
+   116.8,
+   121.46
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.06,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 16,
+  "text": "They say we can be anything — they say that, that’s that",
+  "fa": [
+   121.69,
+   127.05
+  ],
+  "fa_score": 0.69,
+  "wh": [
+   121.46,
+   127.28
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.23,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 17,
+  "text": "The black dogs scamper, patient in the shadows",
+  "fa": [
+   127.35,
+   130.73
+  ],
+  "fa_score": 0.757,
+  "wh": [
+   127.46,
+   130.78
+  ],
+  "wh_matched": 0.88,
+  "diff": 0.11,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 18,
+  "text": "An empty outreached hand, blown over in the storm",
+  "fa": [
+   130.79,
+   133.93
+  ],
+  "fa_score": 0.636,
+  "wh": [
+   131.04,
+   134.24
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.25,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 19,
+  "text": "Home — home — less",
+  "fa": [
+   134.19,
+   136.6
+  ],
+  "fa_score": 0.638,
+  "wh": [
+   134.24,
+   135.92
+  ],
+  "wh_matched": 0.0,
+  "diff": 0.05,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 20,
+  "text": "And then I see, for the first time, it’s me",
+  "fa": [
+   138.08,
+   141.48
+  ],
+  "fa_score": 0.777,
+  "wh": [
+   137.6,
+   142.14
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.48,
+  "fa_inside": 1.0,
+  "fa_starts": true,
+  "wh_inside": 1.0,
+  "wh_starts": true,
+  "winner": "both"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 21,
+  "text": "It’s my hand",
+  "fa": [
+   142.4,
+   143.54
+  ],
+  "fa_score": 0.622,
+  "wh": [
+   142.54,
+   143.68
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.14,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 22,
+  "text": "The wet concrete is my home",
+  "fa": [
+   144.66,
+   148.81
+  ],
+  "fa_score": 0.759,
+  "wh": [
+   144.7,
+   149.98
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.04,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 23,
+  "text": "Why am I here, what am I doing",
+  "fa": [
+   150.07,
+   154.81
+  ],
+  "fa_score": 0.028,
+  "wh": [
+   150.02,
+   154.68
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.05,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 24,
+  "text": "Why am I here, what am I doing",
+  "fa": [
+   155.37,
+   160.13
+  ],
+  "fa_score": 0.267,
+  "wh": [
+   154.68,
+   159.86
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.69,
+  "fa_inside": 0.88,
+  "fa_starts": true,
+  "wh_inside": 0.88,
+  "wh_starts": true,
+  "winner": "both"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 25,
+  "text": "Why do I feel like I’m going down",
+  "fa": [
+   160.71,
+   164.64
+  ],
+  "fa_score": 0.234,
+  "wh": [
+   159.86,
+   164.82
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.85,
+  "fa_inside": 0.88,
+  "fa_starts": true,
+  "wh_inside": 0.88,
+  "wh_starts": true,
+  "winner": "both"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 26,
+  "text": "The slippery road, the slippery road",
+  "fa": [
+   164.64,
+   167.36
+  ],
+  "fa_score": 0.059,
+  "wh": [
+   164.82,
+   167.36
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.18,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 27,
+  "text": "The slippery road in the night",
+  "fa": [
+   167.36,
+   170.6
+  ],
+  "fa_score": 0.071,
+  "wh": [
+   167.42,
+   171.46
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.06,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 28,
+  "text": "Embrace the dark and wet",
+  "fa": [
+   170.66,
+   176.12
+  ],
+  "fa_score": 0.028,
+  "wh": [
+   174.7,
+   176.62
+  ],
+  "wh_matched": 0.8,
+  "diff": 4.04,
+  "fa_inside": 0.0,
+  "fa_starts": false,
+  "wh_inside": 0.6,
+  "wh_starts": false,
+  "winner": "wh"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 29,
+  "text": "Hug the arctic wind",
+  "fa": [
+   179.53,
+   182.81
+  ],
+  "fa_score": 0.037,
+  "wh": [
+   179.48,
+   182.02
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.05,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 30,
+  "text": "Why don’t they look at me",
+  "fa": [
+   184.53,
+   186.33
+  ],
+  "fa_score": 0.281,
+  "wh": [
+   184.5,
+   187.28
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.03,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 31,
+  "text": "What are they afraid of seeing",
+  "fa": [
+   188.85,
+   192.02
+  ],
+  "fa_score": 0.408,
+  "wh": [
+   188.84,
+   191.88
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.01,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 32,
+  "text": "Maybe themselves",
+  "fa": [
+   192.2,
+   194.36
+  ],
+  "fa_score": 0.338,
+  "wh": [
+   192.38,
+   194.36
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.18,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 33,
+  "text": "Maybe themselves",
+  "fa": [
+   197.52,
+   199.72
+  ],
+  "fa_score": 0.28,
+  "wh": [
+   197.52,
+   199.76
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.0,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 34,
+  "text": "They’ve got troubles of their own",
+  "fa": [
+   201.88,
+   204.4
+  ],
+  "fa_score": 0.323,
+  "wh": [
+   201.88,
+   204.72
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.0,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 35,
+  "text": "Just to keep the lights on",
+  "fa": [
+   204.84,
+   206.95
+  ],
+  "fa_score": 0.427,
+  "wh": [
+   204.98,
+   207.28
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.14,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 36,
+  "text": "Keep the TV ghosts alive",
+  "fa": [
+   207.51,
+   209.95
+  ],
+  "fa_score": 0.422,
+  "wh": [
+   207.48,
+   210.0
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.03,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 37,
+  "text": "Keep the wine glasses full",
+  "fa": [
+   210.19,
+   212.61
+  ],
+  "fa_score": 0.127,
+  "wh": [
+   210.36,
+   212.44
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.17,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 38,
+  "text": "Keep the wine glasses full",
+  "fa": [
+   212.85,
+   217.97
+  ],
+  "fa_score": 0.15,
+  "wh": [
+   212.44,
+   218.28
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.41,
+  "fa_inside": 0.4,
+  "fa_starts": false,
+  "wh_inside": 0.4,
+  "wh_starts": false,
+  "winner": "neither"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 39,
+  "text": "Down the slippery road",
+  "fa": [
+   218.19,
+   228.9
+  ],
+  "fa_score": 0.242,
+  "wh": [
+   218.28,
+   220.24
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.09,
+  "winner": "agree"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 40,
+  "text": "Down the slippery road",
+  "fa": [
+   242.49,
+   245.85
+  ],
+  "fa_score": 0.101,
+  "wh": [
+   223.54,
+   225.64
+  ],
+  "wh_matched": 1.0,
+  "diff": 18.95,
+  "fa_inside": 0.0,
+  "fa_starts": false,
+  "wh_inside": 0.75,
+  "wh_starts": true,
+  "winner": "wh"
+ },
+ {
+  "piece": "slippery-road-ws",
+  "line": 41,
+  "text": "Down the slippery road in the night",
+  "fa": [
+   246.01,
+   250.36
+  ],
+  "fa_score": 0.087,
+  "wh": [
+   228.88,
+   234.58
+  ],
+  "wh_matched": 1.0,
+  "diff": 17.13,
+  "fa_inside": 0.0,
+  "fa_starts": false,
+  "wh_inside": 1.0,
+  "wh_starts": true,
+  "winner": "wh"
+ },
+ {
+  "piece": "unrequited",
+  "line": 0,
+  "text": "The engine ticks and cools",
+  "fa": [
+   10.77,
+   12.97
+  ],
+  "fa_score": 0.685,
+  "wh": [
+   10.8,
+   12.98
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.03,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 1,
+  "text": "On the wet asphalt below",
+  "fa": [
+   13.09,
+   15.15
+  ],
+  "fa_score": 0.754,
+  "wh": [
+   12.98,
+   15.44
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.11,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 2,
+  "text": "I watch your window glow",
+  "fa": [
+   16.29,
+   18.07
+  ],
+  "fa_score": 0.805,
+  "wh": [
+   15.44,
+   18.32
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.85,
+  "fa_inside": 0.8,
+  "fa_starts": true,
+  "wh_inside": 1.0,
+  "wh_starts": true,
+  "winner": "both"
+ },
+ {
+  "piece": "unrequited",
+  "line": 3,
+  "text": "Through the rain on the glass",
+  "fa": [
+   18.37,
+   20.89
+  ],
+  "fa_score": 0.833,
+  "wh": [
+   18.32,
+   20.98
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.05,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 4,
+  "text": "Your door is closed to me",
+  "fa": [
+   21.49,
+   23.17
+  ],
+  "fa_score": 0.899,
+  "wh": [
+   21.46,
+   23.78
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.03,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 5,
+  "text": "I'm safe in this cold breeze",
+  "fa": [
+   24.09,
+   26.56
+  ],
+  "fa_score": 0.842,
+  "wh": [
+   24.24,
+   26.6
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.15,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 6,
+  "text": "I watch your shadow move",
+  "fa": [
+   27.16,
+   29.02
+  ],
+  "fa_score": 0.654,
+  "wh": [
+   26.6,
+   29.04
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.56,
+  "fa_inside": 0.8,
+  "fa_starts": true,
+  "wh_inside": 1.0,
+  "wh_starts": true,
+  "winner": "both"
+ },
+ {
+  "piece": "unrequited",
+  "line": 7,
+  "text": "And keep my love to me",
+  "fa": [
+   29.04,
+   30.0
+  ],
+  "fa_score": 0.09,
+  "wh": [
+   29.04,
+   31.6
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.0,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 8,
+  "text": "You laugh at something small",
+  "fa": [
+   35.06,
+   37.24
+  ],
+  "fa_score": 0.721,
+  "wh": [
+   35.06,
+   37.3
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.0,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 9,
+  "text": "I can't hear the words you say",
+  "fa": [
+   37.44,
+   39.72
+  ],
+  "fa_score": 0.936,
+  "wh": [
+   37.62,
+   40.14
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.18,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 10,
+  "text": "The porch light cuts the dark",
+  "fa": [
+   40.48,
+   42.69
+  ],
+  "fa_score": 0.692,
+  "wh": [
+   40.48,
+   42.66
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.0,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 11,
+  "text": "And I stay in the gray",
+  "fa": [
+   42.77,
+   44.93
+  ],
+  "fa_score": 0.858,
+  "wh": [
+   42.66,
+   45.1
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.11,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 12,
+  "text": "Your door is closed to me",
+  "fa": [
+   45.69,
+   47.37
+  ],
+  "fa_score": 0.861,
+  "wh": [
+   45.68,
+   47.98
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.01,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 13,
+  "text": "I'm safe in this cold breeze",
+  "fa": [
+   48.27,
+   50.77
+  ],
+  "fa_score": 0.81,
+  "wh": [
+   48.46,
+   50.8
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.19,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 14,
+  "text": "I watch your shadow move",
+  "fa": [
+   51.31,
+   53.07
+  ],
+  "fa_score": 0.938,
+  "wh": [
+   51.1,
+   53.1
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.21,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 15,
+  "text": "And keep my love to me",
+  "fa": [
+   53.11,
+   55.19
+  ],
+  "fa_score": 0.947,
+  "wh": [
+   53.1,
+   55.62
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.01,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 16,
+  "text": "My coat is on your mat",
+  "fa": [
+   69.44,
+   71.74
+  ],
+  "fa_score": 0.849,
+  "wh": [
+   69.44,
+   71.82
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.0,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 17,
+  "text": "From a night I can't recall",
+  "fa": [
+   71.88,
+   74.23
+  ],
+  "fa_score": 0.844,
+  "wh": [
+   71.82,
+   74.54
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.06,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 18,
+  "text": "You never see me stand",
+  "fa": [
+   74.91,
+   77.11
+  ],
+  "fa_score": 0.973,
+  "wh": [
+   74.9,
+   77.14
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.01,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 19,
+  "text": "When the rain starts to fall",
+  "fa": [
+   77.19,
+   79.47
+  ],
+  "fa_score": 0.967,
+  "wh": [
+   77.14,
+   79.74
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.05,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 20,
+  "text": "Your door is closed to me",
+  "fa": [
+   80.15,
+   81.81
+  ],
+  "fa_score": 0.907,
+  "wh": [
+   80.14,
+   82.5
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.01,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 21,
+  "text": "I'm safe in this cold breeze",
+  "fa": [
+   82.73,
+   85.17
+  ],
+  "fa_score": 0.803,
+  "wh": [
+   82.5,
+   85.2
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.23,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 22,
+  "text": "I watch your shadow move",
+  "fa": [
+   85.69,
+   87.51
+  ],
+  "fa_score": 0.926,
+  "wh": [
+   85.52,
+   87.54
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.17,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 23,
+  "text": "And keep my love to me",
+  "fa": [
+   87.55,
+   89.59
+  ],
+  "fa_score": 0.942,
+  "wh": [
+   87.54,
+   90.18
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.01,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 24,
+  "text": "The clock strikes half past ten",
+  "fa": [
+   93.38,
+   95.52
+  ],
+  "fa_score": 0.738,
+  "wh": [
+   93.38,
+   95.56
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.0,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 25,
+  "text": "I turn the key in the lock",
+  "fa": [
+   95.72,
+   97.84
+  ],
+  "fa_score": 0.718,
+  "wh": [
+   95.8,
+   98.08
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.08,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 26,
+  "text": "I drive away again",
+  "fa": [
+   98.9,
+   100.66
+  ],
+  "fa_score": 0.983,
+  "wh": [
+   98.72,
+   100.74
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.18,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 27,
+  "text": "Before you hear the knock",
+  "fa": [
+   100.76,
+   102.9
+  ],
+  "fa_score": 0.805,
+  "wh": [
+   100.74,
+   103.14
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.02,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 28,
+  "text": "Your door is closed to me",
+  "fa": [
+   104.04,
+   105.74
+  ],
+  "fa_score": 0.854,
+  "wh": [
+   104.06,
+   106.3
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.02,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 29,
+  "text": "I'm safe in this cold breeze",
+  "fa": [
+   106.81,
+   109.09
+  ],
+  "fa_score": 0.688,
+  "wh": [
+   106.8,
+   109.12
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.01,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 30,
+  "text": "I watch your shadow move",
+  "fa": [
+   109.63,
+   111.45
+  ],
+  "fa_score": 0.929,
+  "wh": [
+   109.12,
+   111.48
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.51,
+  "fa_inside": 1.0,
+  "fa_starts": true,
+  "wh_inside": 1.0,
+  "wh_starts": true,
+  "winner": "both"
+ },
+ {
+  "piece": "unrequited",
+  "line": 31,
+  "text": "And keep my love to me",
+  "fa": [
+   111.53,
+   113.43
+  ],
+  "fa_score": 0.961,
+  "wh": [
+   111.48,
+   113.94
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.05,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 32,
+  "text": "Your door is closed to me",
+  "fa": [
+   114.69,
+   116.37
+  ],
+  "fa_score": 0.732,
+  "wh": [
+   114.68,
+   116.98
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.01,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 33,
+  "text": "I'm safe in this cold breeze",
+  "fa": [
+   127.3,
+   137.0
+  ],
+  "fa_score": 0.405,
+  "wh": [
+   117.44,
+   119.76
+  ],
+  "wh_matched": 1.0,
+  "diff": 9.86,
+  "fa_inside": 1.0,
+  "fa_starts": false,
+  "wh_inside": 1.0,
+  "wh_starts": true,
+  "winner": "wh"
+ },
+ {
+  "piece": "unrequited",
+  "line": 34,
+  "text": "I watch your shadow move",
+  "fa": [
+   137.14,
+   139.1
+  ],
+  "fa_score": 0.564,
+  "wh": [
+   119.76,
+   122.06
+  ],
+  "wh_matched": 1.0,
+  "diff": 17.38,
+  "fa_inside": 1.0,
+  "fa_starts": true,
+  "wh_inside": 1.0,
+  "wh_starts": true,
+  "winner": "both"
+ },
+ {
+  "piece": "unrequited",
+  "line": 35,
+  "text": "And keep my love to me",
+  "fa": [
+   142.17,
+   143.81
+  ],
+  "fa_score": 0.61,
+  "wh": [
+   122.06,
+   124.9
+  ],
+  "wh_matched": 1.0,
+  "diff": 20.11,
+  "fa_inside": 1.0,
+  "fa_starts": false,
+  "wh_inside": 1.0,
+  "wh_starts": true,
+  "winner": "wh"
+ },
+ {
+  "piece": "unrequited",
+  "line": 36,
+  "text": "Your door is open now",
+  "fa": [
+   147.33,
+   149.39
+  ],
+  "fa_score": 0.476,
+  "wh": [
+   126.52,
+   149.8
+  ],
+  "wh_matched": 1.0,
+  "diff": 20.81,
+  "fa_inside": 1.0,
+  "fa_starts": true,
+  "wh_inside": 1.0,
+  "wh_starts": true,
+  "winner": "both"
+ },
+ {
+  "piece": "unrequited",
+  "line": 37,
+  "text": "I'm standing in the light",
+  "fa": [
+   152.51,
+   157.78
+  ],
+  "fa_score": 0.378,
+  "wh": [
+   152.66,
+   154.56
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.15,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 38,
+  "text": "I watch your shadow go",
+  "fa": [
+   157.78,
+   159.44
+  ],
+  "fa_score": 0.492,
+  "wh": [
+   157.54,
+   161.38
+  ],
+  "wh_matched": 1.0,
+  "diff": 0.24,
+  "winner": "agree"
+ },
+ {
+  "piece": "unrequited",
+  "line": 39,
+  "text": "And let my love go by",
+  "fa": [
+   162.78,
+   164.9
+  ],
+  "fa_score": 0.321,
+  "wh": [
+   161.38,
+   165.04
+  ],
+  "wh_matched": 1.0,
+  "diff": 1.4,
+  "fa_inside": 1.0,
+  "fa_starts": true,
+  "wh_inside": 1.0,
+  "wh_starts": false,
+  "winner": "fa"
+ }
+]
