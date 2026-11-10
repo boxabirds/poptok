@@ -68,18 +68,30 @@ top_v = max(max(e), max(a_ + delta for a_ in avg)) * 1.12
 Y = lambda v: T + PH - v / top_v * PH
 out = []; add = out.append; esc = html.escape
 add(f'<text x="16" y="30" font-size="20" font-weight="700" fill="{INK}">Is this onset strong enough?</text>')
-add(f'<text x="16" y="52" font-size="13" fill="{MUTED}">Two tests: is it a peak? Is it above the line?</text>')
+add(f'<text x="16" y="52" font-size="13" fill="{MUTED}">Each hit is judged once, by its tallest bar</text>')
 # legend
 lx = 16
-for col, lab, dash in ((BAR, "not a peak: same hit", ""), (YES, "peak, above: onset", ""), (NO, "peak, below: no", ""), (THR, "average + 0.07", "5 4")):
+for col, lab, dash in ((YES, "tallest bar above line", ""), (NO, "tallest bar below line", ""), (THR, "average + 0.07", "5 4")):
     da = f' stroke-dasharray="{dash}"' if dash else ""
     add(f'<line x1="{lx}" y1="78" x2="{lx + 22}" y2="78" stroke="{col}" stroke-width="{8 if not dash else 2}"{da}/>')
-    add(f'<text x="{lx + 28}" y="82" font-size="12" fill="{MUTED}">{lab}</text>'); lx += 172
+    add(f'<text x="{lx + 28}" y="82" font-size="12" fill="{MUTED}">{lab}</text>'); lx += 210
 add(f'<rect x="{L}" y="{T}" width="{PW}" height="{PH}" fill="#fafbfc" stroke="{RULE}"/>')
 cset = {c[0]: c for c in cands}
+group = {}                                   # each hit: its tallest bar plus the bars rising to it and fading from it
+for i, ok, _, _ in cands:
+    lo = i
+    while lo > 0 and e[lo - 1] < e[lo] and lo - 1 not in group: lo -= 1
+    hi = i
+    while hi < n - 1 and e[hi + 1] < e[hi]: hi += 1
+    for j in range(lo, hi + 1): group[j] = i
+for k, (i, ok, _, _) in enumerate(cands):
+    js = [j for j, g in group.items() if g == i]; col = YES if ok else NO
+    x0, x1 = L + min(js) * bw, L + (max(js) + 1) * bw
+    add(f'<rect x="{x0:.1f}" y="{T + 2}" width="{x1 - x0:.1f}" height="{PH - 4}" rx="6" fill="{"#eaf6f0" if ok else "#fbecea"}"/>')
+TINT = {True: "#a9dcc4", False: "#eab3ab"}
 for i, v in enumerate(e):
-    col = (YES if cset[i][1] else NO) if i in cset else BAR
-    add(f'<rect x="{L + i * bw + 1:.1f}" y="{Y(v):.1f}" width="{bw - 2:.1f}" height="{T + PH - Y(v):.1f}" fill="{col}" />')
+    col = (YES if cset[i][1] else NO) if i in cset else TINT[cset[group[i]][1]] if i in group else BAR
+    add(f'<rect x="{L + i * bw + 1:.1f}" y="{Y(v):.1f}" width="{bw - 2:.1f}" height="{T + PH - Y(v):.1f}" fill="{col}"/>')
 pts = " ".join(f"{X(i):.1f},{Y(v + delta):.1f}" for i, v in enumerate(avg))
 add(f'<polyline points="{pts}" fill="none" stroke="{THR}" stroke-width="2" stroke-dasharray="5 4"/>')
 for k, (i, ok, v, thr) in enumerate(cands):
