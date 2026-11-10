@@ -60,7 +60,7 @@ if a.mode == "dump":
 
 D = json.load(open(a.src))
 e, avg, delta, cands, dt, t0 = D["e"], D["avg"], D["delta"], D["cands"], D["dt"], D["t0"]
-W = a.width; L, R, T = 40, 16, 150; PW = W - L - R; PH = 300
+W = a.width; L, R, T = 40, 16, 214; PW = W - L - R; PH = 300
 INK, MUTED, RULE, BAR, THR, YES, NO = "#1d2433", "#5b6475", "#d9dde5", "#c9ced8", "#5b6475", "#2f9e6b", "#c0392b"
 n = len(e); bw = PW / n
 X = lambda i: L + (i + 0.5) * bw
@@ -70,9 +70,19 @@ out = []; add = out.append; esc = html.escape
 add(f'<text x="16" y="30" font-size="20" font-weight="700" fill="{INK}">Is this transient an onset?</text>')
 HEAD = [("Transient: the burst at a sound's start. It spans several bars (shaded).", 12.5, 400, MUTED),
         ("1  Take each transient's tallest bar (dark)", 13.5, 700, INK), ("2  Is it above the dashed line there?", 13.5, 700, INK),
-        ("Dashed line: average of bars within 100 ms, + 0.07", 12, 400, MUTED)]
+        ("Dashed line: average of bars within 100 ms, + 0.07", 12, 400, MUTED),
+        ("Shaded span: from where it starts rising to where it stops falling", 12, 400, MUTED)]
 for k, (txt, fs, fw, col) in enumerate(HEAD):
     add(f'<text x="16" y="{56 + k * 20}" font-size="{fs}" font-weight="{fw}" fill="{col}">{esc(txt)}</text>')
+LEG = [("#2f9e6b", "tallest bar: onset"), ("#a9dcc4", "rest of that transient"), ("#c0392b", "tallest bar: not an onset"),
+       ("#eab3ab", "rest of that bump"), ("#c9ced8", "other sounds, outside the three")]
+for k, (col, lab) in enumerate(LEG):
+    lx, ly = 16 + (k % 3) * 236, 56 + len(HEAD) * 20 + 8 + (k // 3) * 20
+    add(f'<rect x="{lx}" y="{ly - 10}" width="14" height="12" fill="{col}"/>')
+    add(f'<text x="{lx + 20}" y="{ly}" font-size="12" fill="{MUTED}">{esc(lab)}</text>')
+lx, ly = 16 + 2 * 236, 56 + len(HEAD) * 20 + 28
+add(f'<line x1="{lx}" y1="{ly - 4}" x2="{lx + 14}" y2="{ly - 4}" stroke="#5b6475" stroke-width="2" stroke-dasharray="4 3"/>')
+add(f'<text x="{lx + 20}" y="{ly}" font-size="12" fill="{MUTED}">the line: average + 0.07</text>')
 add(f'<rect x="{L}" y="{T}" width="{PW}" height="{PH}" fill="#fafbfc" stroke="{RULE}"/>')
 cset = {c[0]: c for c in cands}
 group = {}                                   # each transient: its tallest bar plus the bars rising to it and fading from it
