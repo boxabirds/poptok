@@ -60,7 +60,7 @@ if a.mode == "dump":
 
 D = json.load(open(a.src))
 e, avg, delta, cands, dt, t0 = D["e"], D["avg"], D["delta"], D["cands"], D["dt"], D["t0"]
-W = a.width; L, R, T = 40, 16, 120; PW = W - L - R; PH = 300
+W = a.width; L, R, T = 40, 16, 150; PW = W - L - R; PH = 300
 INK, MUTED, RULE, BAR, THR, YES, NO = "#1d2433", "#5b6475", "#d9dde5", "#c9ced8", "#5b6475", "#2f9e6b", "#c0392b"
 n = len(e); bw = PW / n
 X = lambda i: L + (i + 0.5) * bw
@@ -68,13 +68,11 @@ top_v = max(max(e), max(a_ + delta for a_ in avg)) * 1.12
 Y = lambda v: T + PH - v / top_v * PH
 out = []; add = out.append; esc = html.escape
 add(f'<text x="16" y="30" font-size="20" font-weight="700" fill="{INK}">Is this onset strong enough?</text>')
-add(f'<text x="16" y="52" font-size="13" fill="{MUTED}">Each hit is judged once, by its tallest bar</text>')
-# legend
-lx = 16
-for col, lab, dash in ((YES, "tallest bar above line", ""), (NO, "tallest bar below line", ""), (THR, "average + 0.07", "5 4")):
-    da = f' stroke-dasharray="{dash}"' if dash else ""
-    add(f'<line x1="{lx}" y1="78" x2="{lx + 22}" y2="78" stroke="{col}" stroke-width="{8 if not dash else 2}"{da}/>')
-    add(f'<text x="{lx + 28}" y="82" font-size="12" fill="{MUTED}">{lab}</text>'); lx += 210
+HEAD = [("A hit: one new sound, e.g. a drum strike. It rises and fades over several bars (shaded).", 12.5, 400, MUTED),
+        ("1  Take each hit's tallest bar (dark)", 13.5, 700, INK), ("2  Is it above the dashed line there?", 13.5, 700, INK),
+        ("Dashed line: average of bars within 100 ms, + 0.07", 12, 400, MUTED)]
+for k, (txt, fs, fw, col) in enumerate(HEAD):
+    add(f'<text x="16" y="{56 + k * 20}" font-size="{fs}" font-weight="{fw}" fill="{col}">{esc(txt)}</text>')
 add(f'<rect x="{L}" y="{T}" width="{PW}" height="{PH}" fill="#fafbfc" stroke="{RULE}"/>')
 cset = {c[0]: c for c in cands}
 group = {}                                   # each hit: its tallest bar plus the bars rising to it and fading from it
@@ -98,13 +96,21 @@ for k, (i, ok, v, thr) in enumerate(cands):
     letter = "ABC"[k]; col = YES if ok else NO
     add(f'<line x1="{X(i) - 10:.1f}" y1="{Y(thr):.1f}" x2="{X(i) + 10:.1f}" y2="{Y(thr):.1f}" stroke="{col}" stroke-width="2.5"/>')
     yl = min(min(Y(x) for x in e[max(0, i - 3):i + 4]), Y(thr)) - 30
-    add(f'<text x="{X(i):.1f}" y="{yl:.1f}" font-size="15" font-weight="700" text-anchor="middle" fill="{col}">{letter}: {"yes" if ok else "no"}</text>')
+    add(f'<text x="{X(i):.1f}" y="{yl:.1f}" font-size="15" font-weight="700" text-anchor="middle" fill="{col}">hit {letter}: {"yes" if ok else "no"}</text>')
     add(f'<text x="{X(i):.1f}" y="{yl + 15:.1f}" font-size="11" text-anchor="middle" fill="{MUTED}">{v:.2f} vs {thr:.2f}</text>')
+iA = cands[0][0]; xa0, xa1 = X(max(0, iA - 8)) - bw / 2, X(min(n - 1, iA + 8)) + bw / 2
+yb = T + PH + 30
+add(f'<path d="M{xa0:.1f},{yb - 6} L{xa0:.1f},{yb} L{xa1:.1f},{yb} L{xa1:.1f},{yb - 6}" fill="none" stroke="{YES}" stroke-width="1.5"/>')
+add(f'<text x="{(xa0 + xa1) / 2:.1f}" y="{yb + 15}" font-size="11.5" text-anchor="middle" fill="{YES}">these bars, averaged, + 0.07 = hit A\'s line</text>')
+add(f'<circle cx="{X(iA):.1f}" cy="{Y(cands[0][3]):.1f}" r="4.5" fill="none" stroke="{YES}" stroke-width="2"/>')
+j = iA + 1; tx, ty = X(iA) + 70, T + 26
+add(f'<line x1="{tx - 4:.1f}" y1="{ty + 4:.1f}" x2="{X(j):.1f}" y2="{Y(e[j]) - 2:.1f}" stroke="{MUTED}" stroke-width="1"/>')
+add(f'<text x="{tx:.1f}" y="{ty:.1f}" font-size="11.5" fill="{MUTED}">same hit, not the tallest: ignored</text>')
 for s in range(0, n, 10):
-    add(f'<text x="{X(s):.1f}" y="{T + PH + 16}" font-size="10.5" text-anchor="middle" fill="{MUTED}">{t0 + s * dt:.2f} s</text>')
+    add(f'<text x="{X(s):.1f}" y="{T + PH + 14}" font-size="10.5" text-anchor="middle" fill="{MUTED}">{t0 + s * dt:.2f} s</text>')
 for v in (0, 0.5, 1.0):
     if v <= top_v: add(f'<text x="{L - 6}" y="{Y(v) + 4:.1f}" font-size="10.5" text-anchor="end" fill="{MUTED}">{v:.1f}</text>')
-yy = T + PH + 40
+yy = T + PH + 70
 add(f'<text x="16" y="{yy}" font-size="11" fill="{MUTED}">{esc(D["name"])}, {t0:.2f}–{t0 + n * dt:.2f} s · one bar = 12 ms · librosa onset_detect; '
     f'shown at each peak. tools/onset_svg.py</text>')
 yy += 14
