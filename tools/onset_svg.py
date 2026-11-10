@@ -51,7 +51,7 @@ D = json.load(open(a.src))
 e, line, why, dt, t0 = D["e"], D["line"], D["why"], D["dt"], D["t0"]
 W = a.width; L, R = 40, 16; PW = W - L - R; PH = 280
 INK, MUTED, RULE = "#1d2433", "#5b6475", "#d9dde5"
-COL = {"onset": "#2f9e6b", "falling": "#e8a87c", "too soon": "#9db8e0", "below": "#c9ced8"}
+COL = {"onset": "#2f9e6b", "falling": "#e8a87c", "too soon": "#f1a7a1", "below": "#c9ced8"}
 LAB = {"onset": "onset", "falling": "fails 2: falling", "too soon": "fails 3: too soon", "below": "fails 1: below line"}
 out = []; add = out.append; esc = html.escape
 add(f'<text x="16" y="30" font-size="20" font-weight="700" fill="{INK}">Which bars are onsets?</text>')
@@ -60,7 +60,7 @@ add(f'<text x="16" y="78" font-size="13.5" font-weight="700" fill="{INK}">A bar 
 rules = ["1  is above the dashed line", "2  is as tall as the 2 bars before it", "3  comes 30 ms after the last onset"]
 for k, r in enumerate(rules):
     add(f'<text x="16" y="{98 + k * 19}" font-size="13" fill="{INK}">{esc(r)}</text>')
-add(f'<text x="16" y="{98 + 3 * 19 + 2}" font-size="12" fill="{MUTED}">Dashed line: moving average (100 ms each side) + 0.07</text>')
+add(f'<text x="16" y="{98 + 3 * 19 + 2}" font-size="12" fill="{MUTED}">Dashed line: average of the bars 100 ms either side, + 0.07 (see below)</text>')
 ly = 98 + 4 * 19 + 14
 for k, key in enumerate(["onset", "below", "falling", "too soon"]):
     lx = 16 + k * 172
@@ -72,22 +72,54 @@ X = lambda i: L + (i + 0.5) * bw
 top_v = max(max(e), max(line)) * 1.15
 Y = lambda v: T + PH - v / top_v * PH
 add(f'<rect x="{L}" y="{T}" width="{PW}" height="{PH}" fill="#fafbfc" stroke="{RULE}"/>')
+# one point's window, to show what the line is: the point where the line is highest in view
+im = max(range(n), key=lambda i: line[i]); w0, w1 = max(0, im - 8), min(n - 1, im + 8)
+add(f'<rect x="{L + w0 * bw:.1f}" y="{T + 1}" width="{(w1 - w0 + 1) * bw:.1f}" height="{PH - 2}" fill="#fdf6d8"/>')
 for i, v in enumerate(e):
     add(f'<rect x="{L + i * bw + 1:.1f}" y="{Y(v):.1f}" width="{bw - 2:.1f}" height="{T + PH - Y(v):.1f}" fill="{COL[why[i]]}"/>')
     if why[i] == "onset":
-        yl = min(Y(x) for x in e[i:i + 3]) - 8                           # above this bar and the next two
-        add(f'<text x="{X(i):.1f}" y="{yl:.1f}" font-size="12.5" font-weight="700" text-anchor="middle" fill="{COL["onset"]}">onset</text>')
-        add(f'<line x1="{X(i):.1f}" y1="{yl + 3:.1f}" x2="{X(i):.1f}" y2="{Y(v) - 2:.1f}" stroke="{COL["onset"]}" stroke-width="1.2"/>')
+        crowded = i + 1 < n and e[i + 1] > v                               # a taller bar right after: label to the left
+        add(f'<text x="{X(i) + (bw / 2 - 2 if crowded else 0):.1f}" y="{Y(v) - 8:.1f}" font-size="12.5" font-weight="700" '
+            f'text-anchor="{"end" if crowded else "middle"}" fill="{COL["onset"]}">onset</text>')
+# on-graph labels: why the bars just after an onset aren't onsets
+runs, k = [], 0
+while k < n:
+    if why[k] == "falling":
+        j = k
+        while j + 1 < n and why[j + 1] == "falling": j += 1
+        runs.append(k); k = j + 1
+    else: k += 1
+if runs:
+    msg = "falling immediately after onset = not a new onset"
+    tw = len(msg) * 11.5 * 0.47; tx = max(L + 4, X(runs[0]) - 20); ty = T + 22
+    add(f'<text x="{tx:.1f}" y="{ty:.1f}" font-size="11.5" fill="#b8642e">{msg}</text>')
+    for k, r in enumerate(runs):
+        if k == 0:
+            add(f'<line x1="{X(r):.1f}" y1="{ty + 5:.1f}" x2="{X(r):.1f}" y2="{Y(e[r]) - 3:.1f}" stroke="#b8642e" stroke-width="1"/>')
+        else:                                                              # elbow: along, then straight down
+            add(f'<path d="M{tx + tw + 4:.1f},{ty - 4:.1f} L{X(r):.1f},{ty - 4:.1f} L{X(r):.1f},{Y(e[r]) - 3:.1f}" fill="none" stroke="#b8642e" stroke-width="1"/>')
+for i in [i for i, w in enumerate(why) if w == "too soon"]:
+    tx, ty = X(i) - bw / 2 - 6, Y(e[i]) + 12
+    add(f'<text x="{tx:.1f}" y="{ty:.1f}" font-size="11.5" text-anchor="end" fill="#b03a2e">higher, but too soon</text>')
+    add(f'<text x="{tx:.1f}" y="{ty + 14:.1f}" font-size="11.5" text-anchor="end" fill="#b03a2e">after onset →</text>')
+avg_m = line[im] - 0.07
+add(f'<line x1="{L + w0 * bw:.1f}" y1="{Y(avg_m):.1f}" x2="{L + (w1 + 1) * bw:.1f}" y2="{Y(avg_m):.1f}" stroke="#9a7d0a" stroke-width="2"/>')
+add(f'<line x1="{X(im):.1f}" y1="{Y(avg_m):.1f}" x2="{X(im):.1f}" y2="{Y(line[im]) + 4:.1f}" stroke="#9a7d0a" stroke-width="1.5" marker-end="url(#ah)"/>')
+add(f'<text x="{X(im) + 6:.1f}" y="{(Y(avg_m) + Y(line[im])) / 2 + 4:.1f}" font-size="11" fill="#9a7d0a">+0.07</text>')
+yb = T + PH + 30
+add(f'<path d="M{L + w0 * bw + 1:.1f},{yb - 6} L{L + w0 * bw + 1:.1f},{yb} L{L + (w1 + 1) * bw - 1:.1f},{yb} L{L + (w1 + 1) * bw - 1:.1f},{yb - 6}" fill="none" stroke="#9a7d0a" stroke-width="1.5"/>')
+add(f'<text x="{X(im):.1f}" y="{yb + 15}" font-size="11.5" text-anchor="middle" fill="#9a7d0a">the line at one point = average of these 17 bars (solid) + 0.07</text>')
+add(f'<text x="{X(im):.1f}" y="{yb + 30}" font-size="11.5" text-anchor="middle" fill="#9a7d0a">it rises here because both loud sounds are inside the window</text>')
 pts = " ".join(f"{X(i):.1f},{Y(v):.1f}" for i, v in enumerate(line))
 add(f'<polyline points="{pts}" fill="none" stroke="{INK}" stroke-width="2" stroke-dasharray="6 4"/>')
 for s in range(0, n, 8):
     add(f'<text x="{X(s):.1f}" y="{T + PH + 15}" font-size="10.5" text-anchor="middle" fill="{MUTED}">{t0 + s * dt:.2f} s</text>')
 for v in (0, 0.5):
     if v <= top_v: add(f'<text x="{L - 6}" y="{Y(v) + 4:.1f}" font-size="10.5" text-anchor="end" fill="{MUTED}">{v:.1f}</text>')
-yy = T + PH + 38
+yy = T + PH + 82
 add(f'<text x="16" y="{yy}" font-size="11" fill="{MUTED}">{esc(D["name"])}, {t0:.2f}–{t0 + n * dt:.2f} s · librosa onset_detect, '
     f'rule reproduced ({D["agree"]} onsets in the song) · tools/onset_svg.py</text>')
 yy += 14
 open(a.dst, "w").write(f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{yy}" viewBox="0 0 {W} {yy}" '
-                       f'font-family="Helvetica, Arial, sans-serif"><rect width="100%" height="100%" fill="#ffffff"/>' + "".join(out) + "</svg>")
+                       f'font-family="Helvetica, Arial, sans-serif"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#9a7d0a"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/>' + "".join(out) + "</svg>")
 print(f"wrote {a.dst}")
