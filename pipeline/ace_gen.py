@@ -32,10 +32,13 @@ ap.add_argument("--lyrics-file", required=True)
 ap.add_argument("--name", default="song", help="output file prefix")
 ap.add_argument("--caption-file", required=True, help="< 512 characters")
 ap.add_argument("--bpm", type=int, default=0, help="0 = let the LM choose")
-ap.add_argument("--offload", action="store_true", help="CPU offload (off: run on a box where XL + the 4B LM fit)")
+ap.add_argument("--offload", action="store_true", help="CPU offload: models swapped in and out (recorded in runs.json)")
+ap.add_argument("--codes-file", help="reuse a take's plan (its <name>.codes.txt): same melody, structure and length, new "
+                "performance per seed; the planner then only fills in metadata")
 a = ap.parse_args()
 caption = open(a.caption_file).read().strip()
 lyrics = open(a.lyrics_file).read().strip()
+codes = open(a.codes_file).read().strip() if a.codes_file else ""
 assert len(caption) < 512 and len(lyrics) < 4096, (len(caption), len(lyrics))
 os.makedirs(a.out, exist_ok=True)
 ckpt = os.environ.get("ACESTEP_CHECKPOINTS_DIR", "/app/checkpoints")
@@ -55,7 +58,7 @@ for name in a.variants.split(","):
         t = time.time()
         params = GenerationParams(caption=caption, lyrics=lyrics, bpm=a.bpm or None, vocal_language="en", duration=a.duration,
                                   inference_steps=steps, guidance_scale=gs, seed=seed, thinking=True,
-                                  use_cot_caption=False, use_cot_lyrics=False)
+                                  use_cot_caption=False, use_cot_lyrics=False, audio_codes=codes)
         conf = GenerationConfig(batch_size=1, use_random_seed=False, seeds=[seed], audio_format="wav")
         tmp = os.path.join(a.out, "tmp"); os.makedirs(tmp, exist_ok=True)
         r = generate_music(dit, llm, params, conf, save_dir=tmp)
@@ -66,6 +69,11 @@ for name in a.variants.split(","):
         shutil.move(au["path"], dst)
         p = au.get("params", {})
         meta = {k: p.get(k) for k in ("bpm", "keyscale", "duration", "timesignature", "seed")}
-        log.append({"lm": a.lm, "file": dst, "variant": name, "dit": cfg, "steps": steps, "secs": round(time.time() - t, 1), **meta})
+        if p.get("audio_codes"):                              # the planner's plan of this take, reusable with --codes-file
+            open(dst[:-4] + ".codes.txt", "w").write(p["audio_codes"])
+        log.append({"lm": a.lm, "file": dst, "variant": name, "dit": cfg, "steps": steps, "secs": round(time.time() - t, 1),
+                    "offload": bool(a.offload), "codes_from": a.codes_file, **meta})
         print(json.dumps(log[-1]), flush=True)
-json.dump({"caption": caption, "lyrics": lyrics, "runs": log}, open(os.path.join(a.out, "runs.json"), "w"), indent=1)
+rp = os.path.join(a.out, "runs.json")                      # added to, so later rounds keep earlier takes' records
+prev = json.load(open(rp))["runs"] if os.path.exists(rp) else []
+json.dump({"caption": caption, "lyrics": lyrics, "runs": prev + log}, open(rp, "w"), indent=1)

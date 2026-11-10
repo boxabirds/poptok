@@ -2,6 +2,7 @@
 # Musical style + lyrics -> song (ACE-Step 1.5 XL-sft with the 4B planning LM), best of N seeds by lyric intelligibility.
 #
 #   bin/make_song.sh MUSIC_STYLE.txt LYRICS.txt OUT.wav [--seeds 1,2,3] [--duration auto|SECONDS]
+#   env: MIN_MATCH (0.3) share of lyric words a take must get right; EXTRA_ROUNDS (2) rounds of new seeds if none does
 #
 # - caption: the style text; if it is over ACE-Step's 512-character limit, local Qwen 3.8 condenses it (genre, tempo,
 #   instruments, vocals, mood, production kept; per-section directions dropped, as they belong in the lyric tags)
@@ -49,14 +50,27 @@ EOF
   kill $P; wait $P 2>/dev/null || true
 else cp "$W/caption_raw.txt" "$W/caption.txt"; fi
 BPM=$(cat "$W/bpm.txt"); D=$([ "$DUR" = auto ] && echo -1 || echo "$DUR")
-log "ACE-Step XL-sft + 4B LM, seeds $SEEDS, bpm ${BPM/#0/auto}, duration $DUR"; gpu_free
-docker run --gpus all --rm --user "$(id -u):$(id -g)" --ipc=host -e HOME=/tmp -e USER="$USER" -e LOGNAME="$USER" \
-  -e TORCHINDUCTOR_CACHE_DIR=/tmp/inductor -e HF_HOME=/ckpt/hf -e ACESTEP_CHECKPOINTS_DIR=/ckpt -e PYTHONPATH=/app \
-  -v ~/models/acestep:/ckpt -v "$PWD":/work -w /app --entrypoint /app/.venv/bin/python acestep \
-  /work/pipeline/ace_gen.py "/work/$W" --variants xl-sft --seeds "$SEEDS" --duration "$D" --bpm "$BPM" \
-  --caption-file "/work/$W/caption.txt" --lyrics-file "/work/$W/lyrics.txt" --name song > "$W/ace.log" 2>&1
-log "scoring lyric intelligibility per seed"; gpu_free
-docker run --gpus all --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD":/work -v "$PWD/cache":/cache -w /work \
-  m2v-pre python3 pipeline/ace_score.py "$W" "$W/lyrics.txt" 2>&1 | grep -E "words heard" | tee "$W/scores.txt"
-BEST=$(python3 -c "import glob,json;r=max((json.load(open(f)) for f in glob.glob('$W/*.score.json')),key=lambda x:x['match']);print(r['file'])")
+# Sense check: a take is usable only if Whisper hears at least MIN_MATCH of the lyric words in order (a garbled take
+# scores near 0: unrequited seed 1, 2.2%). If no take passes, sing EXTRA_ROUNDS more rounds of new seeds, then stop
+# rather than hand a garbled song to the video.
+MIN_MATCH=${MIN_MATCH:-0.3}; EXTRA_ROUNDS=${EXTRA_ROUNDS:-2}; ROUND=0
+while :; do
+  log "ACE-Step XL-sft + 4B LM, seeds $SEEDS, bpm ${BPM/#0/auto}, duration $DUR"; gpu_free
+  docker run --gpus all --rm --user "$(id -u):$(id -g)" --ipc=host -e HOME=/tmp -e USER="$USER" -e LOGNAME="$USER" \
+    -e TORCHINDUCTOR_CACHE_DIR=/tmp/inductor -e HF_HOME=/ckpt/hf -e ACESTEP_CHECKPOINTS_DIR=/ckpt -e PYTHONPATH=/app \
+    -v ~/models/acestep:/ckpt -v "$PWD":/work -w /app --entrypoint /app/.venv/bin/python acestep \
+    /work/pipeline/ace_gen.py "/work/$W" --variants xl-sft --seeds "$SEEDS" --duration "$D" --bpm "$BPM" \
+    --caption-file "/work/$W/caption.txt" --lyrics-file "/work/$W/lyrics.txt" --name song >> "$W/ace.log" 2>&1
+  log "sense check: lyric words heard per take"; gpu_free
+  docker run --gpus all --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD":/work -v "$PWD/cache":/cache -w /work \
+    m2v-pre python3 pipeline/ace_score.py "$W" "$W/lyrics.txt" 2>&1 | grep -E "words heard" | tee "$W/scores.txt"
+  read -r BEST BESTM < <(python3 -c "import glob,json;r=max((json.load(open(f)) for f in glob.glob('$W/*.score.json')),key=lambda x:x['match']);print(r['file'],r['match'])")
+  python3 -c "import sys;sys.exit(0 if $BESTM >= $MIN_MATCH else 1)" && break
+  ROUND=$((ROUND + 1))
+  if [ "$ROUND" -gt "$EXTRA_ROUNDS" ]; then
+    log "no take passed the sense check (best $(basename "$BEST"): $BESTM < $MIN_MATCH) after $ROUND rounds; stopping"; exit 1; fi
+  N=$(echo "$SEEDS" | tr , '\n' | wc -l); LAST=$(echo "$SEEDS" | tr , '\n' | sort -n | tail -1)
+  SEEDS=$(seq -s, $((LAST + 1)) $((LAST + N)))
+  log "no take passed the sense check (best $BESTM < $MIN_MATCH): another round, seeds $SEEDS"
+done
 cp "$BEST" "$OUTWAV"; log "best: $(basename "$BEST") -> $OUTWAV"
