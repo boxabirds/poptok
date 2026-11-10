@@ -60,7 +60,7 @@ add(f'<text x="16" y="78" font-size="13.5" font-weight="700" fill="{INK}">A bar 
 rules = ["1  is above the dashed line", "2  is as tall as the 2 bars before it", "3  comes 30 ms after the last onset"]
 for k, r in enumerate(rules):
     add(f'<text x="16" y="{98 + k * 19}" font-size="13" fill="{INK}">{esc(r)}</text>')
-add(f'<text x="16" y="{98 + 3 * 19 + 2}" font-size="12" fill="{MUTED}">Dashed line: average of the bars 100 ms either side, + 0.07 (see below)</text>')
+add(f'<text x="16" y="{98 + 3 * 19 + 2}" font-size="12" fill="{MUTED}">Dashed line: the typical bar height nearby (within 100 ms), raised by 0.07</text>')
 ly = 98 + 4 * 19 + 14
 for k, key in enumerate(["onset", "below", "falling", "too soon"]):
     lx = 16 + k * 172
@@ -72,9 +72,6 @@ X = lambda i: L + (i + 0.5) * bw
 top_v = max(max(e), max(line)) * 1.15
 Y = lambda v: T + PH - v / top_v * PH
 add(f'<rect x="{L}" y="{T}" width="{PW}" height="{PH}" fill="#fafbfc" stroke="{RULE}"/>')
-# one point's window, to show what the line is: the point where the line is highest in view
-im = max(range(n), key=lambda i: line[i]); w0, w1 = max(0, im - 8), min(n - 1, im + 8)
-add(f'<rect x="{L + w0 * bw:.1f}" y="{T + 1}" width="{(w1 - w0 + 1) * bw:.1f}" height="{PH - 2}" fill="#fdf6d8"/>')
 for i, v in enumerate(e):
     add(f'<rect x="{L + i * bw + 1:.1f}" y="{Y(v):.1f}" width="{bw - 2:.1f}" height="{T + PH - Y(v):.1f}" fill="{COL[why[i]]}"/>')
     if why[i] == "onset":
@@ -102,21 +99,13 @@ for i in [i for i, w in enumerate(why) if w == "too soon"]:
     tx, ty = X(i) - bw / 2 - 6, Y(e[i]) + 12
     add(f'<text x="{tx:.1f}" y="{ty:.1f}" font-size="11.5" text-anchor="end" fill="#b03a2e">higher, but too soon</text>')
     add(f'<text x="{tx:.1f}" y="{ty + 14:.1f}" font-size="11.5" text-anchor="end" fill="#b03a2e">after onset →</text>')
-avg_m = line[im] - 0.07
-add(f'<line x1="{L + w0 * bw:.1f}" y1="{Y(avg_m):.1f}" x2="{L + (w1 + 1) * bw:.1f}" y2="{Y(avg_m):.1f}" stroke="#9a7d0a" stroke-width="2"/>')
-add(f'<line x1="{X(im):.1f}" y1="{Y(avg_m):.1f}" x2="{X(im):.1f}" y2="{Y(line[im]) + 4:.1f}" stroke="#9a7d0a" stroke-width="1.5" marker-end="url(#ah)"/>')
-add(f'<text x="{X(im) + 6:.1f}" y="{(Y(avg_m) + Y(line[im])) / 2 + 4:.1f}" font-size="11" fill="#9a7d0a">+0.07</text>')
-yb = T + PH + 30
-add(f'<path d="M{L + w0 * bw + 1:.1f},{yb - 6} L{L + w0 * bw + 1:.1f},{yb} L{L + (w1 + 1) * bw - 1:.1f},{yb} L{L + (w1 + 1) * bw - 1:.1f},{yb - 6}" fill="none" stroke="#9a7d0a" stroke-width="1.5"/>')
-add(f'<text x="{X(im):.1f}" y="{yb + 15}" font-size="11.5" text-anchor="middle" fill="#9a7d0a">the line at one point = average of these 17 bars (solid) + 0.07</text>')
-add(f'<text x="{X(im):.1f}" y="{yb + 30}" font-size="11.5" text-anchor="middle" fill="#9a7d0a">it rises here because both loud sounds are inside the window</text>')
 pts = " ".join(f"{X(i):.1f},{Y(v):.1f}" for i, v in enumerate(line))
 add(f'<polyline points="{pts}" fill="none" stroke="{INK}" stroke-width="2" stroke-dasharray="6 4"/>')
 for s in range(0, n, 8):
     add(f'<text x="{X(s):.1f}" y="{T + PH + 15}" font-size="10.5" text-anchor="middle" fill="{MUTED}">{t0 + s * dt:.2f} s</text>')
 for v in (0, 0.5):
     if v <= top_v: add(f'<text x="{L - 6}" y="{Y(v) + 4:.1f}" font-size="10.5" text-anchor="end" fill="{MUTED}">{v:.1f}</text>')
-yy = T + PH + 82
+yy = T + PH + 38
 add(f'<text x="16" y="{yy}" font-size="11" fill="{MUTED}">{esc(D["name"])}, {t0:.2f}–{t0 + n * dt:.2f} s · librosa onset_detect, '
     f'rule reproduced ({D["agree"]} onsets in the song) · tools/onset_svg.py</text>')
 yy += 14
