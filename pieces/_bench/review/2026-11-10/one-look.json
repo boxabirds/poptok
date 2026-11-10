@@ -1,0 +1,26 @@
+{
+ "A": {
+  "name": "mixed (today)",
+  "same_artist_gap": 1.19,
+  "face_mean": 0.46,
+  "shots_with_her": 6
+ },
+ "B": {
+  "name": "Qwen for all",
+  "same_artist_gap": 0.47,
+  "face_mean": 0.46,
+  "shots_with_her": 6
+ },
+ "C": {
+  "name": "MOSS + Qwen puts her in",
+  "same_artist_gap": 1.42,
+  "face_mean": 0.39,
+  "shots_with_her": 6
+ },
+ "D": {
+  "name": "Qwen, one style still",
+  "same_artist_gap": 1.97,
+  "face_mean": 0.41,
+  "shots_with_her": 6
+ }
+}
