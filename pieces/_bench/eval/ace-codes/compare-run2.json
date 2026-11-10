@@ -1,0 +1,728 @@
+[
+ {
+  "file": "song_xl-sft_s2.wav",
+  "dir": "base",
+  "length": 215.0,
+  "lyric_match": 0.885,
+  "harmony": 1.0,
+  "rhythm": 1.0,
+  "lines": [
+   [
+    0.0,
+    "The engine ticks and cools"
+   ],
+   [
+    12.0,
+    "On the wet asphalt below"
+   ],
+   [
+    17.0,
+    "I watch your window glow"
+   ],
+   [
+    22.0,
+    "Through the rain on the glass"
+   ],
+   [
+    28.0,
+    "We are now at the"
+   ],
+   [
+    33.1,
+    "north end of the road."
+   ],
+   [
+    38.1,
+    "We are now at the north end of the road."
+   ],
+   [
+    43.1,
+    "We are now at the north end of the road."
+   ],
+   [
+    48.1,
+    "We are now at the north end of the road."
+   ],
+   [
+    53.1,
+    "Something small"
+   ],
+   [
+    57.1,
+    "I can't hear the words you say"
+   ],
+   [
+    62.9,
+    "The porch light cuts the dark"
+   ],
+   [
+    67.8,
+    "And I stay in the grave"
+   ],
+   [
+    72.6,
+    "Your door is closed to me"
+   ],
+   [
+    77.8,
+    "I'm safe in this cold breeze"
+   ],
+   [
+    83.1,
+    "I watch your shadow move"
+   ],
+   [
+    88.1,
+    "And keep my love to me"
+   ],
+   [
+    94.1,
+    "My coat is on your mat"
+   ],
+   [
+    99.1,
+    "From a night I can't recall"
+   ],
+   [
+    104.1,
+    "You never see me stand"
+   ],
+   [
+    109.1,
+    "When the rain starts to fall"
+   ],
+   [
+    113.1,
+    "Your door is closed to me"
+   ],
+   [
+    118.1,
+    "I'm safe in this cold breeze"
+   ],
+   [
+    123.1,
+    "I watch your shadow move"
+   ],
+   [
+    128.1,
+    "And keep my love to me"
+   ],
+   [
+    134.1,
+    "The clock strikes half past ten"
+   ],
+   [
+    138.1,
+    "I turn the key in the lock"
+   ],
+   [
+    144.1,
+    "I drive away again"
+   ],
+   [
+    150.1,
+    "Before you hear the knock"
+   ],
+   [
+    155.1,
+    "Your door is closed to me"
+   ],
+   [
+    160.1,
+    "I'm safe in this cold breeze"
+   ],
+   [
+    165.1,
+    "I watch your shadow move"
+   ],
+   [
+    170.1,
+    "And keep my love to me"
+   ],
+   [
+    175.1,
+    "Your door is closed to me"
+   ],
+   [
+    180.1,
+    "I'm safe in this cold breeze"
+   ],
+   [
+    185.1,
+    "I watch your shadow move"
+   ],
+   [
+    190.1,
+    "And keep my love to me"
+   ],
+   [
+    195.1,
+    "Your door is open now"
+   ],
+   [
+    200.1,
+    "I'm standing in the light"
+   ],
+   [
+    205.1,
+    "I watch your shadow go"
+   ],
+   [
+    210.1,
+    "And let my love go by"
+   ]
+  ]
+ },
+ {
+  "file": "song_xl-sft_s3.wav",
+  "dir": "reuse",
+  "length": 215.0,
+  "lyric_match": 0.987,
+  "harmony": 0.522,
+  "rhythm": 0.863,
+  "lines": [
+   [
+    0.0,
+    "The engine ticks and cools"
+   ],
+   [
+    14.0,
+    "On the wet asphalt below"
+   ],
+   [
+    20.0,
+    "I watch your window glow"
+   ],
+   [
+    25.0,
+    "Through the rain on the glass"
+   ],
+   [
+    30.0,
+    "Your door is closed to me"
+   ],
+   [
+    35.0,
+    "I'm safe in this cold breeze"
+   ],
+   [
+    40.0,
+    "I watch your shadow move"
+   ],
+   [
+    46.0,
+    "And keep my love to me"
+   ],
+   [
+    52.0,
+    "You laugh at something small"
+   ],
+   [
+    57.0,
+    "I can't hear the words you say"
+   ],
+   [
+    63.0,
+    "The porch light cuts the dark"
+   ],
+   [
+    68.0,
+    "And I stay in the grave"
+   ],
+   [
+    72.0,
+    "Your door is closed to me"
+   ],
+   [
+    78.0,
+    "I'm safe in this cold breeze"
+   ],
+   [
+    82.0,
+    "I watch your shadow move"
+   ],
+   [
+    87.0,
+    "And keep my love to me"
+   ],
+   [
+    92.0,
+    "My coat is on your mat"
+   ],
+   [
+    97.0,
+    "From a night I can't recall"
+   ],
+   [
+    102.0,
+    "You never see me stand"
+   ],
+   [
+    107.0,
+    "When the rain starts to fall Your door i"
+   ],
+   [
+    117.0,
+    "I'm safe in this cold breeze I watch you"
+   ],
+   [
+    128.0,
+    "And keep my love to me"
+   ],
+   [
+    135.6,
+    "The clock strikes half past ten I turn t"
+   ],
+   [
+    145.9,
+    "I drive away again Before you hear the k"
+   ],
+   [
+    155.8,
+    "Your door is close to me I'm safe in thi"
+   ],
+   [
+    165.8,
+    "I watch the shadow move And keep my love"
+   ],
+   [
+    176.2,
+    "Your door is closed to me"
+   ],
+   [
+    181.2,
+    "I'm safe in this cold breeze"
+   ],
+   [
+    186.2,
+    "I watch your shadow move"
+   ],
+   [
+    191.2,
+    "And keep my love to me"
+   ],
+   [
+    196.2,
+    "Your door is open now"
+   ],
+   [
+    201.2,
+    "I'm standing in the light"
+   ],
+   [
+    206.4,
+    "I watch your shadow go"
+   ],
+   [
+    211.4,
+    "And let my love go by"
+   ]
+  ]
+ },
+ {
+  "file": "song_xl-sft_s4.wav",
+  "dir": "reuse",
+  "length": 215.0,
+  "lyric_match": 0.845,
+  "harmony": 0.808,
+  "rhythm": 0.858,
+  "lines": [
+   [
+    0.0,
+    "The engine ticks and cools On the wet as"
+   ],
+   [
+    18.0,
+    "We are now at the end of our drive."
+   ],
+   [
+    48.0,
+    "You laugh at something small I can't hea"
+   ],
+   [
+    63.0,
+    "But porch light cuts the dark And I stay"
+   ],
+   [
+    72.8,
+    "Your door is closed to me"
+   ],
+   [
+    77.8,
+    "I'm safe in this cold breeze"
+   ],
+   [
+    82.8,
+    "I watch your shadow move"
+   ],
+   [
+    87.8,
+    "And keep my love to me"
+   ],
+   [
+    93.8,
+    "My coat is on your mat"
+   ],
+   [
+    98.8,
+    "From a night I can't recall"
+   ],
+   [
+    103.8,
+    "You never see me stand"
+   ],
+   [
+    108.8,
+    "When the rain starts to fall"
+   ],
+   [
+    113.8,
+    "Your door is close to me"
+   ],
+   [
+    118.8,
+    "I'm safe in this cold breeze"
+   ],
+   [
+    123.8,
+    "I watch your shadow move"
+   ],
+   [
+    128.8,
+    "And keep my love to me"
+   ],
+   [
+    134.8,
+    "The clock strikes half past ten"
+   ],
+   [
+    138.8,
+    "I turn the key in the lock"
+   ],
+   [
+    144.8,
+    "I drive away again"
+   ],
+   [
+    149.8,
+    "Before you hear the knock"
+   ],
+   [
+    153.8,
+    "Your door is closed to me"
+   ],
+   [
+    158.8,
+    "I'm safe in this cold breeze"
+   ],
+   [
+    164.8,
+    "I watch your shadow move"
+   ],
+   [
+    169.8,
+    "And keep my love to me"
+   ],
+   [
+    174.8,
+    "Your door is closed to me"
+   ],
+   [
+    178.8,
+    "I'm safe in this cold breeze"
+   ],
+   [
+    183.8,
+    "I watch your shadow move"
+   ],
+   [
+    188.8,
+    "And keep my love to me"
+   ],
+   [
+    193.8,
+    "Your door is open now"
+   ],
+   [
+    198.8,
+    "I'm standing in the light"
+   ],
+   [
+    203.8,
+    "I watch your shadow go And let my love g"
+   ]
+  ]
+ },
+ {
+  "file": "song_xl-sft_s5.wav",
+  "dir": "reuse",
+  "length": 215.0,
+  "lyric_match": 1.0,
+  "harmony": 0.83,
+  "rhythm": 0.796,
+  "lines": [
+   [
+    0.0,
+    "The engine ticks and cools"
+   ],
+   [
+    14.0,
+    "On the wet asphalt below"
+   ],
+   [
+    20.0,
+    "I watch your window glow"
+   ],
+   [
+    25.0,
+    "Through the rain on the glass"
+   ],
+   [
+    30.0,
+    "Your door is closed to me"
+   ],
+   [
+    35.0,
+    "I'm safe in this cold breeze"
+   ],
+   [
+    41.0,
+    "I watch your shadow move"
+   ],
+   [
+    46.0,
+    "And keep my love to me"
+   ],
+   [
+    49.0,
+    "You laugh at something small I can't hea"
+   ],
+   [
+    62.9,
+    "The porch light cuts the dark And I stay"
+   ],
+   [
+    72.7,
+    "Your door is closed to me"
+   ],
+   [
+    77.7,
+    "I'm safe in this cold breeze"
+   ],
+   [
+    82.7,
+    "I watch your shadow move"
+   ],
+   [
+    88.7,
+    "And keep my love to me"
+   ],
+   [
+    93.7,
+    "My coat is on your mat"
+   ],
+   [
+    98.7,
+    "From a night I can't recall"
+   ],
+   [
+    102.7,
+    "You never see me stand"
+   ],
+   [
+    107.7,
+    "When the rain starts to fall"
+   ],
+   [
+    112.7,
+    "Your door is closed to me"
+   ],
+   [
+    117.7,
+    "I'm safe in this cold breeze"
+   ],
+   [
+    122.7,
+    "I watch your shadow move"
+   ],
+   [
+    127.7,
+    "And keep my love to me"
+   ],
+   [
+    135.7,
+    "The clock strikes half past ten"
+   ],
+   [
+    137.7,
+    "I turn the key in the lock"
+   ],
+   [
+    145.7,
+    "I drive away again"
+   ],
+   [
+    150.7,
+    "Before you hear the knock"
+   ],
+   [
+    154.7,
+    "Your door is closed to me"
+   ],
+   [
+    159.7,
+    "I'm safe in this cold breeze"
+   ],
+   [
+    164.7,
+    "I watch your shadow move"
+   ],
+   [
+    169.7,
+    "And keep my love to me"
+   ],
+   [
+    174.7,
+    "Your door is closed to me"
+   ],
+   [
+    179.7,
+    "I'm safe in this cold breeze"
+   ],
+   [
+    184.7,
+    "I watch your shadow move"
+   ],
+   [
+    189.7,
+    "And keep my love to me"
+   ],
+   [
+    194.7,
+    "Your door is open now"
+   ],
+   [
+    199.7,
+    "I'm standing in the light"
+   ],
+   [
+    204.7,
+    "I watch your shadow go"
+   ],
+   [
+    211.4,
+    "And let my love go by"
+   ]
+  ]
+ },
+ {
+  "file": "control_25oct_s2.wav",
+  "dir": "ace-codes",
+  "length": 175.0,
+  "lyric_match": 0.858,
+  "harmony": -0.057,
+  "rhythm": 0.587,
+  "lines": [
+   [
+    0.0,
+    "The engine ticks and cools on the wet as"
+   ],
+   [
+    16.0,
+    "I watch your window glow through the rai"
+   ],
+   [
+    21.4,
+    "Your door is closed to me, I'm safe in t"
+   ],
+   [
+    26.9,
+    "I watch your shadow move and keep my lov"
+   ],
+   [
+    35.0,
+    "You laugh at something small, I can't he"
+   ],
+   [
+    40.4,
+    "The porch light cuts the dark and I stay"
+   ],
+   [
+    45.6,
+    "Your door is closed to me, I'm safe in t"
+   ],
+   [
+    51.0,
+    "I watch your shadow move and keep my lov"
+   ],
+   [
+    56.9,
+    "We are now at the"
+   ],
+   [
+    62.0,
+    "north end of the road."
+   ],
+   [
+    67.0,
+    "We are now at the"
+   ],
+   [
+    73.0,
+    "north end of the road."
+   ],
+   [
+    78.0,
+    "We are now at the"
+   ],
+   [
+    83.0,
+    "I'm safe in this cold breeze I watch you"
+   ],
+   [
+    93.0,
+    "The clock strikes half past ten I turn t"
+   ],
+   [
+    98.0,
+    "I drive away again before you hear the k"
+   ],
+   [
+    103.0,
+    "Your door is closed to me I'm safe in th"
+   ],
+   [
+    109.0,
+    "I watch your shadow move and keep my lov"
+   ],
+   [
+    114.0,
+    "Your door is close to me, I'm safe in th"
+   ],
+   [
+    119.0,
+    "I watch your shadow move and keep my lov"
+   ],
+   [
+    126.0,
+    "Your door is close to me"
+   ],
+   [
+    131.0,
+    "I'm safe in this cold breeze"
+   ],
+   [
+    134.0,
+    "I watch your shadow move And keep my lov"
+   ],
+   [
+    143.8,
+    "Your door is open now I'm standing in th"
+   ],
+   [
+    154.2,
+    "I watch your shadow go And let my love g"
+   ]
+  ]
+ }
+]

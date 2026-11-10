@@ -39,6 +39,8 @@ a = ap.parse_args()
 caption = open(a.caption_file).read().strip()
 lyrics = open(a.lyrics_file).read().strip()
 codes = open(a.codes_file).read().strip() if a.codes_file else ""
+if codes and a.duration < 0:     # the plan fixes the length (5 codes a second); left to the planner it picks its own
+    a.duration = round(codes.count("<|audio_code_") / 5, 1)   # (260 s against a 215 s plan, and ran out of memory)
 assert len(caption) < 512 and len(lyrics) < 4096, (len(caption), len(lyrics))
 os.makedirs(a.out, exist_ok=True)
 ckpt = os.environ.get("ACESTEP_CHECKPOINTS_DIR", "/app/checkpoints")

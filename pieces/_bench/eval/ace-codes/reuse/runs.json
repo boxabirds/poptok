@@ -1,0 +1,51 @@
+{
+ "caption": "Mid-tempo folk-pop, 90 BPM, minor key, intimate and melancholic mood, fingerpicked acoustic guitar, steady bass pulse, cello entering in later verses, close-mic'd dry vocal, minimal reverb, clean production, no drums until verse 2, sparse percussion, emotional build",
+ "lyrics": "[Intro]\n\n[Verse 1]\nThe engine ticks and cools\nOn the wet asphalt below\nI watch your window glow\nThrough the rain on the glass\n\n[Chorus]\nYour door is closed to me\nI'm safe in this cold breeze\nI watch your shadow move\nAnd keep my love to me\n\n[Verse 2]\nYou laugh at something small\nI can't hear the words you say\nThe porch light cuts the dark\nAnd I stay in the gray\n\n[Chorus]\nYour door is closed to me\nI'm safe in this cold breeze\nI watch your shadow move\nAnd keep my love to me\n\n[Verse 3]\nMy coat is on your mat\nFrom a night I can't recall\nYou never see me stand\nWhen the rain starts to fall\n\n[Chorus]\nYour door is closed to me\nI'm safe in this cold breeze\nI watch your shadow move\nAnd keep my love to me\n\n[Verse 4]\nThe clock strikes half past ten\nI turn the key in the lock\nI drive away again\nBefore you hear the knock\n\n[Chorus]\nYour door is closed to me\nI'm safe in this cold breeze\nI watch your shadow move\nAnd keep my love to me\n\n[Outro]\nYour door is closed to me\nI'm safe in this cold breeze\nI watch your shadow move\nAnd keep my love to me\nYour door is open now\nI'm standing in the light\nI watch your shadow go\nAnd let my love go by",
+ "runs": [
+  {
+   "lm": "acestep-5Hz-lm-4B",
+   "file": "/work/pieces/_bench/eval/ace-codes/reuse/song_xl-sft_s3.wav",
+   "variant": "xl-sft",
+   "dit": "acestep-v15-xl-sft",
+   "steps": 50,
+   "secs": 30.9,
+   "offload": false,
+   "codes_from": "/work/pieces/_bench/eval/ace-codes/base/song_xl-sft_s2.codes.txt",
+   "bpm": 90,
+   "keyscale": "",
+   "duration": -1.0,
+   "timesignature": "",
+   "seed": 3
+  },
+  {
+   "lm": "acestep-5Hz-lm-4B",
+   "file": "/work/pieces/_bench/eval/ace-codes/reuse/song_xl-sft_s4.wav",
+   "variant": "xl-sft",
+   "dit": "acestep-v15-xl-sft",
+   "steps": 50,
+   "secs": 30.4,
+   "offload": false,
+   "codes_from": "/work/pieces/_bench/eval/ace-codes/base/song_xl-sft_s2.codes.txt",
+   "bpm": 90,
+   "keyscale": "",
+   "duration": -1.0,
+   "timesignature": "",
+   "seed": 4
+  },
+  {
+   "lm": "acestep-5Hz-lm-4B",
+   "file": "/work/pieces/_bench/eval/ace-codes/reuse/song_xl-sft_s5.wav",
+   "variant": "xl-sft",
+   "dit": "acestep-v15-xl-sft",
+   "steps": 50,
+   "secs": 30.9,
+   "offload": false,
+   "codes_from": "/work/pieces/_bench/eval/ace-codes/base/song_xl-sft_s2.codes.txt",
+   "bpm": 90,
+   "keyscale": "",
+   "duration": 215.0,
+   "timesignature": "",
+   "seed": 5
+  }
+ ]
+}
