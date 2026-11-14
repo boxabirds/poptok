@@ -155,8 +155,8 @@ fig("3c-beats-drum-runs", T3, "Beats, bars and drum runs", body,
 for f, n in (("beat-detection.svg", "3d-beat-detection.svg"), ("demucs.svg", "3e-demucs.svg"), ("onset.svg", "3f-onsets.svg")):
     shutil.copy(f"pieces/_bench/review/2026-11-10/{f}", f"{OUT}/{n}")
 
-# ---------------------------------------------------------------- task 4: create the singer / actor
-T4 = "Task 4 · Create the singer / actor"
+# ---------------------------------------------------------------- task 4: design the story and the world it's in
+T4 = "Task 4 · Design the story and the world it’s in"
 env = dict(l.split("=", 1) for l in open(f"{P}/piece.env").read().splitlines() if "=" in l and not l.startswith("#"))
 val = lambda k: env[k].split("  #")[0].strip().strip('"')
 av = save(Image.open("pieces/artists/r.amber.jpeg"), "4a-avatar.jpg", 300)

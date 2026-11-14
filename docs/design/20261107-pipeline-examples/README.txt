@@ -1,5 +1,5 @@
 Made by docs/design/page_cards.mjs from /home/julian/sambashare/expts/poptok/docs/design/20261107-pipeline-examples.html
-2026-11-14T16:13:43.943Z
+2026-11-14T16:24:39.238Z
 3a-stems  760x892
 3b-lyrics-timed  760x786
 3c-beats-drum-runs  760x558
