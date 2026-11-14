@@ -1,0 +1,45 @@
+/* Illustrated cards (pipeline_cards_illustrated.py, world_card.py): layered on the pipeline page's own CSS. */
+body.ill { background: #e9ecf1; } body.ill main { padding: 30px 0; }
+.ill .stage { width: 760px; max-width: none; box-sizing: border-box; margin: 0 auto 34px; background: #fff; border: 0; border-radius: 20px;
+  padding: 26px 26px 22px; box-shadow: 0 1px 2px rgba(20,30,50,.06), 0 12px 32px rgba(20,30,50,.09); }
+.ill .st-h { gap: 16px; align-items: center; margin-bottom: 18px; }
+.ill .st-h i { width: 50px; height: 50px; font-size: 26px; background: linear-gradient(140deg, #2f7f86, #1b2026); }
+.ill .st-h h3 { font: 700 31px/1.08 var(--display); letter-spacing: 0; text-transform: none; }
+.ill .st-h p { font-size: 17.5px; margin-top: 4px; }
+.ill .lbl { font-size: 13px; color: #8a929c; margin: 0 0 9px; }
+.ill .st-io ul { display: flex; flex-wrap: wrap; gap: 8px; }
+.ill .st-io li { display: inline-flex; align-items: center; gap: 10px; border: 0; border-radius: 999px; background: #f2f4f7;
+  padding: 6px 16px 6px 16px; font-size: 16.5px; line-height: 1.25; }
+.ill .st-io li.has { padding-left: 5px; }
+.ill .st-io li > img, .ill .st-io li > svg { border-radius: 50%; object-fit: cover; flex: none; }
+.ill .st-io li > svg.wv { border-radius: 0; }
+.ill .st-io li > span:not(.what):not(.eg) { font: 13px var(--mono); color: #8a929c; text-align: left; }
+.ill .st-io.st-out li { background: #e3f0f1; color: #12393d; }
+.ill .st-io li b { font-weight: 600; }
+.ill .st-arrow { padding: 10px 0 8px; } .ill .st-arrow::before { height: 14px; background: #b9c0c9; }
+.ill .st-arrow::after { border-top-color: #b9c0c9; }
+.ill .fsteps { background: none; border: 0; gap: 0; position: relative; padding-left: 4px; overflow: visible; }
+.ill .fsteps::before { content: ""; position: absolute; left: 10px; top: 14px; bottom: 14px; width: 2px; background: #d6e6e8; }
+.ill .fsteps li { display: block; position: relative; background: none; padding: 9px 0 13px 34px; }
+.ill .fsteps li::before { content: ""; position: absolute; left: 0; top: 13px; width: 14px; height: 14px; border-radius: 50%;
+  background: #fff; border: 3px solid #2f7f86; }
+.ill .fdo a, .ill .exp a { color: inherit; text-decoration: underline; text-decoration-color: #b9c0c9; text-underline-offset: 3px; }
+.ill .fdo { display: block; font-size: 17.5px; line-height: 1.42; }
+.ill .fby { display: inline-block; margin-top: 6px; font-size: 13.5px; background: #e3f0f1; color: #1f5f65; border-radius: 6px; padding: 3px 9px; }
+.ill .th { margin-top: 9px; } .ill .th .row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.ill .th img { border-radius: 8px; display: block; } .ill .th .tc { font-size: 14px; color: #7a828c; margin-top: 5px; font-style: italic; }
+.ill .th .arr { font-size: 22px; color: #9aa4ae; padding: 0 2px; }
+.ill .stems { display: grid; gap: 2px; } .ill svg.wv { display: block; }
+.ill .names { font-size: 15px; line-height: 1.6; color: #8a929c; } .ill .names .pkn { color: #1b2026; font-weight: 600; background: #f6e3c4; border-radius: 4px; padding: 1px 5px; }
+.ill .pill { display: inline-block; font-size: 15px; background: #f2f4f7; border-radius: 999px; padding: 5px 12px; color: #3a434e; }
+.ill .eg { margin-top: 9px; font: italic 16px/1.45 Georgia, serif; color: #3a434e; background: #faf7f0; border-radius: 10px; padding: 8px 12px; }
+.ill .eg b { font: 600 12.5px var(--mono); font-style: normal; color: #9a8f74; letter-spacing: .04em; }
+.ill .exp { margin-top: 18px; border: 0; border-radius: 14px; background: #fff6e6; padding: 14px 16px 14px 18px; font-size: 16px; line-height: 1.5; }
+.ill .exp b { display: block; color: #b06d12; font-size: 12.5px; margin-bottom: 5px; }
+.ill .st-needs { margin-top: 16px; border: 0; border-radius: 14px; background: #f4f6f9; padding: 14px 16px; }
+.ill .hwb { display: grid; gap: 10px; } .ill .hwb > div { border-top: 1px solid #e1e5ea; padding-top: 9px; }
+.ill .hwb > div:first-child { border-top: 0; padding-top: 0; }
+.ill .hwb .w { font-size: 16px; font-weight: 600; } .ill .hwb .w a { color: inherit; }
+.ill .hwb .m { font: 13.5px/1.5 var(--mono); color: #1f5f65; margin: 3px 0; }
+.ill .hwb .y { font-size: 14.5px; line-height: 1.45; color: #4d5661; } .ill .hwb .y i { font-style: normal; color: #8a929c; }
+.ill .new, .ill .lean { font-size: 12px; }
