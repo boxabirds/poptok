@@ -115,14 +115,14 @@ for k in (0, 2):
         marks.append(f'<rect x="{x0:.1f}" y="{yy - 21}" width="{max(2, x1 - x0 - 2):.1f}" height="28" rx="3" fill="#e4eef3"/>'
                      f'<text x="{x0 + 3:.1f}" y="{yy}" font-size="20" fill="#1d4f66">{esc(w["text"])}</text>')
     xs, xe = X(s["start"]), X(s["end"])
-    body += (f'<div class="lab">Our lyric line, placed: <b>{esc(s["text"])}</b> ({mmss(s["start"])}–{mmss(s["end"])})</div>'
+    body += (f'<div class="lab">Written lyric line, placed: <b>{esc(s["text"])}</b> ({mmss(s["start"])}–{mmss(s["end"])})</div>'
              f'<svg width="{W}" height="176"><g transform="translate(0,4)">{wave(y, 76, "#9fbcc9")}</g>'
              f'<line x1="{xs:.1f}" y1="0" x2="{xs:.1f}" y2="176" stroke="#c0392b" stroke-width="2.5"/>'
              f'<line x1="{xe:.1f}" y1="0" x2="{xe:.1f}" y2="176" stroke="#c0392b" stroke-width="2.5" stroke-dasharray="6 4"/>'
              + "".join(marks) + "</svg>" + axis(a, b, 32, 0.5))
-fig("3b-lyrics-timed", T3, "Our lyrics on Whisper's word times", body,
+fig("3b-lyrics-timed", T3, "The written lyrics, on Whisper's timings", body,
     "Blue boxes: the words Whisper heard in the vocal stem, with their times (it heard “While the rain keeps time”). "
-    "Red lines: where our own lyric line is placed, start (solid) and end (dashed), by matching its words to Whisper's.")
+    "Red lines: where the written lyric line (from the lyric sheet) is placed, start (solid) and end (dashed), by matching its words to Whisper's. The video uses the written words, never Whisper's.")
 
 b = J(f"{P}/analysis/beats.json"); dh = J(f"{P}/analysis/drum_hits.json")
 a, e = 52.4, 58.4
