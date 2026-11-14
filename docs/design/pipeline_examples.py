@@ -57,7 +57,7 @@ def audio(path, t0, t1, sr=8000):
     return np.frombuffer(raw, np.float32)
 
 
-def wave(y, h, colour, scale=None):
+def wave(y, h, colour, scale=None, W=W):
     """Min/max envelope per pixel column as one SVG path (width W, height h, centred)."""
     cols = np.array_split(y, W)
     lo = np.array([c.min() if len(c) else 0 for c in cols]); hi = np.array([c.max() if len(c) else 0 for c in cols])
@@ -303,6 +303,63 @@ fig("8b-splice", T8, "The singing clip, spliced in", f'<div class="two">{ims}</d
     f"The singing clip replaces the video from {mmss(ins['start'])} to {mmss(ins['end'])}: its sung line plus a "
     "quarter-second either side. It goes in after the grade, so it is not graded.")
 
+# ---------------------------------------------------------------- overview: one row per task, with a real illustration
+import re
+pg = open("docs/design/20261107-pipeline.html").read()
+TT = {int(n): (re.sub("<[^>]+>", "", t), re.sub("<[^>]+>", "", d)) for n, t, d in
+      re.findall(r'<article class="stage[^"]*" id="stage-(\d)">\s*<header class="st-h"><i>\d</i><div><h3>(.*?)</h3><p>(.*?)</p>', pg)}
+IW = 370                                      # illustration width
+
+
+def tile(paths, name, cols, h_each):
+    """Images side by side / in a grid, 6 px gaps, IW wide."""
+    rows = (len(paths) + cols - 1) // cols; w = (IW - 6 * (cols - 1)) // cols
+    im = Image.new("RGB", (IW, rows * h_each + 6 * (rows - 1)), "white")
+    for k, f in enumerate(paths):
+        t = Image.open(f).convert("RGB"); r = max(w / t.width, h_each / t.height)
+        t = t.resize((round(t.width * r), round(t.height * r)), Image.LANCZOS)
+        x0, y0 = (t.width - w) // 2, (t.height - h_each) // 2
+        im.paste(t.crop((x0, y0, x0 + w, y0 + h_each)), ((k % cols) * (w + 6), (k // cols) * (h_each + 6)))
+    return save(im, name, IW)
+
+
+U = "pieces/unrequited"
+ill = {}
+avf = Image.open("pieces/artists/r.amber.jpeg"); avf = avf.crop((80, 40, avf.width - 80, 40 + avf.width - 160))
+ill[0] = (f'<div class="in0"><img src="{save(avf, "ov0.jpg", 150)}" width="150"><div><div class="chiplab">Song prompt</div>'
+          f'<p class="paper">“A song about unrequited love”</p><div class="chiplab">Avatar still ←</div></div></div>')
+ly = [l for l in open(f"{U}/inputs/lyrics.txt").read().splitlines() if l.strip()][1:8]
+ill[1] = '<div class="paper lyr">' + "".join(f'<div class="{"hd" if l.startswith("[") else ""}">{esc(l.strip("[]"))}</div>' for l in ly) + "</div>"
+sc_ = {l.split()[0].split("/")[-1]: l for l in open(f"{U}/outputs/song-song/scores.txt").read().splitlines() if l.strip()}
+tk = ""
+for f, colour in (("song_xl-sft_s1.wav", "#c9ced8"), ("song_xl-sft_s2.wav", "#2f7d9e")):
+    y = audio(f"{U}/outputs/song-song/{f}", 0, 200, 2000)
+    pct = sc_[f].split()[-1]
+    tk += (f'<div class="chiplab">Take {f[-5]} · Whisper heard {pct} of the lyric{" · kept" if f.endswith("s2.wav") else ""}</div>'
+           f'<svg width="{IW}" height="44">{wave(y, 44, colour, W=IW)}</svg>')
+ill[2] = tk
+st_ = ""
+for n, f, c in (("vocals", f"{P}/analysis/song-vocals.mp3", "#2f7d9e"), ("drums", f"{P}/analysis/song-drums.mp3", "#b8642e"),
+                ("bass", f"{P}/analysis/song-bass.mp3", "#6b4fa0"), ("other", f"{P}/analysis/song-other.mp3", "#2f9e6b")):
+    y = audio(f, 58, 66)
+    st_ += f'<div class="stem"><span>{n}</span><svg width="{IW - 70}" height="34">{wave(y, 34, c, W=IW - 70)}</svg></div>'
+ill[3] = st_
+ill[4] = (f'<img src="{tile([f"{P}/inputs/universes/pick{k}_turn.png" for k in (1, 2, 3)], "ov4.jpg", 3, 150)}" width="{IW}">'
+          '<div class="chiplab">3 of 15 worlds tried: felted ash, wet clay, stained glass</div>')
+ill[5] = (f'<div class="ovl"><img src="{save(Image.open(f"{V}/keys/shot_020.png"), "ov5.jpg", IW)}" width="{IW}">'
+          '<span>“Free is all we want to be” → her back, mid-stride, the cloth visible</span></div>')
+ill[6] = (f'<img src="{tile([f"{V}/keys/shot_{i:03d}.png" for i in range(30, 34)], "ov6.jpg", 2, 101)}" width="{IW}">'
+          '<div class="chiplab">one still per bar: 4 bars, 4 stills</div>')
+ill[7] = (f'<img src="{tile([f"{V}/ltx_chain/{n:05d}.png" for n in (2885, 2918, 2934)], "ov7.jpg", 3, 100)}" width="{IW}">'
+          '<div class="chiplab">the corridor becomes the plaza in a dust storm</div>')
+ill[8] = (f'<div class="ovl"><img src="{frame(f"{V}/noble-hunt-v6.mp4", 180.0, "ov8.jpg", IW)}" width="{IW}">'
+          '<span>▶ The finished video · 4:02</span></div>')
+rows = "".join(f'<div class="ovr"><div class="ovt"><i>{n}</i><div><h3>{esc(TT[n][0])}</h3><p>{esc(TT[n][1])}</p></div></div>'
+               f'<div class="ovi">{ill[n]}</div></div>' for n in range(9))
+figs.insert(0, f'<figure class="ex ov" id="0-overview"><div class="task">poptok · prompt to music video</div>'
+               f'<h2>From one line of text to a music video</h2><div class="ovs">{rows}</div>'
+               f'<p class="src">Tasks 0–2: Unrequited, a song the pipeline wrote and sang. Tasks 3–8: Noble Hunt v6.</p></figure>')
+
 # ---------------------------------------------------------------- page
 CSS = """
 body { margin: 0; background: #eef0f4; font-family: "IBM Plex Sans", system-ui, sans-serif; color: #1d2433; }
@@ -331,6 +388,19 @@ table.tl { border-collapse: collapse; width: 100%; } .tl td { font-size: 20px; l
   border-top: 1px solid #d9dde5; vertical-align: top; } .tl td:first-child { width: 112px; padding-right: 18px; white-space: nowrap; }
 .key { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 19px; color: #5b6475; margin-top: 8px; }
 .key i { display: inline-block; width: 16px; height: 16px; margin-right: 8px; vertical-align: -2px; }
+.ovs { position: relative; } .ovs::before { content: ""; position: absolute; left: 19px; top: 30px; bottom: 60px; width: 3px; background: #d9dde5; }
+.ovr { display: grid; grid-template-columns: 318px 370px; gap: 24px; align-items: center; padding: 14px 0; border-top: 1.5px solid #eceef2; position: relative; }
+.ovr:first-child { border-top: 0; }
+.ovt { display: grid; grid-template-columns: 42px 1fr; gap: 12px; align-items: start; }
+.ovt i { font: 700 21px/40px "Archivo Narrow", sans-serif; font-style: normal; width: 40px; height: 40px; border-radius: 50%; background: #1d2433; color: #fff; text-align: center; position: relative; }
+.ovt h3 { font: 700 25px/1.12 "Archivo Narrow", sans-serif; margin: 6px 0 6px; }
+.ovt p { font-size: 18.5px; line-height: 1.35; color: #5b6475; margin: 0; }
+.chiplab { font-size: 17px; color: #5b6475; margin: 4px 0 2px; }
+.paper { background: #faf7f0; border: 1px solid #e6dfcf; padding: 8px 12px; font-size: 19px; line-height: 1.35; margin: 0 0 4px; }
+.lyr { font-family: Georgia, serif; font-style: italic; font-size: 18px; } .lyr .hd { font-style: normal; font: 600 14px "IBM Plex Mono", monospace; color: #8a92a3; text-transform: uppercase; margin-top: 2px; }
+.in0 { display: grid; grid-template-columns: 150px 1fr; gap: 12px; align-items: center; }
+.stem { display: grid; grid-template-columns: 64px 1fr; gap: 6px; align-items: center; } .stem span { font-size: 17px; color: #5b6475; }
+.ovl { position: relative; } .ovl span { position: absolute; left: 0; right: 0; bottom: 0; padding: 6px 10px; font-size: 17px; line-height: 1.3; color: #fff; background: rgba(15, 18, 26, .72); }
 svg { display: block; font-family: "IBM Plex Sans", sans-serif; } svg.axis { margin-bottom: 4px; }
 """
 open(PAGE, "w").write(
