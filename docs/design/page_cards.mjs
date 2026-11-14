@@ -1,5 +1,5 @@
 // Export each card of the pipeline design page as its own image, for articles: PNG (2x) and SVG (vector, via PDF).
-//   node docs/design/page_cards.mjs [PAGE.html] [OUT_DIR] [--dark] [--scale 2] [--all]
+//   node docs/design/page_cards.mjs [PAGE.html] [OUT_DIR] [--dark] [--scale 2] [--all] [--select CSS] [--png-only]
 // Defaults: docs/design/20261107-pipeline.html -> docs/design/20261107-pipeline-cards/ (next to the page)
 // Cards: every article.stage (Who's who, Words used, tasks 0-8). --all adds the detail strips (one per task),
 // the hardware and ComfyUI sections. Each card is rendered alone at the page's own width (cards are 720 px),
@@ -12,11 +12,12 @@ import { tmpdir } from "node:os";
 const args = process.argv.slice(2);
 const flag = (f) => { const i = args.indexOf(f); if (i < 0) return null; args.splice(i, 1); return true; };
 const opt = (f, d) => { const i = args.indexOf(f); if (i < 0) return d; const v = args[i + 1]; args.splice(i, 2); return v; };
-const DARK = flag("--dark"), ALL = flag("--all"), SCALE = Number(opt("--scale", 2));
+const DARK = flag("--dark"), ALL = flag("--all"), PNG_ONLY = flag("--png-only"), SCALE = Number(opt("--scale", 2));
+const PICK = opt("--select", null);   // e.g. "figure.ex" (pipeline_examples.py): any element, named by its id
 const PAGE = resolve(args[0] || "docs/design/20261107-pipeline.html");
 const OUT = resolve(args[1] || PAGE.replace(/\.html$/, "-cards"));
 mkdirSync(OUT, { recursive: true });
-const SEL = ALL ? "article.stage, div.phase, section.hw, section#comfyui" : "article.stage";
+const SEL = PICK || (ALL ? "article.stage, div.phase, section.hw, section#comfyui" : "article.stage");
 
 const prof = mkdtempSync(join(tmpdir(), "cards-chrome-"));
 const chrome = spawn("google-chrome", ["--headless=new", "--remote-debugging-port=0", `--user-data-dir=${prof}`,
@@ -70,10 +71,11 @@ const made = [];
 for (const c of cards) {
   await load();
   const r = await isolate(c.i);
-  const name = (c.id && /^stage-/.test(c.id) ? `task-${c.n}-` : c.kind ? `detail-` : "") + slug(c.title);
+  const name = PICK && c.id ? c.id : (c.id && /^stage-/.test(c.id) ? `task-${c.n}-` : c.kind ? `detail-` : "") + slug(c.title);
   const png = await cdp("Page.captureScreenshot", { format: "png", captureBeyondViewport: true,
     clip: { x: r.x, y: r.y, width: r.w, height: r.h, scale: 1 } });
   writeFileSync(join(OUT, `${name}.png`), Buffer.from(png.data, "base64"));
+  if (PNG_ONLY) { made.push(`${name}  ${r.w}x${r.h}`); console.log(`${name}.png  ${r.w}x${r.h} px (at ${SCALE}x)`); continue; }
   // Vector: centre the card on a page exactly its size, print to PDF, convert to SVG (text becomes outlines).
   await js(`(() => { const s = document.createElement("style");
     s.textContent = "@page { size: ${r.w}px ${r.h + 600}px; margin: 0 } html, body { background: transparent !important }";
