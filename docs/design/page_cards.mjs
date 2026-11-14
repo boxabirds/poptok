@@ -1,6 +1,6 @@
 // Export each card of the pipeline design page as its own image, for articles: PNG (2x) and SVG (vector, via PDF).
-//   node tools/page_cards.mjs [PAGE.html] [OUT_DIR] [--dark] [--scale 2] [--all]
-// Defaults: docs/design/20261107-pipeline.html -> pieces/_bench/review/pipeline-cards/
+//   node docs/design/page_cards.mjs [PAGE.html] [OUT_DIR] [--dark] [--scale 2] [--all]
+// Defaults: docs/design/20261107-pipeline.html -> docs/design/20261107-pipeline-cards/ (next to the page)
 // Cards: every article.stage (Who's who, Words used, tasks 0-8). --all adds the detail strips (one per task),
 // the hardware and ComfyUI sections. Each card is rendered alone at the page's own width (cards are 720 px),
 // so a card longer than the screen comes out whole. Needs google-chrome and pdftocairo (poppler); no npm packages.
@@ -14,7 +14,7 @@ const flag = (f) => { const i = args.indexOf(f); if (i < 0) return null; args.sp
 const opt = (f, d) => { const i = args.indexOf(f); if (i < 0) return d; const v = args[i + 1]; args.splice(i, 2); return v; };
 const DARK = flag("--dark"), ALL = flag("--all"), SCALE = Number(opt("--scale", 2));
 const PAGE = resolve(args[0] || "docs/design/20261107-pipeline.html");
-const OUT = resolve(args[1] || "pieces/_bench/review/pipeline-cards");
+const OUT = resolve(args[1] || PAGE.replace(/\.html$/, "-cards"));
 mkdirSync(OUT, { recursive: true });
 const SEL = ALL ? "article.stage, div.phase, section.hw, section#comfyui" : "article.stage";
 
@@ -98,7 +98,7 @@ for (const c of cards) {
   made.push(`${name}  ${r.w}x${r.h}`);
   console.log(`${name}.png/.svg  ${r.w}x${r.h} px (PNG at ${SCALE}x)`);
 }
-writeFileSync(join(OUT, "README.txt"), `Made by tools/page_cards.mjs from ${PAGE}\n${new Date().toISOString()}\n` + made.join("\n") + "\n");
+writeFileSync(join(OUT, "README.txt"), `Made by docs/design/page_cards.mjs from ${PAGE}\n${new Date().toISOString()}\n` + made.join("\n") + "\n");
 ws.close(); chrome.kill();
 await new Promise((ok) => { chrome.on("exit", ok); setTimeout(ok, 5000); });
 rmSync(prof, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
