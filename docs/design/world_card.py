@@ -65,11 +65,11 @@ pipeline = "".join([
          "Blender by script + MakeHuman + CMU motion capture"),
     step("Render the layout in flat colours, one per kind of thing (the Matrix-Game 4.0 idea)", "Blender"),
     step("Restyle 80 views into the felt world; keep the 58 that match their layout", "Image editing model (Qwen-Image-Edit 2511)"),
-    step("Train a world add-on (LoRA) on those pairs", "LTX-2 trainer, from Layout-To-Render: 197 min on a Spark"),
-    step("Render each shot from the layout video and the LoRA; put her face into the first frame", "LTX-2.5 + Layout-To-Render; face pass"),
+    step("Train a world add-on (LoRA) on those pairs", "Lightricks' LTX-2 trainer, starting from their Layout-To-Render add-on: 197 min on a Spark"),
+    step("Render each shot from the layout video and the LoRA; put her face into the first frame", "Lightricks LTX-2.5 + Layout-To-Render (an IC-LoRA); face pass"),
 ])
 experiments = "".join([
-    exp("yes", "The video follows the 3D layout", "Camera and geometry followed frame by frame: no reinvented room, no walk-and-rewind (rounds 1, 4b).",
+    exp("yes", "The video follows the 3D layout", "Lightricks' Layout-To-Render takes a plain 3D render as the shot's motion: camera and geometry followed frame by frame, no reinvented room, no walk-and-rewind (rounds 1, 4b).",
         side(thumb(f"{B}/world/room/clay_A.mp4", "e1a.jpg", 112, 63, t=1.0),
               thumb(f"{R26}/world-round4b-l2r_nokeys_A.mp4", "e1b.jpg", 112, 63, t=1.0), cap="layout · LTX")),
     exp("no", "Styled stills pinned as the look", "Each still was styled on its own, so each shot was a different room; the stand-in became a toy soldier (rounds 1–3).",
@@ -81,7 +81,7 @@ experiments = "".join([
         side(thumb(f"{R26}/world-round5-vace_B.mp4", "e4.jpg", t=1.7))),
     exp("no", "Flat colours, no training", "LTX copies the flat colours literally: green walls, a brown floor. The look has to come from training.",
         side(thumb(f"{R26}/world-control-l2r_nokeys_A.mp4", "e5.jpg", t=1.7))),
-    exp("no", "A reference sheet (Ingredients add-on)", "No effect on the room; the uniform sheet turned her dark-haired."),
+    exp("no", "A reference sheet (Lightricks' Ingredients add-on)", "No effect on the room; the uniform sheet turned her dark-haired."),
     exp("part", "A dressed, motion-captured body", "Her figure (hair, clothes, pose, motion) from front and back, but a slightly CG woman, not her face.",
         side(thumb(f"{R26}/her-dressed-l2r_nokeys_A.mp4", "e7.jpg", t=1.7, box=(840, 600, 1340, 881)))),
     exp("yes", "A world LoRA trained on one room", "The two camera moves show the same felt room: the first time two shots matched. 58 pairs, ~3 hours.",
@@ -99,7 +99,7 @@ nxt = "".join(f"<li>{x}</li>" for x in [
 ])
 card = f'''<article class="stage world" id="world-experiments">
 <header class="st-h"><i>3D</i><div><h3>Experiment: a 3D world as ground truth</h3>
-<p>Can a Blender scene fix the place, the camera and her body, so the video model only adds the look? Noble Hunt's ruined room, 26–28 Oct</p></div></header>
+<p>Can a Blender scene fix the place, the camera and her body, so the video model only adds the look? Built on Lightricks' Layout-To-Render add-on for their LTX-2.5 video model. Noble Hunt's ruined room, 26–28 Oct</p></div></header>
 <div class="st-io st-in"><div class="lbl">In</div><ul><li><b>A room built by script</b></li><li><b>Her body + a motion clip</b></li>
 <li class="has">{thumb("pieces/artists/r.amber.jpeg", "in3.jpg", 40, 40, box=(90, 60, 694, 664))}<b>Her photo</b></li></ul></div>
 <div class="st-arrow" aria-hidden="true"></div>
