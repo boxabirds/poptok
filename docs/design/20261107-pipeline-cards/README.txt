@@ -1,5 +1,5 @@
 Made by docs/design/page_cards.mjs from /home/julian/sambashare/expts/poptok/docs/design/20261107-pipeline.html
-2026-11-14T16:24:02.766Z
+2026-11-14T16:46:52.243Z
 who-s-who  754x658
 words-used  754x706
 task-0-inputs  754x651
